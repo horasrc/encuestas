@@ -12,8 +12,9 @@
 
   ¡Modifica datos! (publica la encuesta 1, envía una respuesta, crea versiones). Solo desarrollo.
 #>
+param([string]$Base = 'http://localhost:51842')
 $ErrorActionPreference = 'Stop'
-$base = 'http://localhost:51842'
+$base = $Base.TrimEnd('/')
 $fails = 0
 function Check($name, $ok, $detail) { if ($ok) { Write-Host "OK   $name" } else { Write-Host "FAIL $name -> $detail" -ForegroundColor Red; $script:fails++ } }
 

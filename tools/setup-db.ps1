@@ -1,4 +1,4 @@
-<#
+﻿<#
   setup-db.ps1
   Crea la base de datos del módulo de encuestas y ejecuta los scripts de Database\.
   No requiere sqlcmd: usa System.Data.SqlClient y separa los lotes por "GO".

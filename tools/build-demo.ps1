@@ -1,4 +1,4 @@
-<#
+﻿<#
   build-demo.ps1
   Genera las páginas de demostración estáticas a partir de las vistas Razor,
   para revisar el módulo en un navegador sin Visual Studio ni IIS:

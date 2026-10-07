@@ -1,4 +1,4 @@
-<#
+﻿<#
   run-tests.ps1
   Compila y ejecuta las pruebas de reglas de negocio (tests\ServiceTests.cs)
   contra Services\ y Models\Dto\ usando el compilador de .NET Framework,

@@ -20,6 +20,11 @@ así que el proyecto usa el paquete NuGet `Microsoft.NETFramework.ReferenceAssem
 Si compilas antes de restaurar NuGet verás el error «Faltan paquetes NuGet»: restaura y compila de nuevo.
 `Web.config` → `Surveys:UseMockData`: `true` usa datos mock (localStorage); `false` usa `SurveyApiController`.
 
+## Publicar en el servidor
+    powershell -ExecutionPolicy Bypass -File tools\publish.ps1 -SqlServer "SERVIDOR\INSTANCIA" -AdminRoles "DOMINIO\Grupo-Admin"
+
+Genera `publish\Encuestas.Web` (Release, vistas precompiladas, sin datos de prueba). Instalación en IIS: **[DEPLOY.md](DEPLOY.md)**.
+
 ## Pantallas
 | URL | Quién | Qué |
 |---|---|---|
