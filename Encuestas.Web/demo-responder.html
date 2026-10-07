@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<!-- ARCHIVO GENERADO por tools/build-demo.ps1 a partir de Views/. No editar a mano. -->
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Encuesta · Portal interno</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+    <link href="Content/survey/survey.css" rel="stylesheet" />
+</head>
+<body class="sv-respondent-body">
+        <div id="surveyRoot" class="container sv-respond-container" aria-live="polite">
+        <div class="text-center py-5"><div class="spinner-border text-secondary" role="status"><span class="visually-hidden">Cargando…</span></div></div>
+    </div>
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+    // ConfiguraciÃ³n de la demo estÃ¡tica (equivale a _SurveyConfig.cshtml con UseMockData = true).
+    window.SURVEY_CONFIG = {
+        surveyId: new URLSearchParams(window.location.search).get('id') || 's1',
+        useMock: true,
+        currentUser: '',
+        urls: { index: 'demo-index.html', constructor: 'demo.html?id=__ID__', respond: 'demo-responder.html?id=__ID__' }
+    };
+</script>
+    <script src="Scripts/survey/survey-utils.js"></script>
+<script src="Scripts/survey/survey-types.js"></script>
+<script src="Scripts/survey/survey-logic.js"></script>
+<script src="Scripts/survey/survey-renderer.js"></script>
+<script src="Scripts/survey/mock-data.js"></script>
+<script src="Scripts/survey/survey-api.js"></script>
+<script src="Scripts/survey/survey-store.js"></script>
+
+    <script src="Scripts/survey/survey-respond.js"></script>
+    </body>
+</html>

@@ -1,0 +1,37 @@
+﻿@model SurveyPageViewModel
+@{
+    ViewBag.Title = "Constructor de encuestas";
+}
+@* ------------------------------------------------------------------
+   Pantalla principal del módulo. Cada parcial es una sección
+   independiente; el contenido dinámico lo dibuja Scripts/survey/*.js.
+   Los comentarios "demo:*" los usa tools/build-demo.ps1 para generar
+   demo.html (versión estática para revisar sin IIS).
+   ------------------------------------------------------------------ *@
+@* demo:body *@
+<div class="sv-page" id="surveyPage" aria-busy="true">
+    @Html.Partial("_BuilderHeader")
+
+    <div class="tab-content">
+        @Html.Partial("_TabConstructor")
+        @Html.Partial("_TabSettings")
+        @Html.Partial("_TabPreview")
+        @Html.Partial("_TabResults")
+    </div>
+</div>
+
+@Html.Partial("_Modals")
+@* demo:end-body *@
+
+@section scripts {
+    @* demo:scripts *@
+    @Html.Partial("_SurveyConfig", Model)
+    @Html.Partial("_SurveyScripts")
+    <script src="@Url.Versioned("~/Scripts/survey/survey-builder.js")"></script>
+    <script src="@Url.Versioned("~/Scripts/survey/survey-editor.js")"></script>
+    <script src="@Url.Versioned("~/Scripts/survey/survey-settings.js")"></script>
+    <script src="@Url.Versioned("~/Scripts/survey/survey-preview.js")"></script>
+    <script src="@Url.Versioned("~/Scripts/survey/survey-results.js")"></script>
+    <script src="@Url.Versioned("~/Scripts/survey/survey-app.js")"></script>
+    @* demo:end-scripts *@
+}

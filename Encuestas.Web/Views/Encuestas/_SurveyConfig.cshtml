@@ -1,0 +1,29 @@
+﻿@model SurveyPageViewModel
+@* Configuración que el servidor entrega al JavaScript (ver survey-api.js).
+   El token antifalsificación lo lee survey-api.js y lo envía en cada POST. *@
+@Html.AntiForgeryToken()
+<script>
+    window.SURVEY_CONFIG = {
+        surveyId: @Html.Raw(HttpUtility.JavaScriptStringEncode(Model.SurveyId ?? "", true)),
+        useMock: @(Model.UseMockData ? "true" : "false"),
+        currentUser: @Html.Raw(HttpUtility.JavaScriptStringEncode(Model.CurrentUser ?? "", true)),
+        urls: {
+            index: '@Url.Action("Index", "Encuestas")',
+            constructor: '@Url.Action("Constructor", "Encuestas", new { id = "__ID__" })',
+            respond: '@Url.Action("Responder", "Encuestas", new { id = "__ID__" })'
+        },
+        endpoints: {
+            list: '@Url.Action("List", "SurveyApi")',
+            create: '@Url.Action("Create", "SurveyApi")',
+            survey: '@Url.Action("Survey", "SurveyApi")',
+            published: '@Url.Action("Published", "SurveyApi")',
+            catalogs: '@Url.Action("Catalogs", "SurveyApi")',
+            results: '@Url.Action("Results", "SurveyApi")',
+            saveDraft: '@Url.Action("SaveDraft", "SurveyApi")',
+            publish: '@Url.Action("Publish", "SurveyApi")',
+            createVersion: '@Url.Action("CreateVersion", "SurveyApi")',
+            changeStatus: '@Url.Action("ChangeStatus", "SurveyApi")',
+            submit: '@Url.Action("Submit", "SurveyApi")'
+        }
+    };
+</script>

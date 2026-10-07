@@ -1,0 +1,62 @@
+﻿<!-- ================= 2. CONSTRUCTOR DE PREGUNTAS ================= -->
+<div class="tab-pane fade show active" id="tabBuilder" role="tabpanel" aria-labelledby="tabBuilderBtn" tabindex="0">
+    <div class="row g-3">
+
+        <!-- Columna 1: lista de preguntas -->
+        <div class="col-12 col-lg-4 col-xxl-3">
+            <div class="card sv-card">
+                <div class="card-header sv-card-header">
+                    <span class="text-nowrap">Preguntas <span class="badge sv-count" id="questionCount">0</span></span>
+                    <span class="small text-muted text-nowrap d-none d-md-inline" title="Arrastra las preguntas desde el icono para cambiar su orden"><i class="bi bi-grip-vertical"></i> Arrastra</span>
+                </div>
+                <div class="list-group list-group-flush sv-question-list" id="questionList" aria-label="Preguntas de la encuesta"></div>
+                <div class="card-body pt-2">
+                    <div class="dropdown sv-edit-only">
+                        <button type="button" class="btn sv-add-btn w-100" data-bs-toggle="dropdown" aria-expanded="false" id="btnAddQuestion">
+                            <i class="bi bi-plus-lg"></i> Agregar pregunta
+                        </button>
+                        <ul class="dropdown-menu w-100 shadow-sm sv-type-menu" id="addQuestionMenu" aria-labelledby="btnAddQuestion"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resumen visual de toda la lógica condicional -->
+            <div class="card sv-card mt-3">
+                <div class="card-header sv-card-header">
+                    <span><i class="bi bi-signpost-split me-1"></i> Lógica de la encuesta</span>
+                </div>
+                <div class="card-body" id="logicSummary"></div>
+            </div>
+        </div>
+
+        <!-- Columna 2: panel de configuración de la pregunta seleccionada -->
+        <div class="col-12 col-lg-8 col-xxl-5">
+            <div class="card sv-card sv-editor" id="questionEditor" aria-live="polite"></div>
+        </div>
+
+        <!-- Columna 3: vista previa de la pregunta + tipos de pregunta -->
+        <div class="col-12 col-xxl-4">
+            <div class="row g-3">
+                <div class="col-12 col-md-6 col-xxl-12">
+                    <div class="card sv-card">
+                        <div class="card-header sv-card-header">
+                            <span><i class="bi bi-eye me-1"></i> Vista previa de la pregunta</span>
+                        </div>
+                        <div class="card-body sv-question-preview" id="questionPreview"></div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 col-xxl-12">
+                    <div class="card sv-card">
+                        <div class="card-header sv-card-header">
+                            <span>Tipos de pregunta</span>
+                            <span class="small text-muted">Clic para agregar</span>
+                        </div>
+                        <div class="card-body p-2">
+                            <div class="sv-type-palette" id="typePalette"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

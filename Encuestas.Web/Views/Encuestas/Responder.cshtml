@@ -1,0 +1,32 @@
+﻿@model SurveyPageViewModel
+@{
+    // Página independiente del menú del portal: el colaborador solo ve la encuesta.
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Encuesta · Portal interno</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+    <link href="@Url.Versioned("~/Content/survey/survey.css")" rel="stylesheet" />
+</head>
+<body class="sv-respondent-body">
+    @* demo:body *@
+    <div id="surveyRoot" class="container sv-respond-container" aria-live="polite">
+        <div class="text-center py-5"><div class="spinner-border text-secondary" role="status"><span class="visually-hidden">Cargando…</span></div></div>
+    </div>
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
+    @* demo:end-body *@
+
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    @* demo:scripts *@
+    @Html.Partial("_SurveyConfig", Model)
+    @Html.Partial("_SurveyScripts")
+    <script src="@Url.Versioned("~/Scripts/survey/survey-respond.js")"></script>
+    @* demo:end-scripts *@
+</body>
+</html>

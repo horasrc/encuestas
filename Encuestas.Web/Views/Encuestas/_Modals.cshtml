@@ -1,0 +1,35 @@
+﻿<!-- ================= MODALES Y PANELES ================= -->
+
+@Html.Partial("_ConfirmModal")
+
+<!-- Publicar: resumen + validaciones -->
+<div class="modal fade" id="publishModal" tabindex="-1" aria-labelledby="publishModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="publishModalTitle"><i class="bi bi-send me-2"></i>Publicar encuesta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div id="publishErrors" class="alert alert-danger d-none"></div>
+                <div id="publishSummary"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-accent" id="btnConfirmPublish"><i class="bi bi-send me-1"></i> Publicar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 7. VERSIONADO: historial de versiones -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="versionsOffcanvas" aria-labelledby="versionsOffcanvasTitle">
+    <div class="offcanvas-header border-bottom">
+        <h5 class="offcanvas-title" id="versionsOffcanvasTitle"><i class="bi bi-clock-history me-2"></i>Versiones</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+    </div>
+    <div class="offcanvas-body">
+        <p class="small text-muted">Una versión publicada con respuestas no se modifica: los cambios se hacen en una versión nueva y la anterior queda como histórico con sus resultados.</p>
+        <div id="versionsList" class="sv-versions"></div>
+    </div>
+</div>

@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<!-- ARCHIVO GENERADO por tools/build-demo.ps1 a partir de Views/. No editar a mano. -->
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Constructor de encuestas · Portal interno</title>
+    <!-- Bootstrap 5.2.3 + Bootstrap Icons. En intranets sin salida a internet, copiar a ~/Content/lib y cambiar las rutas. -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+    <link href="Content/survey/survey.css" rel="stylesheet" />
+</head>
+<body class="sv-body">
+    <div class="sv-shell">
+        <!-- Menú lateral del portal: offcanvas en móvil, fijo en escritorio (offcanvas-lg) -->
+        <aside class="sv-sidebar offcanvas-lg offcanvas-start" tabindex="-1" id="appSidebar" aria-labelledby="appSidebarLabel">
+            <div class="offcanvas-header border-bottom">
+                <span class="sv-brand" id="appSidebarLabel"><span class="sv-brand-mark"><i class="bi bi-grid-1x2-fill"></i></span> Portal interno</span>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#appSidebar" aria-label="Cerrar menú"></button>
+            </div>
+            <div class="offcanvas-body d-flex flex-column p-0">
+                <div class="sv-brand d-none d-lg-flex"><span class="sv-brand-mark"><i class="bi bi-grid-1x2-fill"></i></span> Portal interno</div>
+                <nav class="sv-nav nav flex-column" aria-label="Menú principal">
+                    <a class="nav-link" href="#"><i class="bi bi-house"></i> Inicio</a>
+                    <a class="nav-link" href="#"><i class="bi bi-chat-square-text"></i> Prompts de ventas</a>
+                    <a class="nav-link" href="#"><i class="bi bi-folder2-open"></i> Recursos comerciales</a>
+                    <a class="nav-link" href="#"><i class="bi bi-calendar-week"></i> Semana sistemática</a>
+                    <a class="nav-link active" aria-current="page" href="demo-index.html"><i class="bi bi-clipboard2-check"></i> Encuestas</a>
+                    <a class="nav-link" href="#"><i class="bi bi-bar-chart-line"></i> Reportes</a>
+                    <a class="nav-link" href="#"><i class="bi bi-mortarboard"></i> Capacitación</a>
+                    <a class="nav-link" href="#"><i class="bi bi-gear"></i> Configuración</a>
+                </nav>
+            </div>
+        </aside>
+
+        <main class="sv-main">
+            <div class="sv-topbar d-lg-none">
+                <button class="btn btn-light border" type="button" data-bs-toggle="offcanvas" data-bs-target="#appSidebar" aria-controls="appSidebar" aria-label="Abrir menú">
+                    <i class="bi bi-list"></i>
+                </button>
+                <span class="sv-brand"><span class="sv-brand-mark"><i class="bi bi-grid-1x2-fill"></i></span> Portal interno</span>
+            </div>
+            <div class="sv-page" id="surveyPage" aria-busy="true">
+    <!-- ================= 1. ENCABEZADO ================= -->
+<header class="sv-page-header">
+    <a href="#" class="sv-back"><i class="bi bi-chevron-left"></i> Encuestas</a>
+
+    <div class="sv-header-row">
+        <div class="sv-header-title">
+            <label for="surveyNameInput" class="visually-hidden">Nombre de la encuesta</label>
+            <span class="sv-title-prefix">Encuesta:</span>
+            <input type="text" id="surveyNameInput" class="sv-title-input" maxlength="200" placeholder="Nombre de la encuesta" autocomplete="off" />
+            <i class="bi bi-pencil sv-title-pencil" aria-hidden="true"></i>
+            <span id="statusBadge" class="badge sv-status">—</span>
+            <button type="button" class="btn btn-sm sv-version-btn" data-bs-toggle="offcanvas" data-bs-target="#versionsOffcanvas" title="Historial de versiones">
+                <i class="bi bi-clock-history"></i> <span id="versionLabel">v—</span>
+            </button>
+            <span id="dirtyIndicator" class="sv-dirty d-none"><i class="bi bi-circle-fill"></i> Cambios sin guardar</span>
+        </div>
+
+        <div class="sv-header-actions">
+            <button type="button" id="btnPreview" class="btn btn-outline-dark"><i class="bi bi-eye"></i> <span class="d-none d-sm-inline">Vista previa</span></button>
+            <button type="button" id="btnSaveDraft" class="btn btn-outline-dark"><i class="bi bi-floppy"></i> <span class="d-none d-sm-inline">Guardar borrador</span></button>
+            <button type="button" id="btnPublish" class="btn btn-accent"><i class="bi bi-send"></i> Publicar encuesta</button>
+            <div class="dropdown">
+                <button class="btn btn-light border" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Más acciones">
+                    <i class="bi bi-three-dots-vertical"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    <li><button class="dropdown-item" type="button" data-bs-toggle="offcanvas" data-bs-target="#versionsOffcanvas"><i class="bi bi-clock-history me-2"></i>Historial de versiones</button></li>
+                    <li><button class="dropdown-item" type="button" id="btnCopyLink"><i class="bi bi-link-45deg me-2"></i>Abrir página de respuesta</button></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><button class="dropdown-item" type="button" id="btnCloseSurvey"><i class="bi bi-lock me-2"></i>Cerrar encuesta</button></li>
+                    <li><button class="dropdown-item" type="button" id="btnArchive"><i class="bi bi-archive me-2"></i>Archivar versión</button></li>
+                    <li class="sv-mock-only"><hr class="dropdown-divider"></li>
+                    <li class="sv-mock-only"><button class="dropdown-item text-danger" type="button" id="btnResetDemo"><i class="bi bi-arrow-counterclockwise me-2"></i>Restablecer datos demo</button></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aviso de versionado: se muestra cuando la versión abierta no se puede editar -->
+    <div id="readOnlyBanner" class="sv-readonly-banner d-none" role="status">
+        <i class="bi bi-lock-fill"></i>
+        <div class="flex-grow-1" id="readOnlyText"></div>
+        <button type="button" id="btnNewVersion" class="btn btn-sm btn-accent text-nowrap"><i class="bi bi-plus-lg"></i> Editar como nueva versión</button>
+    </div>
+
+    <ul class="nav sv-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tabBuilderBtn" data-bs-toggle="tab" data-bs-target="#tabBuilder" type="button" role="tab" aria-controls="tabBuilder" aria-selected="true">
+                <i class="bi bi-ui-checks-grid"></i> Constructor
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tabSettingsBtn" data-bs-toggle="tab" data-bs-target="#tabSettings" type="button" role="tab" aria-controls="tabSettings" aria-selected="false">
+                <i class="bi bi-sliders2"></i> Configuración
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tabPreviewBtn" data-bs-toggle="tab" data-bs-target="#tabPreview" type="button" role="tab" aria-controls="tabPreview" aria-selected="false">
+                <i class="bi bi-phone"></i> Vista previa
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tabResultsBtn" data-bs-toggle="tab" data-bs-target="#tabResults" type="button" role="tab" aria-controls="tabResults" aria-selected="false">
+                <i class="bi bi-bar-chart"></i> Resultados
+            </button>
+        </li>
+    </ul>
+</header>
+
+
+    <div class="tab-content">
+        <!-- ================= 2. CONSTRUCTOR DE PREGUNTAS ================= -->
+<div class="tab-pane fade show active" id="tabBuilder" role="tabpanel" aria-labelledby="tabBuilderBtn" tabindex="0">
+    <div class="row g-3">
+
+        <!-- Columna 1: lista de preguntas -->
+        <div class="col-12 col-lg-4 col-xxl-3">
+            <div class="card sv-card">
+                <div class="card-header sv-card-header">
+                    <span class="text-nowrap">Preguntas <span class="badge sv-count" id="questionCount">0</span></span>
+                    <span class="small text-muted text-nowrap d-none d-md-inline" title="Arrastra las preguntas desde el icono para cambiar su orden"><i class="bi bi-grip-vertical"></i> Arrastra</span>
+                </div>
+                <div class="list-group list-group-flush sv-question-list" id="questionList" aria-label="Preguntas de la encuesta"></div>
+                <div class="card-body pt-2">
+                    <div class="dropdown sv-edit-only">
+                        <button type="button" class="btn sv-add-btn w-100" data-bs-toggle="dropdown" aria-expanded="false" id="btnAddQuestion">
+                            <i class="bi bi-plus-lg"></i> Agregar pregunta
+                        </button>
+                        <ul class="dropdown-menu w-100 shadow-sm sv-type-menu" id="addQuestionMenu" aria-labelledby="btnAddQuestion"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resumen visual de toda la lógica condicional -->
+            <div class="card sv-card mt-3">
+                <div class="card-header sv-card-header">
+                    <span><i class="bi bi-signpost-split me-1"></i> Lógica de la encuesta</span>
+                </div>
+                <div class="card-body" id="logicSummary"></div>
+            </div>
+        </div>
+
+        <!-- Columna 2: panel de configuración de la pregunta seleccionada -->
+        <div class="col-12 col-lg-8 col-xxl-5">
+            <div class="card sv-card sv-editor" id="questionEditor" aria-live="polite"></div>
+        </div>
+
+        <!-- Columna 3: vista previa de la pregunta + tipos de pregunta -->
+        <div class="col-12 col-xxl-4">
+            <div class="row g-3">
+                <div class="col-12 col-md-6 col-xxl-12">
+                    <div class="card sv-card">
+                        <div class="card-header sv-card-header">
+                            <span><i class="bi bi-eye me-1"></i> Vista previa de la pregunta</span>
+                        </div>
+                        <div class="card-body sv-question-preview" id="questionPreview"></div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 col-xxl-12">
+                    <div class="card sv-card">
+                        <div class="card-header sv-card-header">
+                            <span>Tipos de pregunta</span>
+                            <span class="small text-muted">Clic para agregar</span>
+                        </div>
+                        <div class="card-body p-2">
+                            <div class="sv-type-palette" id="typePalette"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+        <!-- ================= 10. PUBLICACIÓN  +  11. SEGMENTACIÓN ================= -->
+<div class="tab-pane fade" id="tabSettings" role="tabpanel" aria-labelledby="tabSettingsBtn" tabindex="0">
+    <fieldset id="settingsFieldset" class="row g-3">
+
+        <!-- Publicación -->
+        <div class="col-12 col-xl-6">
+            <div class="card sv-card h-100">
+                <div class="card-header sv-card-header"><span><i class="bi bi-send me-1"></i> Publicación</span></div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <label for="setStartDate" class="form-label">Fecha de inicio</label>
+                            <input type="date" id="setStartDate" class="form-control" data-setting="startDate" />
+                        </div>
+                        <div class="col-sm-6">
+                            <label for="setEndDate" class="form-label">Fecha de cierre</label>
+                            <input type="date" id="setEndDate" class="form-control" data-setting="endDate" />
+                            <div class="invalid-feedback">La fecha de cierre debe ser posterior al inicio.</div>
+                        </div>
+
+                        <div class="col-12">
+                            <span class="form-label d-block">Respuestas por usuario</span>
+                            <div class="btn-group w-100" role="group" aria-label="Respuestas por usuario">
+                                <input type="radio" class="btn-check" name="setResponses" id="setRespOne" value="one" autocomplete="off">
+                                <label class="btn btn-outline-dark" for="setRespOne"><i class="bi bi-person-check me-1"></i> Una respuesta</label>
+                                <input type="radio" class="btn-check" name="setResponses" id="setRespMulti" value="multi" autocomplete="off">
+                                <label class="btn btn-outline-dark" for="setRespMulti"><i class="bi bi-people me-1"></i> Múltiples respuestas</label>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6">
+                            <div class="sv-switch-card">
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="setAnonymous" data-setting="anonymous">
+                                    <label class="form-check-label fw-semibold" for="setAnonymous">Encuesta anónima</label>
+                                </div>
+                                <div class="form-text">Los resultados no muestran quién respondió.</div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="sv-switch-card">
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="setRequireAuth" data-setting="requireAuth">
+                                    <label class="form-check-label fw-semibold" for="setRequireAuth">Requiere usuario autenticado</label>
+                                </div>
+                                <div class="form-text">Necesario para controlar una respuesta por usuario.</div>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="setWelcome" class="form-label">Mensaje inicial</label>
+                            <textarea id="setWelcome" class="form-control" rows="2" maxlength="2000" data-setting="welcomeMessage" placeholder="Se muestra antes de la primera pregunta"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label for="setThankYou" class="form-label">Mensaje final</label>
+                            <textarea id="setThankYou" class="form-control" rows="2" maxlength="2000" data-setting="thankYouMessage" placeholder="Se muestra al enviar la encuesta"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Segmentación -->
+        <div class="col-12 col-xl-6">
+            <div class="card sv-card h-100">
+                <div class="card-header sv-card-header"><span><i class="bi bi-people me-1"></i> Segmentación · ¿quién puede responder?</span></div>
+                <div class="card-body">
+                    <div class="btn-group w-100 mb-3" role="group" aria-label="Audiencia">
+                        <input type="radio" class="btn-check" name="segMode" id="segAll" value="all" autocomplete="off">
+                        <label class="btn btn-outline-dark" for="segAll"><i class="bi bi-globe2 me-1"></i> Todos los colaboradores</label>
+                        <input type="radio" class="btn-check" name="segMode" id="segSegmented" value="segmented" autocomplete="off">
+                        <label class="btn btn-outline-dark" for="segSegmented"><i class="bi bi-funnel me-1"></i> Audiencia segmentada</label>
+                    </div>
+
+                    <div id="segmentationPanel">
+                        <p class="small text-muted mb-2">Dentro de cada grupo se suma (O); entre grupos se combina (Y). Los usuarios específicos siempre se incluyen.</p>
+                        <div class="accordion sv-accordion" id="segAccordion">
+                            <!-- Los elementos del acordeón se generan en survey-settings.js a partir de los catálogos -->
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer sv-audience">
+                    <div>
+                        <div class="small text-muted">Audiencia estimada</div>
+                        <div><strong id="audienceEstimate" class="fs-4">0</strong> <span class="text-muted">colaboradores</span></div>
+                    </div>
+                    <div id="segSummary" class="sv-seg-summary"></div>
+                </div>
+            </div>
+        </div>
+    </fieldset>
+</div>
+
+        <!-- ================= 6. VISTA PREVIA (Desktop / Tablet / Móvil) ================= -->
+<div class="tab-pane fade" id="tabPreview" role="tabpanel" aria-labelledby="tabPreviewBtn" tabindex="0">
+    <div class="card sv-card">
+        <div class="card-header sv-card-header flex-wrap gap-2">
+            <div class="btn-group" role="group" aria-label="Dispositivo" id="deviceSwitcher">
+                <input type="radio" class="btn-check" name="previewDevice" id="devDesktop" value="desktop" autocomplete="off" checked>
+                <label class="btn btn-sm btn-outline-dark" for="devDesktop"><i class="bi bi-display"></i> Desktop</label>
+                <input type="radio" class="btn-check" name="previewDevice" id="devTablet" value="tablet" autocomplete="off">
+                <label class="btn btn-sm btn-outline-dark" for="devTablet"><i class="bi bi-tablet"></i> Tablet</label>
+                <input type="radio" class="btn-check" name="previewDevice" id="devMobile" value="mobile" autocomplete="off">
+                <label class="btn btn-sm btn-outline-dark" for="devMobile"><i class="bi bi-phone"></i> Móvil</label>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="small text-muted d-none d-md-inline">Incluye cambios sin guardar · prueba la lógica condicional</span>
+                <button type="button" id="btnRestartPreview" class="btn btn-sm btn-light border"><i class="bi bi-arrow-counterclockwise"></i> Reiniciar</button>
+            </div>
+        </div>
+        <div class="card-body sv-preview-stage">
+            <div class="sv-device" id="previewDevice" data-device="desktop">
+                <iframe id="previewFrame" title="Vista previa de la encuesta"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+        <!-- ================= 9. RESULTADOS ================= -->
+<div class="tab-pane fade" id="tabResults" role="tabpanel" aria-labelledby="tabResultsBtn" tabindex="0">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div class="d-flex align-items-center gap-2">
+            <label for="resultsVersion" class="small text-muted text-nowrap">Versión</label>
+            <select id="resultsVersion" class="form-select form-select-sm w-auto"></select>
+        </div>
+        <button type="button" id="btnExportCsv" class="btn btn-sm btn-outline-dark"><i class="bi bi-download"></i> Exportar CSV</button>
+    </div>
+
+    <div class="row row-cols-2 row-cols-md-3 row-cols-xl-5 g-3 mb-3" id="resultsKpis"></div>
+    <div class="row g-3" id="resultsQuestions"></div>
+</div>
+
+    </div>
+</div>
+
+<!-- ================= MODALES Y PANELES ================= -->
+
+<!-- Confirmación genérica (SurveyUtils.confirmDialog) -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmModalTitle">Confirmar</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-accent" data-confirm>Aceptar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Publicar: resumen + validaciones -->
+<div class="modal fade" id="publishModal" tabindex="-1" aria-labelledby="publishModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="publishModalTitle"><i class="bi bi-send me-2"></i>Publicar encuesta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div id="publishErrors" class="alert alert-danger d-none"></div>
+                <div id="publishSummary"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-accent" id="btnConfirmPublish"><i class="bi bi-send me-1"></i> Publicar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 7. VERSIONADO: historial de versiones -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="versionsOffcanvas" aria-labelledby="versionsOffcanvasTitle">
+    <div class="offcanvas-header border-bottom">
+        <h5 class="offcanvas-title" id="versionsOffcanvasTitle"><i class="bi bi-clock-history me-2"></i>Versiones</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+    </div>
+    <div class="offcanvas-body">
+        <p class="small text-muted">Una versión publicada con respuestas no se modifica: los cambios se hacen en una versión nueva y la anterior queda como histórico con sus resultados.</p>
+        <div id="versionsList" class="sv-versions"></div>
+    </div>
+</div>
+        </main>
+    </div>
+
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    // ConfiguraciÃ³n de la demo estÃ¡tica (equivale a _SurveyConfig.cshtml con UseMockData = true).
+    window.SURVEY_CONFIG = {
+        surveyId: new URLSearchParams(window.location.search).get('id') || 's1',
+        useMock: true,
+        currentUser: '',
+        urls: { index: 'demo-index.html', constructor: 'demo.html?id=__ID__', respond: 'demo-responder.html?id=__ID__' }
+    };
+</script>
+    <script src="Scripts/survey/survey-utils.js"></script>
+<script src="Scripts/survey/survey-types.js"></script>
+<script src="Scripts/survey/survey-logic.js"></script>
+<script src="Scripts/survey/survey-renderer.js"></script>
+<script src="Scripts/survey/mock-data.js"></script>
+<script src="Scripts/survey/survey-api.js"></script>
+<script src="Scripts/survey/survey-store.js"></script>
+
+    <script src="Scripts/survey/survey-builder.js"></script>
+    <script src="Scripts/survey/survey-editor.js"></script>
+    <script src="Scripts/survey/survey-settings.js"></script>
+    <script src="Scripts/survey/survey-preview.js"></script>
+    <script src="Scripts/survey/survey-results.js"></script>
+    <script src="Scripts/survey/survey-app.js"></script>
+</body>
+</html>

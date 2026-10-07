@@ -1,0 +1,92 @@
+﻿<!-- ================= 10. PUBLICACIÓN  +  11. SEGMENTACIÓN ================= -->
+<div class="tab-pane fade" id="tabSettings" role="tabpanel" aria-labelledby="tabSettingsBtn" tabindex="0">
+    <fieldset id="settingsFieldset" class="row g-3">
+
+        <!-- Publicación -->
+        <div class="col-12 col-xl-6">
+            <div class="card sv-card h-100">
+                <div class="card-header sv-card-header"><span><i class="bi bi-send me-1"></i> Publicación</span></div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <label for="setStartDate" class="form-label">Fecha de inicio</label>
+                            <input type="date" id="setStartDate" class="form-control" data-setting="startDate" />
+                        </div>
+                        <div class="col-sm-6">
+                            <label for="setEndDate" class="form-label">Fecha de cierre</label>
+                            <input type="date" id="setEndDate" class="form-control" data-setting="endDate" />
+                            <div class="invalid-feedback">La fecha de cierre debe ser posterior al inicio.</div>
+                        </div>
+
+                        <div class="col-12">
+                            <span class="form-label d-block">Respuestas por usuario</span>
+                            <div class="btn-group w-100" role="group" aria-label="Respuestas por usuario">
+                                <input type="radio" class="btn-check" name="setResponses" id="setRespOne" value="one" autocomplete="off">
+                                <label class="btn btn-outline-dark" for="setRespOne"><i class="bi bi-person-check me-1"></i> Una respuesta</label>
+                                <input type="radio" class="btn-check" name="setResponses" id="setRespMulti" value="multi" autocomplete="off">
+                                <label class="btn btn-outline-dark" for="setRespMulti"><i class="bi bi-people me-1"></i> Múltiples respuestas</label>
+                            </div>
+                        </div>
+
+                        <div class="col-sm-6">
+                            <div class="sv-switch-card">
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="setAnonymous" data-setting="anonymous">
+                                    <label class="form-check-label fw-semibold" for="setAnonymous">Encuesta anónima</label>
+                                </div>
+                                <div class="form-text">Los resultados no muestran quién respondió.</div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="sv-switch-card">
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="setRequireAuth" data-setting="requireAuth">
+                                    <label class="form-check-label fw-semibold" for="setRequireAuth">Requiere usuario autenticado</label>
+                                </div>
+                                <div class="form-text">Necesario para controlar una respuesta por usuario.</div>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="setWelcome" class="form-label">Mensaje inicial</label>
+                            <textarea id="setWelcome" class="form-control" rows="2" maxlength="2000" data-setting="welcomeMessage" placeholder="Se muestra antes de la primera pregunta"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label for="setThankYou" class="form-label">Mensaje final</label>
+                            <textarea id="setThankYou" class="form-control" rows="2" maxlength="2000" data-setting="thankYouMessage" placeholder="Se muestra al enviar la encuesta"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Segmentación -->
+        <div class="col-12 col-xl-6">
+            <div class="card sv-card h-100">
+                <div class="card-header sv-card-header"><span><i class="bi bi-people me-1"></i> Segmentación · ¿quién puede responder?</span></div>
+                <div class="card-body">
+                    <div class="btn-group w-100 mb-3" role="group" aria-label="Audiencia">
+                        <input type="radio" class="btn-check" name="segMode" id="segAll" value="all" autocomplete="off">
+                        <label class="btn btn-outline-dark" for="segAll"><i class="bi bi-globe2 me-1"></i> Todos los colaboradores</label>
+                        <input type="radio" class="btn-check" name="segMode" id="segSegmented" value="segmented" autocomplete="off">
+                        <label class="btn btn-outline-dark" for="segSegmented"><i class="bi bi-funnel me-1"></i> Audiencia segmentada</label>
+                    </div>
+
+                    <div id="segmentationPanel">
+                        <p class="small text-muted mb-2">Dentro de cada grupo se suma (O); entre grupos se combina (Y). Los usuarios específicos siempre se incluyen.</p>
+                        <div class="accordion sv-accordion" id="segAccordion">
+                            <!-- Los elementos del acordeón se generan en survey-settings.js a partir de los catálogos -->
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer sv-audience">
+                    <div>
+                        <div class="small text-muted">Audiencia estimada</div>
+                        <div><strong id="audienceEstimate" class="fs-4">0</strong> <span class="text-muted">colaboradores</span></div>
+                    </div>
+                    <div id="segSummary" class="sv-seg-summary"></div>
+                </div>
+            </div>
+        </div>
+    </fieldset>
+</div>

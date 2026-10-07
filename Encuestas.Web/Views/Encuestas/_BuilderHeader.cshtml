@@ -1,0 +1,68 @@
+﻿<!-- ================= 1. ENCABEZADO ================= -->
+<header class="sv-page-header">
+    <a href="#" class="sv-back"><i class="bi bi-chevron-left"></i> Encuestas</a>
+
+    <div class="sv-header-row">
+        <div class="sv-header-title">
+            <label for="surveyNameInput" class="visually-hidden">Nombre de la encuesta</label>
+            <span class="sv-title-prefix">Encuesta:</span>
+            <input type="text" id="surveyNameInput" class="sv-title-input" maxlength="200" placeholder="Nombre de la encuesta" autocomplete="off" />
+            <i class="bi bi-pencil sv-title-pencil" aria-hidden="true"></i>
+            <span id="statusBadge" class="badge sv-status">—</span>
+            <button type="button" class="btn btn-sm sv-version-btn" data-bs-toggle="offcanvas" data-bs-target="#versionsOffcanvas" title="Historial de versiones">
+                <i class="bi bi-clock-history"></i> <span id="versionLabel">v—</span>
+            </button>
+            <span id="dirtyIndicator" class="sv-dirty d-none"><i class="bi bi-circle-fill"></i> Cambios sin guardar</span>
+        </div>
+
+        <div class="sv-header-actions">
+            <button type="button" id="btnPreview" class="btn btn-outline-dark"><i class="bi bi-eye"></i> <span class="d-none d-sm-inline">Vista previa</span></button>
+            <button type="button" id="btnSaveDraft" class="btn btn-outline-dark"><i class="bi bi-floppy"></i> <span class="d-none d-sm-inline">Guardar borrador</span></button>
+            <button type="button" id="btnPublish" class="btn btn-accent"><i class="bi bi-send"></i> Publicar encuesta</button>
+            <div class="dropdown">
+                <button class="btn btn-light border" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Más acciones">
+                    <i class="bi bi-three-dots-vertical"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    <li><button class="dropdown-item" type="button" data-bs-toggle="offcanvas" data-bs-target="#versionsOffcanvas"><i class="bi bi-clock-history me-2"></i>Historial de versiones</button></li>
+                    <li><button class="dropdown-item" type="button" id="btnCopyLink"><i class="bi bi-link-45deg me-2"></i>Abrir página de respuesta</button></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><button class="dropdown-item" type="button" id="btnCloseSurvey"><i class="bi bi-lock me-2"></i>Cerrar encuesta</button></li>
+                    <li><button class="dropdown-item" type="button" id="btnArchive"><i class="bi bi-archive me-2"></i>Archivar versión</button></li>
+                    <li class="sv-mock-only"><hr class="dropdown-divider"></li>
+                    <li class="sv-mock-only"><button class="dropdown-item text-danger" type="button" id="btnResetDemo"><i class="bi bi-arrow-counterclockwise me-2"></i>Restablecer datos demo</button></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aviso de versionado: se muestra cuando la versión abierta no se puede editar -->
+    <div id="readOnlyBanner" class="sv-readonly-banner d-none" role="status">
+        <i class="bi bi-lock-fill"></i>
+        <div class="flex-grow-1" id="readOnlyText"></div>
+        <button type="button" id="btnNewVersion" class="btn btn-sm btn-accent text-nowrap"><i class="bi bi-plus-lg"></i> Editar como nueva versión</button>
+    </div>
+
+    <ul class="nav sv-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tabBuilderBtn" data-bs-toggle="tab" data-bs-target="#tabBuilder" type="button" role="tab" aria-controls="tabBuilder" aria-selected="true">
+                <i class="bi bi-ui-checks-grid"></i> Constructor
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tabSettingsBtn" data-bs-toggle="tab" data-bs-target="#tabSettings" type="button" role="tab" aria-controls="tabSettings" aria-selected="false">
+                <i class="bi bi-sliders2"></i> Configuración
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tabPreviewBtn" data-bs-toggle="tab" data-bs-target="#tabPreview" type="button" role="tab" aria-controls="tabPreview" aria-selected="false">
+                <i class="bi bi-phone"></i> Vista previa
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tabResultsBtn" data-bs-toggle="tab" data-bs-target="#tabResults" type="button" role="tab" aria-controls="tabResults" aria-selected="false">
+                <i class="bi bi-bar-chart"></i> Resultados
+            </button>
+        </li>
+    </ul>
+</header>

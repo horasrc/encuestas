@@ -1,0 +1,24 @@
+﻿<!-- ================= 6. VISTA PREVIA (Desktop / Tablet / Móvil) ================= -->
+<div class="tab-pane fade" id="tabPreview" role="tabpanel" aria-labelledby="tabPreviewBtn" tabindex="0">
+    <div class="card sv-card">
+        <div class="card-header sv-card-header flex-wrap gap-2">
+            <div class="btn-group" role="group" aria-label="Dispositivo" id="deviceSwitcher">
+                <input type="radio" class="btn-check" name="previewDevice" id="devDesktop" value="desktop" autocomplete="off" checked>
+                <label class="btn btn-sm btn-outline-dark" for="devDesktop"><i class="bi bi-display"></i> Desktop</label>
+                <input type="radio" class="btn-check" name="previewDevice" id="devTablet" value="tablet" autocomplete="off">
+                <label class="btn btn-sm btn-outline-dark" for="devTablet"><i class="bi bi-tablet"></i> Tablet</label>
+                <input type="radio" class="btn-check" name="previewDevice" id="devMobile" value="mobile" autocomplete="off">
+                <label class="btn btn-sm btn-outline-dark" for="devMobile"><i class="bi bi-phone"></i> Móvil</label>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="small text-muted d-none d-md-inline">Incluye cambios sin guardar · prueba la lógica condicional</span>
+                <button type="button" id="btnRestartPreview" class="btn btn-sm btn-light border"><i class="bi bi-arrow-counterclockwise"></i> Reiniciar</button>
+            </div>
+        </div>
+        <div class="card-body sv-preview-stage">
+            <div class="sv-device" id="previewDevice" data-device="desktop">
+                <iframe id="previewFrame" title="Vista previa de la encuesta"></iframe>
+            </div>
+        </div>
+    </div>
+</div>

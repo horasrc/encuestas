@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<!-- ARCHIVO GENERADO por tools/build-demo.ps1 a partir de Views/. No editar a mano. -->
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Encuestas · Portal interno</title>
+    <!-- Bootstrap 5.2.3 + Bootstrap Icons. En intranets sin salida a internet, copiar a ~/Content/lib y cambiar las rutas. -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+    <link href="Content/survey/survey.css" rel="stylesheet" />
+</head>
+<body class="sv-body">
+    <div class="sv-shell">
+        <!-- Menú lateral del portal: offcanvas en móvil, fijo en escritorio (offcanvas-lg) -->
+        <aside class="sv-sidebar offcanvas-lg offcanvas-start" tabindex="-1" id="appSidebar" aria-labelledby="appSidebarLabel">
+            <div class="offcanvas-header border-bottom">
+                <span class="sv-brand" id="appSidebarLabel"><span class="sv-brand-mark"><i class="bi bi-grid-1x2-fill"></i></span> Portal interno</span>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#appSidebar" aria-label="Cerrar menú"></button>
+            </div>
+            <div class="offcanvas-body d-flex flex-column p-0">
+                <div class="sv-brand d-none d-lg-flex"><span class="sv-brand-mark"><i class="bi bi-grid-1x2-fill"></i></span> Portal interno</div>
+                <nav class="sv-nav nav flex-column" aria-label="Menú principal">
+                    <a class="nav-link" href="#"><i class="bi bi-house"></i> Inicio</a>
+                    <a class="nav-link" href="#"><i class="bi bi-chat-square-text"></i> Prompts de ventas</a>
+                    <a class="nav-link" href="#"><i class="bi bi-folder2-open"></i> Recursos comerciales</a>
+                    <a class="nav-link" href="#"><i class="bi bi-calendar-week"></i> Semana sistemática</a>
+                    <a class="nav-link active" aria-current="page" href="demo-index.html"><i class="bi bi-clipboard2-check"></i> Encuestas</a>
+                    <a class="nav-link" href="#"><i class="bi bi-bar-chart-line"></i> Reportes</a>
+                    <a class="nav-link" href="#"><i class="bi bi-mortarboard"></i> Capacitación</a>
+                    <a class="nav-link" href="#"><i class="bi bi-gear"></i> Configuración</a>
+                </nav>
+            </div>
+        </aside>
+
+        <main class="sv-main">
+            <div class="sv-topbar d-lg-none">
+                <button class="btn btn-light border" type="button" data-bs-toggle="offcanvas" data-bs-target="#appSidebar" aria-controls="appSidebar" aria-label="Abrir menú">
+                    <i class="bi bi-list"></i>
+                </button>
+                <span class="sv-brand"><span class="sv-brand-mark"><i class="bi bi-grid-1x2-fill"></i></span> Portal interno</span>
+            </div>
+            <div class="sv-page" id="surveyListPage">
+    <header class="sv-page-header pb-3">
+        <div class="sv-header-row">
+            <div>
+                <h1 class="h4 fw-bold mb-1">Encuestas</h1>
+                <p class="text-muted small mb-0">Crea encuestas, publícalas para tu audiencia y consulta sus resultados.</p>
+            </div>
+            <button type="button" class="btn btn-accent" data-bs-toggle="modal" data-bs-target="#newSurveyModal">
+                <i class="bi bi-plus-lg"></i> Nueva encuesta
+            </button>
+        </div>
+
+        <div class="sv-list-toolbar">
+            <ul class="nav sv-tabs sv-status-filter" id="statusFilter" role="tablist" aria-label="Filtrar por estado">
+                <li class="nav-item"><button type="button" class="nav-link active" data-status="">Todas <span class="badge sv-count" data-count=""></span></button></li>
+                <li class="nav-item"><button type="button" class="nav-link" data-status="Draft">Borrador <span class="badge sv-count" data-count="Draft"></span></button></li>
+                <li class="nav-item"><button type="button" class="nav-link" data-status="Published">Publicadas <span class="badge sv-count" data-count="Published"></span></button></li>
+                <li class="nav-item"><button type="button" class="nav-link" data-status="Closed">Cerradas <span class="badge sv-count" data-count="Closed"></span></button></li>
+                <li class="nav-item"><button type="button" class="nav-link" data-status="Archived">Archivadas <span class="badge sv-count" data-count="Archived"></span></button></li>
+            </ul>
+            <div class="input-group input-group-sm sv-list-search">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="search" id="surveySearch" class="form-control" placeholder="Buscar encuesta…" aria-label="Buscar encuesta" />
+            </div>
+        </div>
+    </header>
+
+    <div class="card sv-card">
+        <div class="table-responsive">
+            <table class="table sv-list-table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th scope="col">Encuesta</th>
+                        <th scope="col">Estado</th>
+                        <th scope="col" class="d-none d-md-table-cell">Versión</th>
+                        <th scope="col" class="text-end">Respuestas</th>
+                        <th scope="col" class="d-none d-lg-table-cell">Vigencia</th>
+                        <th scope="col"><span class="visually-hidden">Acciones</span></th>
+                    </tr>
+                </thead>
+                <tbody id="surveyListBody">
+                    <tr><td colspan="6" class="text-center py-5"><div class="spinner-border text-secondary" role="status"><span class="visually-hidden">Cargando…</span></div></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Nueva encuesta -->
+<div class="modal fade" id="newSurveyModal" tabindex="-1" aria-labelledby="newSurveyTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content" id="newSurveyForm" novalidate>
+            <div class="modal-header">
+                <h5 class="modal-title" id="newSurveyTitle"><i class="bi bi-clipboard2-plus me-2"></i>Nueva encuesta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="newSurveyName" class="form-label">Nombre</label>
+                    <input type="text" id="newSurveyName" class="form-control" maxlength="200" required placeholder="Ej. Experiencia con campañas comerciales" autocomplete="off" />
+                    <div class="invalid-feedback">Escribe el nombre de la encuesta.</div>
+                </div>
+                <div>
+                    <label for="newSurveyDescription" class="form-label">Descripción <span class="text-muted fw-normal">(opcional)</span></label>
+                    <textarea id="newSurveyDescription" class="form-control" rows="2" maxlength="1000" placeholder="Para qué sirve y a quién va dirigida"></textarea>
+                </div>
+                <p class="small text-muted mt-3 mb-0"><i class="bi bi-info-circle me-1"></i>Se crea como borrador (versión 1). Después agregas las preguntas en el constructor.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-accent" id="btnCreateSurvey"><i class="bi bi-arrow-right me-1"></i> Crear y abrir constructor</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Confirmación genérica (SurveyUtils.confirmDialog) -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmModalTitle">Confirmar</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-accent" data-confirm>Aceptar</button>
+            </div>
+        </div>
+    </div>
+</div>
+        </main>
+    </div>
+
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    // ConfiguraciÃ³n de la demo estÃ¡tica (equivale a _SurveyConfig.cshtml con UseMockData = true).
+    window.SURVEY_CONFIG = {
+        surveyId: new URLSearchParams(window.location.search).get('id') || 's1',
+        useMock: true,
+        currentUser: '',
+        urls: { index: 'demo-index.html', constructor: 'demo.html?id=__ID__', respond: 'demo-responder.html?id=__ID__' }
+    };
+</script>
+    <script src="Scripts/survey/survey-utils.js"></script>
+<script src="Scripts/survey/survey-types.js"></script>
+<script src="Scripts/survey/survey-logic.js"></script>
+<script src="Scripts/survey/survey-renderer.js"></script>
+<script src="Scripts/survey/mock-data.js"></script>
+<script src="Scripts/survey/survey-api.js"></script>
+<script src="Scripts/survey/survey-store.js"></script>
+
+    <script src="Scripts/survey/survey-list.js"></script>
+</body>
+</html>

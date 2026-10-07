@@ -1,0 +1,21 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Compilación
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+
+# NuGet (se restauran con "Restaurar paquetes NuGet")
+packages/
+
+# Publicación
+publish/
+*.pubxml.user
+
+# Bases de datos locales
+*.mdf
+*.ldf
