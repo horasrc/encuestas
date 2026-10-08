@@ -16,7 +16,14 @@ Requisitos: Visual Studio 2019 o 2022 con la carga de trabajo **«Desarrollo de 
 
 El proyecto se mantiene en **.NET Framework 4.5**. Visual Studio 2022 ya no instala el targeting pack de 4.5,
 así que el proyecto usa el paquete NuGet `Microsoft.NETFramework.ReferenceAssemblies.net45` (solo para compilar).
-**Si Visual Studio ofrece «cambiar el destino a .NET Framework 4.8», elige no cambiarlo** (o «Continuar»).
+**Si al abrir aparece «Plataforma de destino no compatible» (ofrece actualizar a 4.8):** elige
+«No cargar este proyecto», cierra Visual Studio y, en PowerShell **como administrador**, ejecuta una sola vez:
+
+    powershell -ExecutionPolicy Bypass -File tools\install-net45-refs.ps1
+
+Copia los ensamblados de referencia 4.5 del paquete NuGet a `Reference Assemblies` (solo agrega archivos).
+Después el proyecto carga normalmente. No aceptes el cambio a 4.8: el servidor necesita 4.5.
+
 Si compilas antes de restaurar NuGet verás el error «Faltan paquetes NuGet»: restaura y compila de nuevo.
 `Web.config` → `Surveys:UseMockData`: `true` usa datos mock (localStorage); `false` usa `SurveyApiController`.
 
