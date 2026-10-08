@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Instalar Encuestas en el portal</title>
+<style>
+  @page { size: letter; margin: 12mm 14mm; }
+  :root { --rojo: #c8102e; --gris: #f2f2f2; --borde: #cfcfcf; --texto: #111; --suave: #555; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #fff; color: var(--texto); font: 10.5pt/1.38 "Segoe UI", Arial, sans-serif; }
+  main { max-width: 780px; margin: 0 auto; padding: 24px 16px; }
+  header { border-bottom: 3px solid var(--rojo); padding-bottom: 8px; margin-bottom: 14px; }
+  h1 { font-size: 20pt; margin: 0; }
+  header p { margin: 4px 0 0; color: var(--suave); }
+  .req { background: var(--gris); border-left: 4px solid var(--texto); padding: 8px 12px; margin-bottom: 14px; }
+  .req ul { margin: 4px 0 0; padding-left: 20px; }
+  section { break-inside: avoid; margin-bottom: 11px; }
+  h2 { font-size: 13pt; margin: 0 0 6px; display: flex; align-items: center; gap: 8px; }
+  h2 .n { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--rojo); color: #fff;
+          font-size: 11pt; display: inline-flex; align-items: center; justify-content: center;
+          -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  ul.check { list-style: none; padding-left: 4px; margin: 4px 0; }
+  ul.check li { padding-left: 24px; position: relative; margin: 2px 0; }
+  ul.check li::before { content: ""; position: absolute; left: 0; top: 3px; width: 13px; height: 13px; border: 1.5px solid var(--texto); }
+  code { font-family: Consolas, monospace; font-size: 9.5pt; background: var(--gris); padding: 0 3px; }
+  pre { font-family: Consolas, monospace; font-size: 9pt; background: var(--gris); border: 1px solid var(--borde);
+        padding: 8px 10px; margin: 6px 0; white-space: pre-wrap; word-break: break-all; }
+  .nota { color: var(--suave); font-size: 10pt; margin: 4px 0; }
+  .ojo { border: 1px solid var(--rojo); padding: 6px 10px; margin: 6px 0; font-size: 10pt; }
+  table { width: 100%; border-collapse: collapse; font-size: 10pt; }
+  th, td { border: 1px solid var(--borde); padding: 4px 8px; text-align: left; vertical-align: top; }
+  th { background: var(--gris); }
+  .fill { display: inline-block; min-width: 220px; border-bottom: 1px solid var(--texto); }
+  footer { margin-top: 18px; border-top: 1px solid var(--borde); padding-top: 6px; color: var(--suave); font-size: 9pt; }
+  @media print { main { padding: 0; } .noprint { display: none; } }
+  .noprint { margin-bottom: 14px; }
+  .noprint button { font: inherit; padding: 6px 14px; border: 1px solid var(--texto); background: var(--texto); color: #fff; cursor: pointer; }
+</style>
+</head>
+<body>
+<main>
+<div class="noprint"><button onclick="window.print()">Imprimir</button></div>
+
+<header>
+  <h1>Instalar el módulo de Encuestas en el portal</h1>
+  <p>Guía paso a paso · Detalle completo en <code>INTEGRACION.md</code> dentro del zip</p>
+</header>
+
+<div class="req">
+  <strong>Antes de empezar</strong>
+  <ul>
+    <li>Archivo <code>Encuestas-area-codigo.zip</code></li>
+    <li>Proyecto del portal abierto en Visual Studio</li>
+    <li>SQL Server Management Studio conectado a la base del portal</li>
+  </ul>
+</div>
+
+<table style="margin-bottom:14px">
+  <tr><th colspan="2">Datos que vas a necesitar (anótalos)</th></tr>
+  <tr><td style="width:45%">Nombre de la cadena de conexión del portal</td><td><span class="fill">&nbsp;</span></td></tr>
+  <tr><td>Grupo de Windows que administrará encuestas</td><td><span class="fill">&nbsp;</span></td></tr>
+  <tr><td>Cuenta con la que el sitio se conecta a SQL</td><td><span class="fill">&nbsp;</span></td></tr>
+  <tr><td>Ruta del layout del portal</td><td><span class="fill">&nbsp;</span></td></tr>
+</table>
+
+<section>
+  <h2><span class="n">1</span> Copiar el módulo al proyecto</h2>
+  <ul class="check">
+    <li>Descomprimir el zip en cualquier carpeta.</li>
+    <li>Copiar <code>Encuestas\Encuestas.Web\Areas\Encuestas</code> al proyecto del portal, para que quede <code>Portal\Areas\Encuestas\</code>.</li>
+    <li>Visual Studio: <strong>Explorador de soluciones → Mostrar todos los archivos</strong> → clic derecho en <code>Areas\Encuestas</code> → <strong>Incluir en el proyecto</strong>.</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="n">2</span> Revisar versiones</h2>
+  <ul class="check">
+    <li><strong>Newtonsoft.Json</strong> en 13.x (Herramientas → Administrador de paquetes NuGet). Si es menor, actualizarlo.</li>
+    <li><strong>MVC:</strong> comparar las versiones de <code>System.Web.Mvc</code> y <code>System.Web.WebPages.Razor</code> en <code>Views\Web.config</code> del portal con las de <code>Areas\Encuestas\Views\Web.config</code> (viene con 5.2.3). Si son distintas, poner las del portal.</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="n">3</span> Configurar el <code>Web.config</code> del portal</h2>
+  <p class="nota">Dentro de <code>&lt;appSettings&gt;</code>:</p>
+<pre>&lt;add key="Surveys:UseMockData" value="false" /&gt;
+&lt;add key="Surveys:Repository" value="Sql" /&gt;
+&lt;add key="Surveys:CatalogProvider" value="Sql" /&gt;
+&lt;add key="Surveys:AdminRoles" value="TUDOMINIO\GrupoQueAdministra" /&gt;
+&lt;add key="Surveys:ConnectionStringName" value="NombreDeLaCadenaDelPortal" /&gt;
+&lt;add key="Surveys:Layout" value="~/Views/Shared/_Layout.cshtml" /&gt;</pre>
+  <ul class="check">
+    <li><strong>AdminRoles:</strong> quienes estén en ese grupo crean encuestas; los demás solo responden.</li>
+    <li><strong>ConnectionStringName:</strong> el <code>name</code> de la cadena que ya existe en <code>&lt;connectionStrings&gt;</code>.</li>
+    <li><strong>Layout:</strong> el layout del portal debe tener <code>@RenderSection("scripts", required: false)</code> antes de <code>&lt;/body&gt;</code>.</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="n">4</span> Crear las tablas (SSMS, base del portal)</h2>
+  <ul class="check">
+    <li>Seleccionar la <strong>base del portal</strong> en la barra de herramientas.</li>
+    <li>Abrir y ejecutar (F5) <code>Database\schema.sql</code>. Debe terminar con <code>Esquema enc: 12 tablas.</code></li>
+    <li>Abrir y ejecutar (F5) <code>Database\org-schema.sql</code>.</li>
+    <li>Dar permisos a la cuenta del sitio:</li>
+  </ul>
+<pre>GRANT SELECT, INSERT, UPDATE, DELETE ON SCHEMA::enc TO [TUDOMINIO\cuenta-del-sitio];</pre>
+  <div class="ojo"><strong>No ejecutar</strong> <code>seed.sql</code> ni <code>org-seed.sql</code> (son datos de ejemplo). Los scripts solo crean el esquema <code>enc</code>; no tocan tablas del portal.</div>
+</section>
+
+<section>
+  <h2><span class="n">5</span> Enlace en el menú del portal</h2>
+<pre>&lt;a href="@Url.Action("Index", "Encuestas", new { area = "Encuestas" })"&gt;Encuestas&lt;/a&gt;</pre>
+</section>
+
+<section>
+  <h2><span class="n">6</span> Compilar y probar</h2>
+  <ul class="check">
+    <li>Usuario administrador abre <code>/Encuestas</code> → aparece el listado.</li>
+    <li>Crear una encuesta, <strong>Publicar</strong>, abrir <code>/Encuestas/Responder/{id}</code> y responder.</li>
+    <li>Usuario <strong>no</strong> administrador: <code>/Encuestas</code> da 403, pero la página para responder sí abre.</li>
+    <li>En SQL: <code>SELECT * FROM enc.SurveyAuditLog</code> muestra quién hizo cada acción.</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="n">7</span> Publicar</h2>
+  <ul class="check">
+    <li>Publicar el portal como siempre.</li>
+    <li>En IIS: <strong>Autenticación de Windows activada</strong> y <strong>autenticación anónima desactivada</strong>.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Si algo falla</h2>
+  <table>
+    <tr><th style="width:45%">Mensaje</th><th>Solución</th></tr>
+    <tr><td>"La sección scripts se definió pero no se representó"</td><td>Agregar <code>@RenderSection("scripts", required: false)</code> al layout del portal.</td></tr>
+    <tr><td>Error de versión de <code>System.Web.Mvc</code></td><td>Paso 2: igualar versiones en <code>Areas\Encuestas\Views\Web.config</code>.</td></tr>
+    <tr><td>No conecta a la base</td><td>Revisar que <code>Surveys:ConnectionStringName</code> sea igual al nombre de la cadena del portal.</td></tr>
+    <tr><td>"La página expiró por seguridad" al guardar</td><td>Desactivar la autenticación anónima en IIS.</td></tr>
+    <tr><td>403 con un usuario que debería administrar</td><td>Revisar que esté en el grupo de <code>Surveys:AdminRoles</code> (cerrar sesión y volver a entrar).</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Después: conectar empleados y sucursales</h2>
+  <p class="nota">Mientras las tablas <code>enc.Org*</code> estén vacías, el módulo funciona pero la segmentación solo permite "Todos los colaboradores". Para usar los datos del portal: llenar los <code>TODO</code> de <code>Database\org-vistas-plantilla.sql</code> con los nombres de las tablas de empleados y sucursales y ejecutarlo en SSMS.</p>
+</section>
+
+<footer>Módulo de Encuestas · Área MVC <code>Areas\Encuestas</code> · Tablas en el esquema <code>enc</code></footer>
+</main>
+</body>
+</html>
