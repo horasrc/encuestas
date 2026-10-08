@@ -133,6 +133,13 @@ Columnas que espera cada vista: `OrgRole/OrgSegment/OrgRegion (Id, Name, SortOrd
 `OrgBranch (BranchId, Name, RegionId, SegmentId, IsActive)` y la de arriba para `OrgUser`
 (los nombres exactos están en `Database\org-schema.sql`).
 
+**Plantilla lista:** `Database\org-vistas-plantilla.sql` crea las 5 vistas. Cambia lo marcado con `TODO`
+y ejecútala en SSMS. Si antes ejecutaste `org-schema.sql`, la plantilla borra esas tablas **solo si están
+vacías**; si tienen datos, se detiene sin cambiar nada. Así puedes empezar con las tablas vacías y pasar a
+vistas después. Con el `GRANT ... ON SCHEMA::enc` de arriba basta: la cuenta del sitio lee empleados y
+sucursales a través de las vistas, sin permiso directo sobre las tablas `dbo` del portal (las vistas y las
+tablas deben tener el mismo dueño, normalmente `dbo`).
+
 ## 5. Layout: usar el del portal (Bootstrap 5)
 Como el portal usa **Bootstrap 5**, el módulo puede mostrarse **dentro del layout del portal** (su menú,
 encabezado y pie). Solo agrega en `<appSettings>`:
