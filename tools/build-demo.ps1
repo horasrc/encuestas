@@ -3,16 +3,16 @@
   Genera las páginas de demostración estáticas a partir de las vistas Razor,
   para revisar el módulo en un navegador sin Visual Studio ni IIS:
 
-      Encuestas.Web\demo-index.html      <- Views\Encuestas\Index.cshtml       (listado)
-      Encuestas.Web\demo.html            <- Views\Encuestas\Constructor.cshtml (constructor, ?id=s1)
-      Encuestas.Web\demo-responder.html  <- Views\Encuestas\Responder.cshtml   (colaborador, ?id=s1)
+      Encuestas.Web\demo-index.html      <- Areas\Encuestas\Views\Encuestas\Index.cshtml       (listado)
+      Encuestas.Web\demo.html            <- Areas\Encuestas\Views\Encuestas\Constructor.cshtml (constructor, ?id=s1)
+      Encuestas.Web\demo-responder.html  <- Areas\Encuestas\Views\Encuestas\Responder.cshtml   (colaborador, ?id=s1)
 
   Las vistas son la fuente de verdad: después de editarlas, vuelve a ejecutar:
 
       powershell -ExecutionPolicy Bypass -File tools\build-demo.ps1
 
   Transformaciones:
-    - @Html.Partial("_X")                 -> contenido de Views\Encuestas\_X.cshtml
+    - @Html.Partial("_X")                 -> contenido de Areas\Encuestas\Views\Encuestas\_X.cshtml
     - @Html.Partial("_SurveyConfig", ...) -> configuración mock fija (sin token antifalsificación)
     - @Url.Content("~/ruta")              -> ruta relativa
     - @Url.Action("Index", "Encuestas")   -> demo-index.html
@@ -21,7 +21,7 @@
 $ErrorActionPreference = 'Stop'
 $root  = Split-Path -Parent $PSScriptRoot
 $web   = Join-Path $root 'Encuestas.Web'
-$views = Join-Path $web 'Views'
+$views = Join-Path $web 'Areas\Encuestas\Views'
 $utf8  = New-Object System.Text.UTF8Encoding $false
 
 function Read-Text([string]$path) { [IO.File]::ReadAllText($path, [Text.Encoding]::UTF8) }
@@ -49,7 +49,7 @@ function Expand-Razor([string]$text) {
     })
     $text = [regex]::Replace($text, '@\*[\s\S]*?\*@\r?\n?', '')
     $text = [regex]::Replace($text, '@Url\.(?:Content|Versioned)\("~/([^"]+)"\)', '$1')
-    $text = $text.Replace('@Url.Action("Index", "Encuestas")', 'demo-index.html')
+    $text = $text.Replace('@Url.Action("Index", "Encuestas", new { area = "Encuestas" })', 'demo-index.html')
     return $text
 }
 
@@ -59,7 +59,7 @@ function Between([string]$text, [string]$start, [string]$end) {
     return $text.Substring($i + $start.Length, $j - $i - $start.Length)
 }
 
-$banner = '<!-- ARCHIVO GENERADO por tools/build-demo.ps1 a partir de Views/. No editar a mano. -->'
+$banner = '<!-- ARCHIVO GENERADO por tools/build-demo.ps1 a partir de Areas/Encuestas/Views/. No editar a mano. -->'
 
 function Assert-NoRazor([string]$html, [string]$name) {
     if ($html -match '@(Html|Url|Model|RenderBody|RenderSection|ViewBag)') { throw "Quedó sintaxis Razor sin convertir en ${name}: $($Matches[0])" }
@@ -73,7 +73,7 @@ function Save([string]$html, [string]$name) {
 }
 
 # Páginas que usan _Layout.cshtml
-$layout = Read-Text (Join-Path $views 'Shared\_Layout.cshtml')
+$layout = Read-Text (Join-Path $views 'Shared\_LayoutEncuestas.cshtml')
 $pages = @(
     @{ View = 'Index.cshtml';       Out = 'demo-index.html'; Title = 'Encuestas' },
     @{ View = 'Constructor.cshtml'; Out = 'demo.html';       Title = 'Constructor de encuestas' }

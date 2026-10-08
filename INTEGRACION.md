@@ -1,0 +1,142 @@
+# Integrar el módulo de encuestas en el portal
+
+El módulo es un **Área de ASP.NET MVC** autocontenida: `Encuestas.Web\Areas\Encuestas\`.
+Sus tablas viven en el esquema **`enc`** dentro de la base del portal.
+
+| Se copia | Se agrega al portal | No se toca del portal |
+|---|---|---|
+| La carpeta `Areas\Encuestas` (código, vistas, JS, CSS, librerías) | Unas líneas de `Web.config`, un paquete NuGet, las tablas `enc.*` | Sus controladores, vistas, layout, rutas ni tablas `dbo.*` |
+
+URLs del módulo: `/Encuestas` (listado), `/Encuestas/Constructor/{id}`, `/Encuestas/Responder/{id}` y la API `/Encuestas/Api/...`.
+
+---
+
+## Requisitos del portal
+- ASP.NET **MVC 5** sobre .NET Framework **4.5** o posterior.
+- **Autenticación de Windows** (el módulo identifica a las personas con `User.Identity.Name`).
+- **SQL Server 2012** o posterior.
+- El `Global.asax.cs` del portal debe llamar a `AreaRegistration.RegisterAllAreas();` (las plantillas de MVC lo traen).
+
+## 1. Copiar el Área
+1. Copia `Encuestas.Web\Areas\Encuestas` a la raíz del proyecto del portal, de modo que quede `Portal\Areas\Encuestas\`.
+2. En Visual Studio: **Explorador de soluciones → Mostrar todos los archivos**, clic derecho sobre `Areas\Encuestas` → **Incluir en el proyecto**.
+3. Revisa que los archivos de `Content\lib\fonts\*.woff*` y `Areas\Encuestas\Web.config` queden con **Acción de compilación = Contenido**.
+
+Contenido de la carpeta:
+```
+Areas\Encuestas\
+  EncuestasAreaRegistration.cs   rutas del módulo
+  Controllers\                   EncuestasController (páginas) · SurveyApiController (API JSON)
+  Services\                      reglas de negocio, lógica condicional, repositorios SQL
+  Models\                        DTOs, entidades, view models
+  Infrastructure\                autorización, token antifalsificación, JSON, URLs versionadas
+  Views\                         vistas Razor + layout propio + Web.config de Razor
+  Scripts\  Content\             JS y CSS del módulo + Bootstrap 5.2.3, jQuery 3.7.1, Bootstrap Icons (locales)
+  Web.config                     tipos MIME de las fuentes de iconos
+```
+El código usa el espacio de nombres `ModuloEncuestas`, que no choca con el del portal.
+
+## 2. Paquete NuGet
+El módulo usa **Newtonsoft.Json 13.0.1 o posterior** (las versiones anteriores tienen una vulnerabilidad conocida).
+- Si el portal ya lo tiene en 13.x: nada que hacer.
+- Si tiene una versión anterior: actualízalo (Herramientas → Administrador de paquetes NuGet) y revisa que el
+  `bindingRedirect` de `Newtonsoft.Json` en el `Web.config` del portal quede en `13.0.0.0`.
+
+Si el portal usa una versión de MVC distinta de **5.2.3**, ajusta los números de versión de
+`System.Web.Mvc` y `System.Web.WebPages.Razor` en `Areas\Encuestas\Views\Web.config` para que coincidan con
+los de `Views\Web.config` del portal (cópialos de ahí).
+
+## 3. `Web.config` del portal
+Dentro de `<appSettings>`:
+```xml
+<add key="Surveys:UseMockData" value="false" />
+<add key="Surveys:Repository" value="Sql" />
+<add key="Surveys:CatalogProvider" value="Sql" />
+<add key="Surveys:CatalogCacheMinutes" value="10" />
+<!-- Grupo(s) de Windows que administran encuestas. Nunca vacío en producción. -->
+<add key="Surveys:AdminRoles" value="MIDOMINIO\Encuestas-Admin" />
+<add key="Surveys:EnforceAudience" value="false" />
+<!-- Nombre de la cadena de conexión del PORTAL (las tablas enc.* viven en su base). -->
+<add key="Surveys:ConnectionStringName" value="NombreDeLaCadenaDelPortal" />
+```
+Si el portal no tiene una cadena de conexión con seguridad integrada, agrega una propia y apunta
+`Surveys:ConnectionStringName` a ella (por defecto busca `SurveysDb`).
+
+Exigir usuario de Windows en el módulo (si el portal no lo hace ya para todo el sitio):
+```xml
+<location path="Encuestas">
+  <system.web>
+    <authorization>
+      <deny users="?" />
+    </authorization>
+  </system.web>
+</location>
+```
+Con autenticación de Windows **la autenticación anónima debe estar deshabilitada en IIS** para el sitio (o al
+menos para `/Encuestas`); si no, al guardar o enviar puede aparecer "La página expiró por seguridad".
+
+Recomendado (lo usa el proyecto de ejemplo en `Global.asax.cs` y `App_Start\RouteConfig.cs`):
+- En la ruta `Default` del portal, `route.DataTokens["UseNamespaceFallback"] = false;` con el espacio de
+  nombres de los controladores del portal. Así los controladores del módulo solo responden en `/Encuestas/...`.
+
+## 4. Base de datos (dentro de la base del portal)
+Desde el equipo de desarrollo, con permisos para crear tablas en la base del portal:
+```
+powershell -ExecutionPolicy Bypass -File tools\setup-db.ps1 -Server "SQLPROD01\PORTAL" -Database BaseDelPortal -NoSamples
+```
+- Crea el esquema `enc` y sus tablas. **No toca ninguna tabla `dbo.*` del portal.**
+- Si la base no existe, el script se detiene (no crea bases fuera de LocalDB).
+- `-Recreate` está bloqueado fuera de LocalDB: nunca puede borrar la base del portal.
+- Más adelante, el mismo comando aplica las actualizaciones (`Database\upgrade-*.sql`).
+
+Permisos para la cuenta con la que se conecta el sitio (solo sobre el esquema del módulo):
+```sql
+GRANT SELECT, INSERT, UPDATE, DELETE ON SCHEMA::enc TO [MIDOMINIO\cuenta-del-sitio];
+```
+
+### Catálogos de la organización: tablas propias o vistas sobre el portal
+El módulo lee `enc.OrgRole`, `enc.OrgSegment`, `enc.OrgRegion`, `enc.OrgBranch` y `enc.OrgUser`.
+Si el portal ya tiene empleados y sucursales, **no copies datos**: ejecuta `setup-db.ps1` con `-NoOrgTables`
+y crea vistas con esos nombres y columnas sobre las tablas del portal. Ejemplo (ajusta nombres):
+```sql
+CREATE VIEW enc.OrgUser AS
+SELECT CAST(e.IdEmpleado AS VARCHAR(40)) AS UserId,
+       e.UsuarioRed                      AS Login,      -- DOMINIO\usuario
+       e.NombreCompleto                  AS Name,
+       e.Correo                          AS Email,
+       CAST(e.IdPuesto AS VARCHAR(40))   AS RoleId,
+       CAST(e.IdSucursal AS VARCHAR(40)) AS BranchId,
+       CAST(CASE WHEN e.Activo = 1 THEN 1 ELSE 0 END AS BIT) AS IsActive
+FROM dbo.Empleados e;
+```
+Columnas que espera cada vista: `OrgRole/OrgSegment/OrgRegion (Id, Name, SortOrder, IsActive)`,
+`OrgBranch (BranchId, Name, RegionId, SegmentId, IsActive)` y la de arriba para `OrgUser`
+(los nombres exactos están en `Database\org-schema.sql`).
+
+## 5. Layout
+Por defecto el módulo usa **su propio layout** (`Areas\Encuestas\Views\Shared\_LayoutEncuestas.cshtml`), con
+Bootstrap 5.2.3 y un menú lateral de ejemplo. Puedes:
+- **Dejarlo así** (recomendado si el portal usa Bootstrap 3 o 4: no pueden convivir en la misma página).
+  Solo cambia el menú lateral de ese layout por los enlaces reales del portal.
+- **Usar el layout del portal** si ese ya usa Bootstrap **5**: en `Areas\Encuestas\Views\_ViewStart.cshtml` pon la
+  ruta del layout del portal, y asegúrate de que ese layout
+  - tenga `@RenderSection("scripts", required: false)` antes de `</body>`,
+  - cargue jQuery, Bootstrap 5 (bundle con Popper), Bootstrap Icons y
+    `~/Areas/Encuestas/Content/survey.css`.
+
+La página para responder (`Responder.cshtml`) no usa layout: siempre se ve limpia, solo con la encuesta.
+
+Enlace para el menú del portal:
+```cshtml
+<a href="@Url.Action("Index", "Encuestas", new { area = "Encuestas" })">Encuestas</a>
+```
+
+## 6. Verificación
+1. Compila el portal y abre `/Encuestas` con un usuario del grupo administrador → listado.
+2. Crea una encuesta, agrega una pregunta, **Publicar**, abre `/Encuestas/Responder/{id}` y responde.
+3. Con un usuario que **no** es administrador: `/Encuestas` → *403*, pero `/Encuestas/Responder/{id}` sí abre.
+4. En SQL: `SELECT * FROM enc.SurveyAuditLog` muestra quién hizo cada acción.
+
+## Quitar el módulo
+1. Borra la carpeta `Areas\Encuestas` del proyecto y las líneas `Surveys:*` del `Web.config`.
+2. En SQL (pierde todas las encuestas y respuestas): elimina las tablas del esquema `enc` y luego `DROP SCHEMA enc`.

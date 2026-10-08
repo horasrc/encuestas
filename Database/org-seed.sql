@@ -11,13 +11,13 @@ SET NOCOUNT ON;
 SET XACT_ABORT ON;
 BEGIN TRANSACTION;
 
-INSERT INTO dbo.OrgRole (RoleId, Name, SortOrder) VALUES
+INSERT INTO enc.OrgRole (RoleId, Name, SortOrder) VALUES
  ('ejecutivos', N'Ejecutivos', 1), ('gerentes', N'Gerentes', 2), ('subdirectores', N'Subdirectores', 3), ('asesores', N'Asesores digitales', 4);
 
-INSERT INTO dbo.OrgSegment (SegmentId, Name, SortOrder) VALUES
+INSERT INTO enc.OrgSegment (SegmentId, Name, SortOrder) VALUES
  ('bp', N'Banca Personal', 1), ('premier', N'Premier', 2), ('rbb', N'RBB Digital', 3), ('pyme', N'PyME', 4);
 
-INSERT INTO dbo.OrgRegion (RegionId, Name, SortOrder) VALUES
+INSERT INTO enc.OrgRegion (RegionId, Name, SortOrder) VALUES
  ('norte', N'Norte', 1), ('centro', N'Centro', 2), ('metro', N'Metropolitana', 3), ('occidente', N'Occidente', 4), ('sur', N'Sur', 5);
 
 /* Sucursales con su plantilla por rol (solo para generar colaboradores de ejemplo). */
@@ -39,7 +39,7 @@ INSERT INTO @Branches VALUES
  ('b13', N'Centro Digital CDMX', 'metro', 'rbb', 6, 2, 1, 20),
  ('b14', N'León', 'centro', 'pyme', 11, 2, 0, 2);
 
-INSERT INTO dbo.OrgBranch (BranchId, Name, RegionId, SegmentId)
+INSERT INTO enc.OrgBranch (BranchId, Name, RegionId, SegmentId)
 SELECT BranchId, Name, RegionId, SegmentId FROM @Branches;
 
 /* Colaboradores generados: DEMO\b01-ejecutivos-001, ... */
@@ -52,7 +52,7 @@ Plantilla AS (
     UNION ALL SELECT BranchId, 'subdirectores', Sub FROM @Branches
     UNION ALL SELECT BranchId, 'asesores', Ase FROM @Branches
 )
-INSERT INTO dbo.OrgUser (UserId, Login, Name, Email, RoleId, BranchId)
+INSERT INTO enc.OrgUser (UserId, Login, Name, Email, RoleId, BranchId)
 SELECT
     p.BranchId + '-' + LEFT(p.RoleId, 3) + '-' + RIGHT('00' + CAST(n.N AS VARCHAR(3)), 3),
     N'DEMO\' + p.BranchId + '-' + p.RoleId + '-' + RIGHT('00' + CAST(n.N AS VARCHAR(3)), 3),
@@ -61,13 +61,13 @@ SELECT
     p.RoleId, p.BranchId
 FROM Plantilla p
 JOIN Numbers n ON n.N <= p.Total
-JOIN dbo.OrgRole r ON r.RoleId = p.RoleId;
+JOIN enc.OrgRole r ON r.RoleId = p.RoleId;
 
 /* Tu usuario (quien ejecuta el script) como Gerente de Reforma. */
-IF NOT EXISTS (SELECT 1 FROM dbo.OrgUser WHERE Login = SUSER_SNAME())
-    INSERT INTO dbo.OrgUser (UserId, Login, Name, Email, RoleId, BranchId)
+IF NOT EXISTS (SELECT 1 FROM enc.OrgUser WHERE Login = SUSER_SNAME())
+    INSERT INTO enc.OrgUser (UserId, Login, Name, Email, RoleId, BranchId)
     VALUES ('yo', SUSER_SNAME(), N'Mi usuario (pruebas)', NULL, 'gerentes', 'b04');
 
 COMMIT TRANSACTION;
 
-SELECT COUNT(*) AS Colaboradores FROM dbo.OrgUser;
+SELECT COUNT(*) AS Colaboradores FROM enc.OrgUser;

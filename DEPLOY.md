@@ -1,7 +1,12 @@
 # Instalación en el servidor (IIS + SQL Server)
 
-Guía para instalar el módulo de encuestas en un servidor Windows con IIS. Requiere permisos de
-administrador en el servidor y en SQL Server (normalmente lo hace el área de infraestructura).
+Guía para instalar el módulo de encuestas **como sitio independiente** en un servidor Windows con IIS.
+Requiere permisos de administrador en el servidor y en SQL Server (normalmente lo hace el área de infraestructura).
+
+> **¿Lo vas a incrustar en el portal existente?** Ese es el caso habitual y se describe en
+> **[INTEGRACION.md](INTEGRACION.md)**: allí no se crea un sitio ni una base nueva; se copia el Área al proyecto
+> del portal y las tablas se crean en el esquema `enc` de su base. Las secciones 3, 4 y 6 de esta guía
+> (IIS, permisos SQL y recomendaciones) también aplican a ese caso.
 
 ## 0. Requisitos del servidor
 - Windows Server 2012 R2 o posterior con **IIS 8+**.
@@ -12,11 +17,13 @@ administrador en el servidor y en SQL Server (normalmente lo hace el área de in
 - SQL Server 2012 o posterior (cualquier edición).
 
 ## 1. Base de datos
-Desde el equipo de desarrollo (con acceso al servidor SQL y permisos para crear bases):
+1. El DBA crea la base (por seguridad, el script nunca crea bases fuera de LocalDB):
+   `CREATE DATABASE PortalEncuestas;`
+2. Desde el equipo de desarrollo, con permisos para crear tablas en esa base:
 
-    powershell -ExecutionPolicy Bypass -File tools\setup-db.ps1 -Server "SQLPROD01\PORTAL" -NoSamples
+       powershell -ExecutionPolicy Bypass -File tools\setup-db.ps1 -Server "SQLPROD01\PORTAL" -Database PortalEncuestas -NoSamples
 
-Crea `PortalEncuestas` con las tablas de encuestas (`schema.sql`) y de catálogos (`org-schema.sql`),
+Crea el esquema `enc` con las tablas de encuestas (`schema.sql`) y de catálogos (`org-schema.sql`),
 **sin datos de ejemplo**. Alternativa: ejecutar esos dos scripts en SQL Server Management Studio.
 
 Catálogos de la organización: las tablas `OrgRole`, `OrgSegment`, `OrgRegion`, `OrgBranch` y `OrgUser`
@@ -53,12 +60,12 @@ La aplicación se conecta con **seguridad integrada**, es decir, con la identida
   mejor, configurar el grupo con una **cuenta de servicio del dominio** y crear el login para esa cuenta.
 
 ```sql
-USE PortalEncuestas;
-CREATE USER [MIDOMINIO\svc-encuestas] FOR LOGIN [MIDOMINIO\svc-encuestas];
-ALTER ROLE db_datareader ADD MEMBER [MIDOMINIO\svc-encuestas];
-ALTER ROLE db_datawriter ADD MEMBER [MIDOMINIO\svc-encuestas];
+USE PortalEncuestas;   -- o la base del portal, si el módulo va incrustado
+CREATE USER [MIDOMINIO\svc-encuestas] FOR LOGIN [MIDOMINIO\svc-encuestas];   -- si aún no existe
+GRANT SELECT, INSERT, UPDATE, DELETE ON SCHEMA::enc TO [MIDOMINIO\svc-encuestas];
 ```
-La aplicación solo lee y escribe datos; no necesita permisos para crear tablas.
+La aplicación solo lee y escribe datos del esquema `enc`; no necesita permisos para crear tablas ni sobre
+el resto de la base.
 
 ## 5. Verificación
 1. Abrir `https://servidor/Encuestas` con un usuario del grupo administrador → debe verse el listado.
@@ -69,7 +76,7 @@ La aplicación solo lee y escribe datos; no necesita permisos para crear tablas.
 
 ## 6. Recomendaciones
 - **HTTPS**: publicar el sitio solo por HTTPS (certificado interno del dominio).
-- **Sin internet**: Bootstrap, jQuery y Bootstrap Icons van incluidos en `Content\lib` (ver `LEEME.txt`);
+- **Sin internet**: Bootstrap, jQuery y Bootstrap Icons van incluidos en `Areas\Encuestas\Content\lib` (ver `LEEME.txt`);
   el sitio no hace ninguna petición fuera del servidor.
 - **Respaldos**: incluir `PortalEncuestas` en los respaldos de SQL Server.
 - **Actualizaciones**: volver a ejecutar `tools\publish.ps1` y reemplazar los archivos de la carpeta

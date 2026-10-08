@@ -1,8 +1,8 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Encuestas.Web.Models.Dto;
-using Encuestas.Web.Services;
+using ModuloEncuestas.Models.Dto;
+using ModuloEncuestas.Services;
 
 class TestCatalogs : IOrgCatalogProvider
 {

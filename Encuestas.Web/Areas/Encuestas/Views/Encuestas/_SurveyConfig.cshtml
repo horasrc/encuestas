@@ -1,0 +1,33 @@
+﻿@model SurveyPageViewModel
+@* Configuración que el servidor entrega al JavaScript (ver survey-api.js).
+   El token antifalsificación lo lee survey-api.js y lo envía en cada POST. *@
+@Html.AntiForgeryToken()
+<script>
+    window.SURVEY_CONFIG = {
+        surveyId: @Html.Raw(HttpUtility.JavaScriptStringEncode(Model.SurveyId ?? "", true)),
+        useMock: @(Model.UseMockData ? "true" : "false"),
+        currentUser: @Html.Raw(HttpUtility.JavaScriptStringEncode(Model.CurrentUser ?? "", true)),
+        urls: {
+            index: '@Url.Action("Index", "Encuestas", new { area = "Encuestas" })',
+            constructor: '@Url.Action("Constructor", "Encuestas", new { area = "Encuestas", id = "__ID__" })',
+            respond: '@Url.Action("Responder", "Encuestas", new { area = "Encuestas", id = "__ID__" })'
+        },
+        endpoints: {
+            list: '@Url.Action("List", "SurveyApi", new { area = "Encuestas" })',
+            create: '@Url.Action("Create", "SurveyApi", new { area = "Encuestas" })',
+            survey: '@Url.Action("Survey", "SurveyApi", new { area = "Encuestas" })',
+            history: '@Url.Action("History", "SurveyApi", new { area = "Encuestas" })',
+            published: '@Url.Action("Published", "SurveyApi", new { area = "Encuestas" })',
+            eligibility: '@Url.Action("Eligibility", "SurveyApi", new { area = "Encuestas" })',
+            duplicate: '@Url.Action("Duplicate", "SurveyApi", new { area = "Encuestas" })',
+            remove: '@Url.Action("Delete", "SurveyApi", new { area = "Encuestas" })',
+            catalogs: '@Url.Action("Catalogs", "SurveyApi", new { area = "Encuestas" })',
+            results: '@Url.Action("Results", "SurveyApi", new { area = "Encuestas" })',
+            saveDraft: '@Url.Action("SaveDraft", "SurveyApi", new { area = "Encuestas" })',
+            publish: '@Url.Action("Publish", "SurveyApi", new { area = "Encuestas" })',
+            createVersion: '@Url.Action("CreateVersion", "SurveyApi", new { area = "Encuestas" })',
+            changeStatus: '@Url.Action("ChangeStatus", "SurveyApi", new { area = "Encuestas" })',
+            submit: '@Url.Action("Submit", "SurveyApi", new { area = "Encuestas" })'
+        }
+    };
+</script>

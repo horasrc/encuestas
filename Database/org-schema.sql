@@ -10,45 +10,53 @@
 
    Los IDs son texto (VARCHAR) porque se guardan tal cual en
    SurveyAudienceRule.Value.
+
+   Viven en el esquema "enc" junto con el resto del módulo. Si el portal ya
+   tiene empleados, sucursales, etc., lo recomendable es NO ejecutar este
+   script y crear en su lugar VISTAS enc.OrgRole, enc.OrgUser, ... sobre las
+   tablas del portal (ver INTEGRACION.md).
    ===================================================================== */
 
-CREATE TABLE dbo.OrgRole (
+IF SCHEMA_ID('enc') IS NULL EXEC('CREATE SCHEMA enc AUTHORIZATION dbo');
+GO
+
+CREATE TABLE enc.OrgRole (
     RoleId     VARCHAR(40)   NOT NULL CONSTRAINT PK_OrgRole PRIMARY KEY,
     Name       NVARCHAR(100) NOT NULL,
     SortOrder  INT           NOT NULL CONSTRAINT DF_OrgRole_Sort DEFAULT 0,
     IsActive   BIT           NOT NULL CONSTRAINT DF_OrgRole_Active DEFAULT 1
 );
 
-CREATE TABLE dbo.OrgSegment (
+CREATE TABLE enc.OrgSegment (
     SegmentId  VARCHAR(40)   NOT NULL CONSTRAINT PK_OrgSegment PRIMARY KEY,
     Name       NVARCHAR(100) NOT NULL,
     SortOrder  INT           NOT NULL CONSTRAINT DF_OrgSegment_Sort DEFAULT 0,
     IsActive   BIT           NOT NULL CONSTRAINT DF_OrgSegment_Active DEFAULT 1
 );
 
-CREATE TABLE dbo.OrgRegion (
+CREATE TABLE enc.OrgRegion (
     RegionId   VARCHAR(40)   NOT NULL CONSTRAINT PK_OrgRegion PRIMARY KEY,
     Name       NVARCHAR(100) NOT NULL,
     SortOrder  INT           NOT NULL CONSTRAINT DF_OrgRegion_Sort DEFAULT 0,
     IsActive   BIT           NOT NULL CONSTRAINT DF_OrgRegion_Active DEFAULT 1
 );
 
-CREATE TABLE dbo.OrgBranch (
+CREATE TABLE enc.OrgBranch (
     BranchId   VARCHAR(40)   NOT NULL CONSTRAINT PK_OrgBranch PRIMARY KEY,
     Name       NVARCHAR(150) NOT NULL,
-    RegionId   VARCHAR(40)   NOT NULL CONSTRAINT FK_OrgBranch_Region REFERENCES dbo.OrgRegion(RegionId),
-    SegmentId  VARCHAR(40)   NOT NULL CONSTRAINT FK_OrgBranch_Segment REFERENCES dbo.OrgSegment(SegmentId),
+    RegionId   VARCHAR(40)   NOT NULL CONSTRAINT FK_OrgBranch_Region REFERENCES enc.OrgRegion(RegionId),
+    SegmentId  VARCHAR(40)   NOT NULL CONSTRAINT FK_OrgBranch_Segment REFERENCES enc.OrgSegment(SegmentId),
     IsActive   BIT           NOT NULL CONSTRAINT DF_OrgBranch_Active DEFAULT 1
 );
 
 /* Login = User.Identity.Name (ej. DOMINIO\usuario). Se usa para validar la audiencia. */
-CREATE TABLE dbo.OrgUser (
+CREATE TABLE enc.OrgUser (
     UserId     VARCHAR(40)   NOT NULL CONSTRAINT PK_OrgUser PRIMARY KEY,
     Login      NVARCHAR(100) NOT NULL CONSTRAINT UQ_OrgUser_Login UNIQUE,
     Name       NVARCHAR(150) NOT NULL,
     Email      NVARCHAR(150) NULL,
-    RoleId     VARCHAR(40)   NOT NULL CONSTRAINT FK_OrgUser_Role REFERENCES dbo.OrgRole(RoleId),
-    BranchId   VARCHAR(40)   NOT NULL CONSTRAINT FK_OrgUser_Branch REFERENCES dbo.OrgBranch(BranchId),
+    RoleId     VARCHAR(40)   NOT NULL CONSTRAINT FK_OrgUser_Role REFERENCES enc.OrgRole(RoleId),
+    BranchId   VARCHAR(40)   NOT NULL CONSTRAINT FK_OrgUser_Branch REFERENCES enc.OrgBranch(BranchId),
     IsActive   BIT           NOT NULL CONSTRAINT DF_OrgUser_Active DEFAULT 1
 );
-CREATE INDEX IX_OrgUser_Branch_Role ON dbo.OrgUser(BranchId, RoleId) WHERE IsActive = 1;
+CREATE INDEX IX_OrgUser_Branch_Role ON enc.OrgUser(BranchId, RoleId) WHERE IsActive = 1;

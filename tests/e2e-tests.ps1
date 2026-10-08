@@ -43,14 +43,14 @@ function Api($method, $path, $body) {
 }
 
 # 1. Cargar, editar y guardar el borrador (escritura en SQL)
-$survey = Api GET '/SurveyApi/Survey/1'
+$survey = Api GET '/Encuestas/Api/Survey/1'
 $v1 = $survey.versions[0]
 Check 'Encuesta 1 cargada desde SQL' ($v1.questions.Count -eq 7) "preguntas=$($v1.questions.Count)"
 $v1.questions[0].text = '¿Qué tan útil fue el material de la campaña? (editado)'
 $v1.settings.startDate = (Get-Date).ToString('yyyy-MM-dd')
-$r = Api POST '/SurveyApi/SaveDraft' @{ surveyId = '1'; name = $survey.name; version = $v1 }
+$r = Api POST '/Encuestas/Api/SaveDraft' @{ surveyId = '1'; name = $survey.name; version = $v1 }
 Check 'SaveDraft (POST con token)' $r.ok $r.message
-$reload = Api GET '/SurveyApi/Survey/1'
+$reload = Api GET '/Encuestas/Api/Survey/1'
 Check 'Cambio persistido en SQL' ($reload.versions[0].questions[0].text -like '*(editado)') $reload.versions[0].questions[0].text
 $q4 = $reload.versions[0].questions | ? { $_.rules.Count -gt 0 }
 Check 'Reglas condicionales conservadas tras reescribir' ($q4.rules.Count -eq 3 -and ($q4.rules | ? { $_.action -eq 'show' }).Count -eq 2) "reglas=$($q4.rules.Count)"
@@ -59,22 +59,22 @@ Check 'Árbol dependiente conservado' ($dep.dependent.options.Count -eq 17 -and 
 
 # 2. POST sin token -> rechazado
 $tok = $token; $token = 'invalido'
-$r = Api POST '/SurveyApi/SaveDraft' @{ surveyId = '1'; version = $v1 }
+$r = Api POST '/Encuestas/Api/SaveDraft' @{ surveyId = '1'; version = $v1 }
 $token = $tok
 Check 'POST con token inválido rechazado' (-not $r.ok -and $r.message -like '*expiró*') $r.message
 
 # 3. Publicar
-$r = Api POST '/SurveyApi/Publish' @{ surveyId = '1'; versionId = $reload.versions[0].id }
+$r = Api POST '/Encuestas/Api/Publish' @{ surveyId = '1'; versionId = $reload.versions[0].id }
 Check 'Publish' $r.ok "$($r.message) $($r.errors -join '; ')"
 
 # 4. Elegibilidad y envío como colaborador (el seed exige autenticación y 1 respuesta por usuario)
-$e = Api GET '/SurveyApi/Eligibility/1'
+$e = Api GET '/Encuestas/Api/Eligibility/1'
 Check 'Eligibility: puede responder' $e.canRespond "$($e.code) $($e.reason)"
-$pub = Api GET '/SurveyApi/Published/1'
+$pub = Api GET '/Encuestas/Api/Published/1'
 $pv = $pub.versions[0]
 Check 'Published sin segmentación ni histórico' ($pub.versions.Count -eq 1 -and -not $pv.segmentation) 'expone datos de más'
 $byKey = @{}; $pv.questions | % { $byKey[$_.id] = $_ }
-$bad = Api POST '/SurveyApi/Submit' @{ surveyId = '1'; versionId = $pv.id; answers = @{ q1 = @{ optionIds = @('q1o1') }; q4 = @{ optionIds = @('q4o1') } } }
+$bad = Api POST '/Encuestas/Api/Submit' @{ surveyId = '1'; versionId = $pv.id; answers = @{ q1 = @{ optionIds = @('q1o1') }; q4 = @{ optionIds = @('q4o1') } } }
 Check 'Submit "Sí" sin P5 rechazado por el servidor' (-not $bad.ok -and ($bad.errors -join ' ') -match 'P5') "$($bad.message) $($bad.errors -join '; ')"
 $answers = @{
     q1 = @{ optionIds = @('q1o2') }
@@ -85,15 +85,15 @@ $answers = @{
     q6 = @{ optionIds = @('q6o1') }   # oculta (P4 = Sí): debe descartarse
     q7 = @{ matrix = @{ q7r1 = @('q7c4'); q7r2 = @('q7c5'); q7r3 = @('q7c3'); q7r4 = @('q7c4') } }
 }
-$r = Api POST '/SurveyApi/Submit' @{ surveyId = '1'; versionId = $pv.id; answers = $answers }
+$r = Api POST '/Encuestas/Api/Submit' @{ surveyId = '1'; versionId = $pv.id; answers = $answers }
 Check 'Submit válido' $r.ok "$($r.message) $($r.errors -join '; ')"
-$e = Api GET '/SurveyApi/Eligibility/1'
+$e = Api GET '/Encuestas/Api/Eligibility/1'
 Check 'Eligibility: ya respondió' (-not $e.canRespond -and $e.code -eq 'alreadyResponded') $e.code
-$r = Api POST '/SurveyApi/Submit' @{ surveyId = '1'; versionId = $pv.id; answers = $answers }
+$r = Api POST '/Encuestas/Api/Submit' @{ surveyId = '1'; versionId = $pv.id; answers = $answers }
 Check 'Segundo envío rechazado' (-not $r.ok) $r.message
 
 # 5. Resultados leídos desde SQL
-$res = Api GET "/SurveyApi/Results/$($pv.id)?surveyId=1"
+$res = Api GET "/Encuestas/Api/Results/$($pv.id)?surveyId=1"
 $a = $res.responses[0].answers
 Check 'Resultados: 1 respuesta' ($res.responses.Count -eq 1) "n=$($res.responses.Count)"
 Check 'Resultados: "Otro" con texto' (($a.q2.optionIds -contains '__other__') -and $a.q2.otherText -eq 'Material de WhatsApp') ($a.q2 | ConvertTo-Json -Compress)
@@ -103,32 +103,32 @@ Check 'Resultados: pregunta oculta descartada' (-not $a.q6) 'q6 guardada'
 Check 'Resultados: audiencia real (gerentes+ejecutivos BP/Premier)' ($res.audience -gt 100) "audiencia=$($res.audience)"
 
 # 6. Versionado: la publicada con respuestas no se sobrescribe
-$cur = Api GET '/SurveyApi/Survey/1'
+$cur = Api GET '/Encuestas/Api/Survey/1'
 $pubV = $cur.versions | ? { $_.status -eq 'Published' }
 Check 'ResponseCount = 1' ($pubV.responseCount -eq 1) $pubV.responseCount
 $pubV.questions[0].text = 'Cambio que NO debe sobrescribir la v1'
-$r = Api POST '/SurveyApi/SaveDraft' @{ surveyId = '1'; name = $cur.name; version = $pubV }
-$after = Api GET '/SurveyApi/Survey/1'
+$r = Api POST '/Encuestas/Api/SaveDraft' @{ surveyId = '1'; name = $cur.name; version = $pubV }
+$after = Api GET '/Encuestas/Api/Survey/1'
 $v1Now = $after.versions | ? { $_.number -eq 1 }; $v2 = $after.versions | ? { $_.number -eq 2 }
 Check 'Guardar sobre v1 con respuestas crea v2 borrador' ($r.ok -and $v2.status -eq 'Draft') $r.message
 Check 'v1 intacta' ($v1Now.questions[0].text -like '*(editado)') $v1Now.questions[0].text
 Check 'v2 con el cambio y reglas reapuntadas' ($v2.questions[0].text -like 'Cambio*' -and (($v2.questions | ? { $_.rules.Count }).rules | ? { $_.targetQuestionId } | % { $_.targetQuestionId } | ? { $v2.questions.id -contains $_ }).Count -eq 2) 'reglas no reapuntadas'
 
 # 7. Publicar v2 -> v1 Archivada
-$r = Api POST '/SurveyApi/Publish' @{ surveyId = '1'; versionId = $v2.id }
-$after = Api GET '/SurveyApi/Survey/1'
+$r = Api POST '/Encuestas/Api/Publish' @{ surveyId = '1'; versionId = $v2.id }
+$after = Api GET '/Encuestas/Api/Survey/1'
 Check 'Publicar v2 archiva v1 (índices únicos respetados)' ($r.ok -and ($after.versions | ? { $_.number -eq 1 }).status -eq 'Archived' -and ($after.versions | ? { $_.number -eq 2 }).status -eq 'Published') $r.message
 
 # 8. Crear, duplicar y eliminar
-$c = Api POST '/SurveyApi/Create' @{ name = 'Prueba E2E'; description = 'creada por e2e' }
+$c = Api POST '/Encuestas/Api/Create' @{ name = 'Prueba E2E'; description = 'creada por e2e' }
 Check 'Create' ($c.ok -and $c.data.id) $c.message
-$d = Api POST '/SurveyApi/Duplicate' @{ surveyId = '1' }
+$d = Api POST '/Encuestas/Api/Duplicate' @{ surveyId = '1' }
 Check 'Duplicate (copia v2 publicada como borrador)' ($d.ok -and $d.data.versions[0].questions.Count -eq 7) $d.message
-$x = Api POST '/SurveyApi/Delete' @{ surveyId = $c.data.id }
+$x = Api POST '/Encuestas/Api/Delete' @{ surveyId = $c.data.id }
 Check 'Delete sin respuestas' $x.ok $x.message
-$x = Api POST '/SurveyApi/Delete' @{ surveyId = '1' }
+$x = Api POST '/Encuestas/Api/Delete' @{ surveyId = '1' }
 Check 'Delete con respuestas rechazado' (-not $x.ok) $x.message
-$list = Api GET '/SurveyApi/List'
+$list = Api GET '/Encuestas/Api/List'
 Check 'Listado final (1 + copia)' (@($list).Count -eq 2) "n=$(@($list).Count)"
 
 Write-Host ''

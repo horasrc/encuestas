@@ -20,8 +20,8 @@ New-Item -ItemType Directory -Force $out | Out-Null
 $exe = Join-Path $out 'ServiceTests.exe'
 
 $sources = @(Join-Path $PSScriptRoot 'ServiceTests.cs') +
-    (Get-ChildItem (Join-Path $root 'Encuestas.Web\Models\Dto') -Filter *.cs).FullName +
-    (Get-ChildItem (Join-Path $root 'Encuestas.Web\Services') -Filter *.cs).FullName
+    (Get-ChildItem (Join-Path $root 'Encuestas.Web\Areas\Encuestas\Models\Dto') -Filter *.cs).FullName +
+    (Get-ChildItem (Join-Path $root 'Encuestas.Web\Areas\Encuestas\Services') -Filter *.cs).FullName
 
 & $csc /nologo /warn:4 "/out:$exe" /r:System.Core.dll /r:System.Data.dll /r:System.Configuration.dll /r:System.Web.Extensions.dll $sources
 if ($LASTEXITCODE -ne 0) { Write-Host 'Error de compilación.' -ForegroundColor Red; exit 1 }

@@ -1,27 +1,37 @@
-﻿<#
+<#
   setup-db.ps1
-  Crea la base de datos del módulo de encuestas y ejecuta los scripts de Database\.
+  Crea las tablas del módulo de encuestas (esquema "enc") y aplica las actualizaciones.
   No requiere sqlcmd: usa System.Data.SqlClient y separa los lotes por "GO".
 
-  Desarrollo (LocalDB, con datos de ejemplo):
+  Desarrollo (LocalDB, base propia con datos de ejemplo):
       powershell -ExecutionPolicy Bypass -File tools\setup-db.ps1
 
-  Otro servidor, solo estructura (sin datos de ejemplo):
-      powershell -ExecutionPolicy Bypass -File tools\setup-db.ps1 -Server "MISERVIDOR\SQL" -Database PortalEncuestas -NoSamples
+  En la base del PORTAL (solo crea el esquema enc y sus tablas; no toca nada del portal):
+      powershell -ExecutionPolicy Bypass -File tools\setup-db.ps1 -Server "SQLPROD01\PORTAL" -Database BasePortal -NoSamples
+      (agrega -NoOrgTables si los catálogos de la organización serán vistas sobre tablas del portal)
 
-  -Recreate borra y vuelve a crear la base (¡pierde los datos!). Solo para desarrollo.
+  Si las tablas ya existen, solo aplica Database\upgrade-*.sql (todas son re-ejecutables).
+
+  -Recreate borra y vuelve a crear la base COMPLETA. Solo se permite con LocalDB, para
+  que nunca se pueda usar contra la base del portal.
 #>
 param(
     [string]$Server = '(localdb)\MSSQLLocalDB',
     [string]$Database = 'PortalEncuestas',
     [switch]$NoSamples,
+    [switch]$NoOrgTables,
     [switch]$Recreate
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $db = Join-Path $root 'Database'
+$isLocalDb = $Server -like '(localdb)*'
 
-if ($Server -like '(localdb)*') {
+if ($Recreate -and -not $isLocalDb) {
+    throw "-Recreate borra la base completa y solo se permite con LocalDB. Contra '$Server' no se usa: el módulo vive dentro de la base del portal."
+}
+
+if ($isLocalDb) {
     $instance = $Server.Split('\')[1]
     $localdb = Get-ChildItem "$env:ProgramFiles\Microsoft SQL Server\*\Tools\Binn\SqlLocalDB.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
     if (-not $localdb) { throw 'No se encontró SqlLocalDB.exe. Instala el componente "SQL Server Express LocalDB" de Visual Studio.' }
@@ -46,40 +56,47 @@ function Invoke-Batches([string]$connectionString, [string]$file) {
     } finally { $conn.Close() }
 }
 
+function Scalar([string]$connectionString, [string]$sql) {
+    $c = New-Object System.Data.SqlClient.SqlConnection $connectionString; $c.Open()
+    try { $cmd = $c.CreateCommand(); $cmd.CommandText = $sql; $v = $cmd.ExecuteScalar(); if ($v -is [DBNull]) { $null } else { $v } } finally { $c.Close() }
+}
+
 $master = "Data Source=$Server;Initial Catalog=master;Integrated Security=True"
 $target = "Data Source=$Server;Initial Catalog=$Database;Integrated Security=True"
 
-$exists = $false
-$c = New-Object System.Data.SqlClient.SqlConnection $master; $c.Open()
-$cmd = $c.CreateCommand(); $cmd.CommandText = 'SELECT DB_ID(@n)'; [void]$cmd.Parameters.AddWithValue('@n', $Database)
-$exists = -not ($cmd.ExecuteScalar() -is [DBNull])
+$exists = [bool](Scalar $master "SELECT DB_ID(N'$($Database.Replace("'", "''"))')")
 if ($exists -and $Recreate) {
-    Write-Host "Eliminando la base $Database..." -ForegroundColor Yellow
-    $cmd = $c.CreateCommand(); $cmd.CommandText = "ALTER DATABASE [$Database] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [$Database];"; [void]$cmd.ExecuteNonQuery()
+    Write-Host "Eliminando la base $Database (LocalDB)..." -ForegroundColor Yellow
+    Scalar $master "ALTER DATABASE [$Database] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [$Database];" | Out-Null
     $exists = $false
 }
 if (-not $exists) {
+    if (-not $isLocalDb) { throw "La base '$Database' no existe en '$Server'. El módulo se instala dentro de una base existente (la del portal)." }
     Write-Host "Creando la base $Database en $Server..."
-    $cmd = $c.CreateCommand(); $cmd.CommandText = "CREATE DATABASE [$Database]"; [void]$cmd.ExecuteNonQuery()
+    Scalar $master "CREATE DATABASE [$Database]" | Out-Null
 }
-$c.Close()
 
-# ¿Ya tiene el esquema?
-$c = New-Object System.Data.SqlClient.SqlConnection $target; $c.Open()
-$cmd = $c.CreateCommand(); $cmd.CommandText = "SELECT OBJECT_ID('dbo.Survey'), OBJECT_ID('dbo.OrgUser')"
-$r = $cmd.ExecuteReader(); [void]$r.Read(); $hasSurvey = -not $r.IsDBNull(0); $hasOrg = -not $r.IsDBNull(1); $r.Close(); $c.Close()
+# Bases de desarrollo antiguas: tablas en dbo -> se mueven a enc antes de revisar qué falta.
+if (Scalar $target "SELECT OBJECT_ID('dbo.SurveyVersion', 'U')") {
+    Write-Host 'Encontré las tablas del módulo en dbo; las muevo al esquema enc...'
+    Invoke-Batches $target (Join-Path $db 'upgrade-003-esquema-enc.sql')
+}
+
+$hasSurvey = [bool](Scalar $target "SELECT OBJECT_ID('enc.Survey')")
+$hasOrg = [bool](Scalar $target "SELECT OBJECT_ID('enc.OrgUser')")
 
 $steps = @()
 if (-not $hasSurvey) { $steps += 'schema.sql'; if (-not $NoSamples) { $steps += 'seed.sql' } }
-else { $steps += (Get-ChildItem $db -Filter 'upgrade-*.sql' | Sort-Object Name | ForEach-Object Name) }  # todas son re-ejecutables
-if (-not $hasOrg) { $steps += 'org-schema.sql'; if (-not $NoSamples) { $steps += 'org-seed.sql' } }
+else { $steps += (Get-ChildItem $db -Filter 'upgrade-*.sql' | Sort-Object Name | ForEach-Object Name) }
+if (-not $hasOrg -and -not $NoOrgTables) { $steps += 'org-schema.sql'; if (-not $NoSamples) { $steps += 'org-seed.sql' } }
 
 foreach ($s in $steps) {
     Write-Host "Ejecutando $s..."
     Invoke-Batches $target (Join-Path $db $s)
 }
-if ($hasSurvey -and $hasOrg) { Write-Host 'La base ya tenía todas las tablas; solo se aplicaron actualizaciones.' }
+if ($hasSurvey) { Write-Host 'Las tablas ya existían; solo se aplicaron actualizaciones.' }
+if ($NoOrgTables -and -not $hasOrg) { Write-Host 'Sin tablas Org*: crea las vistas enc.Org* sobre las tablas del portal (ver INTEGRACION.md).' -ForegroundColor Yellow }
 
 Write-Host ''
-Write-Host 'Listo. Cadena de conexión para Web.config (SurveysDb):' -ForegroundColor Green
-Write-Host "  $target"
+Write-Host "Listo. Tablas del módulo en $Database (esquema enc)." -ForegroundColor Green
+Write-Host "  Cadena de conexión: $target"

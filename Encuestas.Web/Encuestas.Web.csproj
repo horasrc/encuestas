@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -95,80 +95,81 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="App_Start\RouteConfig.cs" />
-    <Compile Include="Controllers\EncuestasController.cs" />
-    <Compile Include="Controllers\SurveyApiController.cs" />
+    <Compile Include="Areas\Encuestas\Controllers\EncuestasController.cs" />
+    <Compile Include="Areas\Encuestas\Controllers\SurveyApiController.cs" />
+    <Compile Include="Areas\Encuestas\EncuestasAreaRegistration.cs" />
+    <Compile Include="Areas\Encuestas\Infrastructure\AssetUrlExtensions.cs" />
+    <Compile Include="Areas\Encuestas\Infrastructure\JsonNetResult.cs" />
+    <Compile Include="Areas\Encuestas\Infrastructure\SurveyAdminAuthorizeAttribute.cs" />
+    <Compile Include="Areas\Encuestas\Infrastructure\ValidateJsonAntiForgeryTokenAttribute.cs" />
+    <Compile Include="Areas\Encuestas\Models\Dto\SurveyDtos.cs" />
+    <Compile Include="Areas\Encuestas\Models\Entities\Question.cs" />
+    <Compile Include="Areas\Encuestas\Models\Entities\Response.cs" />
+    <Compile Include="Areas\Encuestas\Models\Entities\Survey.cs" />
+    <Compile Include="Areas\Encuestas\Models\ViewModels\SurveyPageViewModel.cs" />
+    <Compile Include="Areas\Encuestas\Services\InMemorySurveyRepository.cs" />
+    <Compile Include="Areas\Encuestas\Services\ISurveyRepository.cs" />
+    <Compile Include="Areas\Encuestas\Services\SqlOrgCatalogProvider.cs" />
+    <Compile Include="Areas\Encuestas\Services\SqlSurveyRepository.cs" />
+    <Compile Include="Areas\Encuestas\Services\SurveyLogic.cs" />
+    <Compile Include="Areas\Encuestas\Services\SurveyService.cs" />
+    <Compile Include="Areas\Encuestas\Services\SurveyVersionCloner.cs" />
+    <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
-    <Compile Include="Infrastructure\AssetUrlExtensions.cs" />
-    <Compile Include="Infrastructure\JsonNetResult.cs" />
-    <Compile Include="Infrastructure\SurveyAdminAuthorizeAttribute.cs" />
-    <Compile Include="Infrastructure\ValidateJsonAntiForgeryTokenAttribute.cs" />
-    <Compile Include="Models\Dto\SurveyDtos.cs" />
-    <Compile Include="Models\Entities\Question.cs" />
-    <Compile Include="Models\Entities\Response.cs" />
-    <Compile Include="Models\Entities\Survey.cs" />
-    <Compile Include="Models\ViewModels\SurveyPageViewModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Services\InMemorySurveyRepository.cs" />
-    <Compile Include="Services\ISurveyRepository.cs" />
-    <Compile Include="Services\SqlOrgCatalogProvider.cs" />
-    <Compile Include="Services\SqlSurveyRepository.cs" />
-    <Compile Include="Services\SurveyLogic.cs" />
-    <Compile Include="Services\SurveyService.cs" />
-    <Compile Include="Services\SurveyVersionCloner.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Areas\Encuestas\Content\lib\bootstrap-5.2.3\css\bootstrap.min.css" />
+    <Content Include="Areas\Encuestas\Content\lib\bootstrap-5.2.3\js\bootstrap.bundle.min.js" />
+    <Content Include="Areas\Encuestas\Content\lib\bootstrap-icons-1.11.3\bootstrap-icons.min.css" />
+    <Content Include="Areas\Encuestas\Content\lib\bootstrap-icons-1.11.3\fonts\bootstrap-icons.woff" />
+    <Content Include="Areas\Encuestas\Content\lib\bootstrap-icons-1.11.3\fonts\bootstrap-icons.woff2" />
+    <Content Include="Areas\Encuestas\Content\lib\jquery-3.7.1\jquery.min.js" />
+    <Content Include="Areas\Encuestas\Content\lib\LEEME.txt" />
+    <Content Include="Areas\Encuestas\Content\survey.css" />
+    <Content Include="Areas\Encuestas\Scripts\mock-data.js" />
+    <Content Include="Areas\Encuestas\Scripts\survey-api.js" />
+    <Content Include="Areas\Encuestas\Scripts\survey-app.js" />
+    <Content Include="Areas\Encuestas\Scripts\survey-builder.js" />
+    <Content Include="Areas\Encuestas\Scripts\survey-editor.js" />
+    <Content Include="Areas\Encuestas\Scripts\survey-list.js" />
+    <Content Include="Areas\Encuestas\Scripts\survey-logic.js" />
+    <Content Include="Areas\Encuestas\Scripts\survey-preview.js" />
+    <Content Include="Areas\Encuestas\Scripts\survey-renderer.js" />
+    <Content Include="Areas\Encuestas\Scripts\survey-respond.js" />
+    <Content Include="Areas\Encuestas\Scripts\survey-results.js" />
+    <Content Include="Areas\Encuestas\Scripts\survey-settings.js" />
+    <Content Include="Areas\Encuestas\Scripts\survey-store.js" />
+    <Content Include="Areas\Encuestas\Scripts\survey-types.js" />
+    <Content Include="Areas\Encuestas\Scripts\survey-utils.js" />
+    <Content Include="Areas\Encuestas\Views\_ViewStart.cshtml" />
+    <Content Include="Areas\Encuestas\Views\Encuestas\_BuilderHeader.cshtml" />
+    <Content Include="Areas\Encuestas\Views\Encuestas\_ConfirmModal.cshtml" />
+    <Content Include="Areas\Encuestas\Views\Encuestas\_Modals.cshtml" />
+    <Content Include="Areas\Encuestas\Views\Encuestas\_SurveyConfig.cshtml" />
+    <Content Include="Areas\Encuestas\Views\Encuestas\_SurveyScripts.cshtml" />
+    <Content Include="Areas\Encuestas\Views\Encuestas\_TabConstructor.cshtml" />
+    <Content Include="Areas\Encuestas\Views\Encuestas\_TabPreview.cshtml" />
+    <Content Include="Areas\Encuestas\Views\Encuestas\_TabResults.cshtml" />
+    <Content Include="Areas\Encuestas\Views\Encuestas\_TabSettings.cshtml" />
+    <Content Include="Areas\Encuestas\Views\Encuestas\Constructor.cshtml" />
+    <Content Include="Areas\Encuestas\Views\Encuestas\Index.cshtml" />
+    <Content Include="Areas\Encuestas\Views\Encuestas\Responder.cshtml" />
+    <Content Include="Areas\Encuestas\Views\Shared\_LayoutEncuestas.cshtml" />
+    <Content Include="Areas\Encuestas\Views\Web.config" />
+    <Content Include="Areas\Encuestas\Web.config" />
+    <Content Include="demo.html" />
+    <Content Include="demo-index.html" />
+    <Content Include="demo-responder.html" />
     <Content Include="Global.asax" />
     <Content Include="Web.config" />
     <Content Include="Web.Release.config">
       <DependentUpon>Web.config</DependentUpon>
     </Content>
-    <None Include="Properties\PublishProfiles\Carpeta.pubxml" />
-    <Content Include="Views\Web.config" />
-    <Content Include="Views\_ViewStart.cshtml" />
-    <Content Include="Views\Shared\_Layout.cshtml" />
-    <Content Include="Views\Encuestas\Constructor.cshtml" />
-    <Content Include="Views\Encuestas\Index.cshtml" />
-    <Content Include="Views\Encuestas\Responder.cshtml" />
-    <Content Include="Views\Encuestas\_BuilderHeader.cshtml" />
-    <Content Include="Views\Encuestas\_ConfirmModal.cshtml" />
-    <Content Include="Views\Encuestas\_Modals.cshtml" />
-    <Content Include="Views\Encuestas\_SurveyConfig.cshtml" />
-    <Content Include="Views\Encuestas\_SurveyScripts.cshtml" />
-    <Content Include="Views\Encuestas\_TabConstructor.cshtml" />
-    <Content Include="Views\Encuestas\_TabPreview.cshtml" />
-    <Content Include="Views\Encuestas\_TabResults.cshtml" />
-    <Content Include="Views\Encuestas\_TabSettings.cshtml" />
-    <Content Include="Content\survey\survey.css" />
-    <Content Include="Content\lib\LEEME.txt" />
-    <Content Include="Content\lib\bootstrap-5.2.3\css\bootstrap.min.css" />
-    <Content Include="Content\lib\bootstrap-5.2.3\js\bootstrap.bundle.min.js" />
-    <Content Include="Content\lib\jquery-3.7.1\jquery.min.js" />
-    <Content Include="Content\lib\bootstrap-icons-1.11.3\bootstrap-icons.min.css" />
-    <Content Include="Content\lib\bootstrap-icons-1.11.3\fonts\bootstrap-icons.woff2" />
-    <Content Include="Content\lib\bootstrap-icons-1.11.3\fonts\bootstrap-icons.woff" />
-    <Content Include="Scripts\survey\mock-data.js" />
-    <Content Include="Scripts\survey\survey-api.js" />
-    <Content Include="Scripts\survey\survey-app.js" />
-    <Content Include="Scripts\survey\survey-builder.js" />
-    <Content Include="Scripts\survey\survey-editor.js" />
-    <Content Include="Scripts\survey\survey-list.js" />
-    <Content Include="Scripts\survey\survey-logic.js" />
-    <Content Include="Scripts\survey\survey-preview.js" />
-    <Content Include="Scripts\survey\survey-renderer.js" />
-    <Content Include="Scripts\survey\survey-respond.js" />
-    <Content Include="Scripts\survey\survey-results.js" />
-    <Content Include="Scripts\survey\survey-settings.js" />
-    <Content Include="Scripts\survey\survey-store.js" />
-    <Content Include="Scripts\survey\survey-types.js" />
-    <Content Include="Scripts\survey\survey-utils.js" />
-    <Content Include="demo.html" />
-    <Content Include="demo-index.html" />
-    <Content Include="demo-responder.html" />
-  </ItemGroup>
-  <ItemGroup>
     <Content Include="packages.config" />
+    <None Include="Properties\PublishProfiles\Carpeta.pubxml" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
