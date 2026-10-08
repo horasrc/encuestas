@@ -1,4 +1,8 @@
 @{
-    // Layout propio del módulo (Bootstrap 5.2.3). Para usar el layout del portal, ver INTEGRACION.md.
-    Layout = "~/Areas/Encuestas/Views/Shared/_LayoutEncuestas.cshtml";
+    // Layout: el del portal si se indica en Web.config (Surveys:Layout), si no el propio del módulo.
+    // Ver INTEGRACION.md, paso 5.
+    var portalLayout = System.Configuration.ConfigurationManager.AppSettings["Surveys:Layout"];
+    Layout = string.IsNullOrWhiteSpace(portalLayout)
+        ? "~/Areas/Encuestas/Views/Shared/_LayoutEncuestas.cshtml"
+        : portalLayout;
 }

@@ -148,6 +148,8 @@
     <Content Include="Areas\Encuestas\Views\Encuestas\_BuilderHeader.cshtml" />
     <Content Include="Areas\Encuestas\Views\Encuestas\_ConfirmModal.cshtml" />
     <Content Include="Areas\Encuestas\Views\Encuestas\_Modals.cshtml" />
+    <Content Include="Areas\Encuestas\Views\Encuestas\_ModuleScripts.cshtml" />
+    <Content Include="Areas\Encuestas\Views\Encuestas\_ModuleStyles.cshtml" />
     <Content Include="Areas\Encuestas\Views\Encuestas\_SurveyConfig.cshtml" />
     <Content Include="Areas\Encuestas\Views\Encuestas\_SurveyScripts.cshtml" />
     <Content Include="Areas\Encuestas\Views\Encuestas\_TabConstructor.cshtml" />
@@ -164,6 +166,8 @@
     <Content Include="demo-index.html" />
     <Content Include="demo-responder.html" />
     <Content Include="Global.asax" />
+    <Content Include="Views\Shared\_LayoutPortalPrueba.cshtml" />
+    <Content Include="Views\Web.config" />
     <Content Include="Web.config" />
     <Content Include="Web.Release.config">
       <DependentUpon>Web.config</DependentUpon>

@@ -1,0 +1,34 @@
+@* =====================================================================
+   LAYOUT DE PRUEBA que simula el layout de un portal con Bootstrap 5.
+   Sirve para comprobar que el módulo funciona dentro del layout del portal
+   (Surveys:Layout = "~/Views/Shared/_LayoutPortalPrueba.cshtml").
+   A propósito NO carga jQuery ni Bootstrap Icons: el módulo debe traerlos solo.
+   En el portal real no se copia; se usa su propio _Layout.cshtml.
+   ===================================================================== *@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewBag.Title · Portal (prueba)</title>
+    <link href="@Url.Content("~/Areas/Encuestas/Content/lib/bootstrap-5.2.3/css/bootstrap.min.css")" rel="stylesheet" />
+</head>
+<body>
+    <nav class="navbar navbar-expand navbar-dark bg-dark">
+        <div class="container-fluid flex-wrap">
+            <span class="navbar-brand">Portal (prueba)</span>
+            <ul class="navbar-nav">
+                <li class="nav-item"><a class="nav-link" href="@Url.Action("Index", "Home", new { area = "" })">Inicio</a></li>
+                <li class="nav-item"><a class="nav-link active" href="@Url.Action("Index", "Encuestas", new { area = "Encuestas" })">Encuestas</a></li>
+            </ul>
+        </div>
+    </nav>
+    <main class="container-fluid py-3">
+        @RenderBody()
+    </main>
+    <footer class="text-center text-muted small py-3">Pie de página del portal</footer>
+
+    <script src="@Url.Content("~/Areas/Encuestas/Content/lib/bootstrap-5.2.3/js/bootstrap.bundle.min.js")"></script>
+    @RenderSection("scripts", required: false)
+</body>
+</html>

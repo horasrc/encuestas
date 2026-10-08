@@ -1,0 +1,9 @@
+@* Dependencias JS del módulo cuando se usa el layout del PORTAL (Surveys:Layout).
+   El módulo necesita jQuery y el JavaScript de Bootstrap 5 (bundle con Popper). Si el portal ya los
+   cargó antes de @RenderSection("scripts"), se usan los suyos; si no, se cargan las copias del módulo.
+   (document.write es intencional: carga síncrona antes de los scripts del módulo.) *@
+@if (!string.IsNullOrWhiteSpace(System.Configuration.ConfigurationManager.AppSettings["Surveys:Layout"]))
+{
+    <script>window.jQuery || document.write('<script src="@Url.Versioned("~/Areas/Encuestas/Content/lib/jquery-3.7.1/jquery.min.js")"><\/script>');</script>
+    <script>(window.bootstrap && window.bootstrap.Modal) || document.write('<script src="@Url.Versioned("~/Areas/Encuestas/Content/lib/bootstrap-5.2.3/js/bootstrap.bundle.min.js")"><\/script>');</script>
+}

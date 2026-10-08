@@ -43,6 +43,7 @@ function Expand-Razor([string]$text) {
         param($m)
         $name = $m.Groups[1].Value
         if ($name -eq '_SurveyConfig') { return $demoConfig }
+        if ($name -eq '_ModuleStyles' -or $name -eq '_ModuleScripts') { return '' }   # solo aplican con el layout del portal
         $file = Join-Path $views ("Encuestas\" + $name + '.cshtml')
         if (-not (Test-Path $file)) { throw "No existe la vista parcial $file" }
         return Expand-Razor (Read-Text $file)

@@ -58,6 +58,8 @@ Dentro de `<appSettings>`:
 <add key="Surveys:EnforceAudience" value="false" />
 <!-- Nombre de la cadena de conexión del PORTAL (las tablas enc.* viven en su base). -->
 <add key="Surveys:ConnectionStringName" value="NombreDeLaCadenaDelPortal" />
+<!-- Layout del portal (ver paso 5). Vacío = layout propio del módulo. -->
+<add key="Surveys:Layout" value="~/Views/Shared/_Layout.cshtml" />
 ```
 Si el portal no tiene una cadena de conexión con seguridad integrada, agrega una propia y apunta
 `Surveys:ConnectionStringName` a ella (por defecto busca `SurveysDb`).
@@ -113,18 +115,32 @@ Columnas que espera cada vista: `OrgRole/OrgSegment/OrgRegion (Id, Name, SortOrd
 `OrgBranch (BranchId, Name, RegionId, SegmentId, IsActive)` y la de arriba para `OrgUser`
 (los nombres exactos están en `Database\org-schema.sql`).
 
-## 5. Layout
-Por defecto el módulo usa **su propio layout** (`Areas\Encuestas\Views\Shared\_LayoutEncuestas.cshtml`), con
-Bootstrap 5.2.3 y un menú lateral de ejemplo. Puedes:
-- **Dejarlo así** (recomendado si el portal usa Bootstrap 3 o 4: no pueden convivir en la misma página).
-  Solo cambia el menú lateral de ese layout por los enlaces reales del portal.
-- **Usar el layout del portal** si ese ya usa Bootstrap **5**: en `Areas\Encuestas\Views\_ViewStart.cshtml` pon la
-  ruta del layout del portal, y asegúrate de que ese layout
-  - tenga `@RenderSection("scripts", required: false)` antes de `</body>`,
-  - cargue jQuery, Bootstrap 5 (bundle con Popper), Bootstrap Icons y
-    `~/Areas/Encuestas/Content/survey.css`.
+## 5. Layout: usar el del portal (Bootstrap 5)
+Como el portal usa **Bootstrap 5**, el módulo puede mostrarse **dentro del layout del portal** (su menú,
+encabezado y pie). Solo agrega en `<appSettings>`:
+```xml
+<add key="Surveys:Layout" value="~/Views/Shared/_Layout.cshtml" />   <!-- ruta del layout del portal -->
+```
+Lo único que el layout del portal debe tener es:
+```cshtml
+@RenderSection("scripts", required: false)
+```
+antes de `</body>` (las plantillas de MVC lo traen). Si falta, las páginas del módulo darán un error que
+indica que la sección `scripts` se definió pero no se representó en la página de diseño.
 
-La página para responder (`Responder.cshtml`) no usa layout: siempre se ve limpia, solo con la encuesta.
+El módulo se encarga del resto:
+- Agrega su CSS (`survey.css`) y **Bootstrap Icons** al inicio de su contenido.
+- Si el portal **no** carga **jQuery** o el **JavaScript de Bootstrap** antes de esa sección, carga sus propias
+  copias; si ya los carga, usa los del portal y no los duplica.
+- Funciona con cualquier Bootstrap **5.x** (los estilos del módulo no dependen de las variables CSS de 5.2+).
+
+Esto se probó con un layout de ejemplo que imita el peor caso (Bootstrap 5 sin jQuery ni iconos):
+`Encuestas.Web\Views\Shared\_LayoutPortalPrueba.cshtml` — listado, constructor (pestañas, modales, panel de
+versiones) y página de respuesta, en escritorio, tablet y móvil, sin desbordes ni errores.
+
+Con `Surveys:Layout` vacío, el módulo usa su propio layout (`_LayoutEncuestas.cshtml`, con un menú lateral
+de ejemplo). La página para responder (`Responder.cshtml`) nunca usa layout: siempre se ve limpia, solo con
+la encuesta.
 
 Enlace para el menú del portal:
 ```cshtml

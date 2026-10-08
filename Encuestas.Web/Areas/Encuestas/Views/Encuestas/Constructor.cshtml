@@ -9,6 +9,7 @@
    demo.html (versión estática para revisar sin IIS).
    ------------------------------------------------------------------ *@
 @* demo:body *@
+@Html.Partial("_ModuleStyles")
 <div class="sv-page" id="surveyPage" aria-busy="true">
     @Html.Partial("_BuilderHeader")
 
@@ -25,6 +26,7 @@
 
 @section scripts {
     @* demo:scripts *@
+    @Html.Partial("_ModuleScripts")
     @Html.Partial("_SurveyConfig", Model)
     @Html.Partial("_SurveyScripts")
     <script src="@Url.Versioned("~/Areas/Encuestas/Scripts/survey-builder.js")"></script>

@@ -52,6 +52,13 @@ body.sv-respondent-body {
     font-weight: 600;
 }
 
+/* Valores explícitos además de las variables --bs-btn-*: esas variables solo existen desde
+   Bootstrap 5.2; así el botón se ve igual si el portal usa Bootstrap 5.0 o 5.1. */
+.btn-accent { color: #fff; background-color: var(--sv-accent); border-color: var(--sv-accent); }
+.btn-accent:hover, .btn-accent:focus-visible, .btn-accent:active { color: #fff; background-color: var(--sv-accent-hover); border-color: var(--sv-accent-hover); }
+.btn-accent:focus-visible { box-shadow: 0 0 0 .25rem rgba(215, 24, 42, .35); }
+.btn-accent:disabled, .btn-accent.disabled { color: #fff; background-color: #e5868f; border-color: #e5868f; opacity: 1; }
+
 .text-accent { color: var(--sv-accent) !important; }
 
 .form-control:focus,
@@ -266,9 +273,14 @@ body.sv-readonly .sv-title-pencil { display: none; }
     gap: .75rem;
     margin-top: .5rem;
 }
-.sv-list-toolbar .sv-tabs { margin-top: 0; }
+/* min-width/max-width: sin esto la franja de filtros se ensancha en móvil en vez de desplazarse dentro de sí misma. */
+.sv-list-toolbar .sv-tabs { margin-top: 0; min-width: 0; max-width: 100%; }
 .sv-list-search { max-width: 280px; }
 @media (max-width: 575.98px) { .sv-list-search { max-width: none; } }
+
+/* Contenedor posicionado: el texto oculto para lectores de pantalla (.visually-hidden, absoluto)
+   queda dentro de la zona desplazable de la tabla y no ensancha la página en móvil. */
+.sv-page .table-responsive, .sv-respond .table-responsive { position: relative; }
 
 .sv-list-table thead th {
     font-size: .76rem;
@@ -447,6 +459,12 @@ body.sv-readonly .sv-edit-only { display: none !important; }
     --bs-accordion-btn-active-icon: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%231b1b1f'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
 }
 .sv-accordion .accordion-button { font-weight: 600; font-size: .9rem; }
+/* Igual que arriba: explícito para Bootstrap 5.0/5.1, que no usa las variables --bs-accordion-*. */
+.sv-accordion .accordion-button:not(.collapsed) { color: var(--sv-ink); background-color: var(--sv-soft); box-shadow: inset 0 -1px 0 var(--sv-line); }
+.sv-accordion .accordion-button:not(.collapsed)::after {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%231b1b1f'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+}
+.sv-accordion .accordion-button:focus { border-color: #e88b94; box-shadow: 0 0 0 .2rem rgba(215, 24, 42, .15); }
 
 /* Reglas condicionales */
 .sv-incoming {
