@@ -19,6 +19,9 @@ namespace Encuestas.Web.Services
         /// IOrgCatalogProvider devuelva los usuarios con su Login de red.
         /// </summary>
         public bool EnforceAudience { get; set; }
+
+        /// <summary>Usuario que hace la operación (para la bitácora). Null = "sistema".</summary>
+        public string UserName { get; set; }
     }
 
     public class SurveyService
@@ -123,6 +126,7 @@ namespace Encuestas.Web.Services
                 }
             });
             _repository.SaveSurvey(survey); // asigna el Id definitivo
+            Audit(survey.Id, 1, "created", "Creó la encuesta «" + survey.Name + "».");
             return ApiResult<SurveyDto>.Success(survey, "Encuesta creada.");
         }
 
@@ -144,6 +148,7 @@ namespace Encuestas.Web.Services
             var copy = new SurveyDto { Name = name.Length > 200 ? name.Substring(0, 200) : name, Description = source.Description };
             copy.Versions.Add(SurveyVersionCloner.Clone(from, 1));
             _repository.SaveSurvey(copy);
+            Audit(copy.Id, 1, "duplicated", "Creó la encuesta como copia de «" + source.Name + "» (versión " + from.Number + ").");
             return ApiResult<SurveyDto>.Success(copy, "Encuesta duplicada como borrador.");
         }
 
@@ -156,6 +161,7 @@ namespace Encuestas.Web.Services
                 return ApiResult<string>.Fail("La encuesta tiene respuestas y no puede eliminarse. Ciérrala o archívala para conservar el histórico.", null);
 
             _repository.DeleteSurvey(survey.Id);
+            Audit(survey.Id, null, "deleted", "Eliminó la encuesta «" + survey.Name + "».");
             return ApiResult<string>.Success(survey.Id, "Encuesta eliminada.");
         }
 
@@ -203,6 +209,8 @@ namespace Encuestas.Web.Services
                 var newVersion = SurveyVersionCloner.Clone(request.Version, NextNumber(survey));
                 survey.Versions.Add(newVersion);
                 _repository.SaveSurvey(survey);
+                Audit(survey.Id, newVersion.Number, "newVersion",
+                    "Guardó cambios sobre la versión " + existing.Number + " (con respuestas); se creó la versión " + newVersion.Number + ".");
                 return ApiResult<SurveyDto>.Success(survey,
                     string.Format("La versión {0} tiene respuestas; los cambios se guardaron como versión {1} (borrador).", existing.Number, newVersion.Number));
             }
@@ -213,6 +221,8 @@ namespace Encuestas.Web.Services
             existing.Questions = Normalize(request.Version.Questions);
 
             _repository.SaveSurvey(survey);
+            Audit(survey.Id, existing.Number, "saved",
+                "Guardó la versión " + existing.Number + " (" + existing.Questions.Count + " preguntas).");
             return ApiResult<SurveyDto>.Success(survey, "Borrador guardado.");
         }
 
@@ -234,7 +244,8 @@ namespace Encuestas.Web.Services
             if (errors.Count > 0) return ApiResult<SurveyDto>.Fail("La encuesta tiene errores.", errors);
 
             // La versión publicada anterior pasa a histórico (Archivada); sus respuestas se conservan.
-            foreach (var previous in survey.Versions.Where(v => v.Status == SurveyStatuses.Published))
+            var archived = survey.Versions.Where(v => v.Status == SurveyStatuses.Published).ToList();
+            foreach (var previous in archived)
             {
                 previous.Status = SurveyStatuses.Archived;
             }
@@ -242,6 +253,13 @@ namespace Encuestas.Web.Services
             version.Status = SurveyStatuses.Published;
             version.PublishedAt = DateTime.Now;
             _repository.SaveSurvey(survey);
+
+            foreach (var previous in archived)
+            {
+                Audit(survey.Id, previous.Number, "archived", "La versión " + previous.Number + " pasó al histórico al publicar la versión " + version.Number + ".");
+            }
+            Audit(survey.Id, version.Number, "published", "Publicó la versión " + version.Number + " (vigencia " +
+                (version.Settings.StartDate ?? "?") + " a " + (version.Settings.EndDate ?? "?") + ").");
 
             return ApiResult<SurveyDto>.Success(survey, string.Format("Versión {0} publicada.", version.Number));
         }
@@ -314,6 +332,7 @@ namespace Encuestas.Web.Services
             var copy = SurveyVersionCloner.Clone(source, NextNumber(survey));
             survey.Versions.Add(copy);
             _repository.SaveSurvey(survey);
+            Audit(survey.Id, copy.Number, "newVersion", "Creó la versión " + copy.Number + " a partir de la versión " + source.Number + ".");
             return ApiResult<SurveyDto>.Success(survey, string.Format("Se creó la versión {0} (borrador).", copy.Number));
         }
 
@@ -331,6 +350,9 @@ namespace Encuestas.Web.Services
 
             version.Status = request.Status;
             _repository.SaveSurvey(survey);
+            var closed = request.Status == SurveyStatuses.Closed;
+            Audit(survey.Id, version.Number, closed ? "closed" : "archived",
+                (closed ? "Cerró" : "Archivó") + " la versión " + version.Number + " (" + version.ResponseCount + " respuestas).");
             return ApiResult<SurveyDto>.Success(survey, "Estado actualizado.");
         }
 
@@ -469,9 +491,39 @@ namespace Encuestas.Web.Services
                 && (seg.Segments.Count == 0 || (branch != null && seg.Segments.Contains(branch.SegmentId)));
         }
 
+        /// <summary>Historial de la encuesta para el panel de versiones.</summary>
+        public IList<AuditEntryDto> GetHistory(string surveyId)
+        {
+            return _repository.GetAudit(surveyId, 100);
+        }
+
         // -----------------------------------------------------------------
         // Utilidades
         // -----------------------------------------------------------------
+
+        /// <summary>
+        /// Registra en la bitácora. Un fallo al registrar no debe deshacer la operación
+        /// principal (ya se guardó), así que se ignora y se reporta en el registro de eventos.
+        /// </summary>
+        private void Audit(string surveyId, int? versionNumber, string action, string detail)
+        {
+            try
+            {
+                _repository.AddAudit(new AuditEntryDto
+                {
+                    SurveyId = surveyId,
+                    VersionNumber = versionNumber,
+                    Action = action,
+                    Detail = detail,
+                    UserName = string.IsNullOrEmpty(_options.UserName) ? "sistema" : _options.UserName,
+                    CreatedAt = DateTime.Now
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.TraceError("No se pudo registrar en la bitácora de encuestas: " + ex.Message);
+            }
+        }
 
         private static int NextNumber(SurveyDto survey)
         {

@@ -70,7 +70,8 @@ $cmd = $c.CreateCommand(); $cmd.CommandText = "SELECT OBJECT_ID('dbo.Survey'), O
 $r = $cmd.ExecuteReader(); [void]$r.Read(); $hasSurvey = -not $r.IsDBNull(0); $hasOrg = -not $r.IsDBNull(1); $r.Close(); $c.Close()
 
 $steps = @()
-if (-not $hasSurvey) { $steps += 'schema.sql'; if (-not $NoSamples) { $steps += 'seed.sql' } } else { $steps += 'upgrade-001-audience-mode.sql' }
+if (-not $hasSurvey) { $steps += 'schema.sql'; if (-not $NoSamples) { $steps += 'seed.sql' } }
+else { $steps += (Get-ChildItem $db -Filter 'upgrade-*.sql' | Sort-Object Name | ForEach-Object Name) }  # todas son re-ejecutables
 if (-not $hasOrg) { $steps += 'org-schema.sql'; if (-not $NoSamples) { $steps += 'org-seed.sql' } }
 
 foreach ($s in $steps) {

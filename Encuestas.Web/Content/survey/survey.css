@@ -803,6 +803,24 @@ body.sv-readonly .sv-type-palette { opacity: .5; pointer-events: none; }
 .sv-version { border: 1px solid var(--sv-line); border-radius: 10px; padding: .75rem; margin-bottom: .6rem; }
 .sv-version.current { border-color: var(--sv-accent); box-shadow: 0 0 0 3px var(--sv-accent-soft); }
 
+.sv-history { border-left: 2px solid var(--sv-line); margin-left: .45rem; padding-left: .9rem; }
+.sv-history-item { position: relative; display: flex; gap: .6rem; padding: .4rem 0; }
+.sv-history-item > .bi {
+    position: absolute;
+    left: -1.55rem;
+    top: .45rem;
+    width: 1.3rem;
+    height: 1.3rem;
+    border-radius: 50%;
+    background: var(--sv-surface);
+    border: 1px solid var(--sv-line);
+    display: grid;
+    place-items: center;
+    font-size: .7rem;
+    color: var(--sv-ink-2);
+}
+.sv-history-meta { font-size: .72rem; color: var(--sv-muted); }
+
 .sv-summary-item {
     display: flex;
     gap: .75rem;

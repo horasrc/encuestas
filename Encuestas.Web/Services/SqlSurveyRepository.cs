@@ -294,6 +294,49 @@ WHERE v.SurveyId = @SurveyId ORDER BY a.AudienceRuleId;";
             }
         }
 
+        public void AddAudit(AuditEntryDto entry)
+        {
+            int surveyId;
+            if (!TryParseKey(entry.SurveyId, out surveyId)) return;
+            var detail = entry.Detail != null && entry.Detail.Length > 500 ? entry.Detail.Substring(0, 500) : entry.Detail;
+            var user = string.IsNullOrEmpty(entry.UserName) ? "sistema" : entry.UserName;
+            using (var conn = Open())
+            using (var cmd = Command(conn, null, @"
+INSERT INTO dbo.SurveyAuditLog (SurveyId, VersionNumber, Action, Detail, UserName)
+VALUES (@S, @V, @A, @D, @U);",
+                "@S", surveyId, "@V", entry.VersionNumber, "@A", entry.Action, "@D", detail, "@U", user.Length > 100 ? user.Substring(0, 100) : user))
+            {
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        public IList<AuditEntryDto> GetAudit(string surveyId, int max)
+        {
+            var result = new List<AuditEntryDto>();
+            int id;
+            if (!TryParseKey(surveyId, out id)) return result;
+            using (var conn = Open())
+            using (var cmd = Command(conn, null, @"
+SELECT TOP (@Max) VersionNumber, Action, Detail, UserName, CreatedAt
+FROM dbo.SurveyAuditLog WHERE SurveyId = @S ORDER BY CreatedAt DESC, AuditId DESC;", "@Max", max, "@S", id))
+            using (var r = cmd.ExecuteReader())
+            {
+                while (r.Read())
+                {
+                    result.Add(new AuditEntryDto
+                    {
+                        SurveyId = surveyId,
+                        VersionNumber = r.IsDBNull(0) ? (int?)null : r.GetInt32(0),
+                        Action = r.GetString(1),
+                        Detail = Str(r, 2),
+                        UserName = r.GetString(3),
+                        CreatedAt = r.GetDateTime(4)
+                    });
+                }
+            }
+            return result;
+        }
+
         public void DeleteSurvey(string surveyId)
         {
             int id;

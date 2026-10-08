@@ -16,6 +16,7 @@ namespace Encuestas.Web.Services
         private static readonly Dictionary<string, SurveyDto> Surveys = new Dictionary<string, SurveyDto>();
         private static readonly Dictionary<string, List<ResponseRecordDto>> Responses = new Dictionary<string, List<ResponseRecordDto>>();
         private static readonly HashSet<string> Respondents = new HashSet<string>();
+        private static int _lastSurveyId;
 
         private readonly IOrgCatalogProvider _catalogs;
 
@@ -50,9 +51,14 @@ namespace Encuestas.Web.Services
             {
                 if (string.IsNullOrEmpty(survey.Id))
                 {
-                    var next = 1;
-                    while (Surveys.ContainsKey(next.ToString())) next++;
-                    survey.Id = next.ToString();
+                    // Como una columna IDENTITY: nunca reutiliza IDs (ni de encuestas eliminadas),
+                    // para que su bitácora no se mezcle con la de una encuesta nueva.
+                    foreach (var key in Surveys.Keys)
+                    {
+                        int n;
+                        if (int.TryParse(key, out n) && n > _lastSurveyId) _lastSurveyId = n;
+                    }
+                    survey.Id = (++_lastSurveyId).ToString();
                 }
                 Surveys[survey.Id] = survey;
             }
@@ -61,6 +67,18 @@ namespace Encuestas.Web.Services
         public void DeleteSurvey(string surveyId)
         {
             lock (Sync) Surveys.Remove(surveyId ?? "");
+        }
+
+        private static readonly List<AuditEntryDto> Audit = new List<AuditEntryDto>();
+
+        public void AddAudit(AuditEntryDto entry)
+        {
+            lock (Sync) Audit.Add(entry);
+        }
+
+        public IList<AuditEntryDto> GetAudit(string surveyId, int max)
+        {
+            lock (Sync) return Audit.Where(a => a.SurveyId == surveyId).Reverse().Take(max).ToList();
         }
 
         public IList<ResponseRecordDto> GetResponses(string versionId)
@@ -182,14 +200,16 @@ namespace Encuestas.Web.Services
     /// </summary>
     public static class SurveyServiceFactory
     {
-        public static SurveyService Create()
+        /// <param name="userName">Usuario de la petición (User.Identity.Name), para la bitácora.</param>
+        public static SurveyService Create(string userName = null)
         {
             var settings = System.Configuration.ConfigurationManager.AppSettings;
             var catalogs = CreateCatalogProvider(settings);
             bool enforce;
             var options = new SurveyServiceOptions
             {
-                EnforceAudience = bool.TryParse(settings["Surveys:EnforceAudience"], out enforce) && enforce
+                EnforceAudience = bool.TryParse(settings["Surveys:EnforceAudience"], out enforce) && enforce,
+                UserName = userName
             };
 
             if (string.Equals(settings["Surveys:Repository"], "Sql", StringComparison.OrdinalIgnoreCase))

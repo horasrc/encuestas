@@ -150,6 +150,24 @@ class ServiceTest
         del = service.DeleteSurvey(dup.Data.Id);
         Check("Eliminar sin respuestas: ok", del.Ok && service.GetSurvey(dup.Data.Id) == null, del.Message);
 
+        // 14. Bitácora de cambios
+        var audited = new SurveyService(new InMemorySurveyRepository(catalogs), new SurveyServiceOptions { UserName = "DOM\\admin" });
+        var s3 = audited.CreateSurvey(new CreateSurveyRequest { Name = "Con bitácora" }).Data;
+        var v3 = s3.Versions[0];
+        v3.Questions = new List<QuestionDto> { new QuestionDto { Id = "b1", Order = 1, Type = "yesNo", Text = "¿Ok?", Options = { O("y", "Sí"), O("n", "No") } } };
+        audited.SaveDraft(new SaveDraftRequest { SurveyId = s3.Id, Version = v3 });
+        audited.Publish(new VersionActionRequest { SurveyId = s3.Id, VersionId = v3.Id });
+        audited.ChangeStatus(new VersionActionRequest { SurveyId = s3.Id, VersionId = v3.Id, Status = "Closed" });
+        var history = audited.GetHistory(s3.Id);
+        var actions = string.Join(",", history.Select(h => h.Action));
+        Check("Bitácora: acciones en orden (más reciente primero)", actions == "closed,published,saved,created", actions);
+        Check("Bitácora: usuario registrado", history.All(h => h.UserName == "DOM\\admin"), history.First().UserName);
+        Check("Bitácora: detalle legible", history.Last().Detail.Contains("Con bitácora") && history[1].Detail.StartsWith("Publicó la versión 1"), history[1].Detail);
+        var anonymousService = new SurveyService(new InMemorySurveyRepository(catalogs));
+        var s4 = anonymousService.CreateSurvey(new CreateSurveyRequest { Name = "Sin usuario" }).Data;
+        Check("Bitácora: sin usuario => 'sistema'", anonymousService.GetHistory(s4.Id).Single().UserName == "sistema");
+        Check("Bitácora: separada por encuesta", audited.GetHistory(s4.Id).Count == 1 && audited.GetHistory(s3.Id).Count == 4);
+
         Console.WriteLine(failures == 0 ? "TODAS LAS PRUEBAS PASARON" : failures + " FALLAS");
     }
 }

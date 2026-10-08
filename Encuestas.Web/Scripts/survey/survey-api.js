@@ -28,6 +28,7 @@ var SurveyApi = (function ($) {
             list: '/SurveyApi/List',
             create: '/SurveyApi/Create',
             published: '/SurveyApi/Published',
+            history: '/SurveyApi/History',
             eligibility: '/SurveyApi/Eligibility',
             duplicate: '/SurveyApi/Duplicate',
             remove: '/SurveyApi/Delete',
@@ -57,6 +58,9 @@ var SurveyApi = (function ($) {
         },
         getPublished: function (surveyId) {
             return $.getJSON(cfg.endpoints.published + '/' + encodeURIComponent(surveyId));
+        },
+        getHistory: function (surveyId) {
+            return $.getJSON(cfg.endpoints.history + '/' + encodeURIComponent(surveyId));
         },
         getEligibility: function (surveyId) {
             return $.getJSON(cfg.endpoints.eligibility + '/' + encodeURIComponent(surveyId));
@@ -217,7 +221,19 @@ var SurveyApi = (function ($) {
         };
     }
 
+    /** Bitácora de la demo (misma forma que AuditEntryDto y mismos textos que SurveyService). */
+    function audit(surveyId, versionNumber, action, detail) {
+        (db.audit = db.audit || []).push({
+            surveyId: surveyId, versionNumber: versionNumber, action: action, detail: detail,
+            userName: 'Tú (demo)', createdAt: new Date().toISOString().substring(0, 19)
+        });
+    }
+
     var mock = {
+        getHistory: function (surveyId) {
+            var list = $.grep(loadDb().audit || [], function (a) { return a.surveyId === surveyId; });
+            return later(list.slice().reverse().slice(0, 100));
+        },
         list: function () {
             var rows = [];
             $.each(loadDb().surveys, function (_, s) { rows.push(summarize(s)); });
@@ -244,6 +260,7 @@ var SurveyApi = (function ($) {
             };
             db.surveys[survey.id] = survey;
             db.responses[survey.versions[0].id] = [];
+            audit(survey.id, 1, 'created', 'Creó la encuesta «' + survey.name + '».');
             persist();
             return ok(survey, 'Encuesta creada.');
         },
@@ -262,6 +279,7 @@ var SurveyApi = (function ($) {
             var copy = { id: 's' + n, name: 'Copia de ' + source.name, description: source.description, versions: [U.cloneVersion(from, 1)] };
             db.surveys[copy.id] = copy;
             db.responses[copy.versions[0].id] = [];
+            audit(copy.id, 1, 'duplicated', 'Creó la encuesta como copia de «' + source.name + '» (versión ' + from.number + ').');
             persist();
             return ok(copy, 'Encuesta duplicada como borrador.');
         },
@@ -273,6 +291,7 @@ var SurveyApi = (function ($) {
                 return fail('La encuesta tiene respuestas y no puede eliminarse. Ciérrala o archívala para conservar el histórico.');
             }
             delete db.surveys[surveyId];
+            audit(surveyId, null, 'deleted', 'Eliminó la encuesta «' + s.name + '».');
             persist();
             return ok(surveyId, 'Encuesta eliminada.');
         },
@@ -329,6 +348,7 @@ var SurveyApi = (function ($) {
                 var nv = U.cloneVersion(version, nextNumber(f.survey));
                 f.survey.versions.push(nv);
                 db.responses[nv.id] = [];
+                audit(surveyId, nv.number, 'newVersion', 'Guardó cambios sobre la versión ' + f.version.number + ' (con respuestas); se creó la versión ' + nv.number + '.');
                 persist();
                 return ok(f.survey, 'La versión ' + f.version.number + ' tiene respuestas; se creó la versión ' + nv.number + ' (borrador).');
             }
@@ -336,6 +356,7 @@ var SurveyApi = (function ($) {
             f.version.settings = U.clone(version.settings);
             f.version.segmentation = U.clone(version.segmentation);
             f.version.questions = U.clone(version.questions);
+            audit(surveyId, f.version.number, 'saved', 'Guardó la versión ' + f.version.number + ' (' + f.version.questions.length + ' preguntas).');
             persist();
             return ok(f.survey, 'Borrador guardado.');
         },
@@ -346,9 +367,15 @@ var SurveyApi = (function ($) {
             var errors = validateForPublish(f.version);
             if (errors.length) return fail('La encuesta tiene errores.', errors);
 
-            $.each(f.survey.versions, function (_, v) { if (v.status === 'Published') v.status = 'Archived'; });
+            $.each(f.survey.versions, function (_, v) {
+                if (v.status !== 'Published') return;
+                v.status = 'Archived';
+                audit(surveyId, v.number, 'archived', 'La versión ' + v.number + ' pasó al histórico al publicar la versión ' + f.version.number + '.');
+            });
             f.version.status = 'Published';
             f.version.publishedAt = new Date().toISOString().substring(0, 19);
+            audit(surveyId, f.version.number, 'published', 'Publicó la versión ' + f.version.number + ' (vigencia ' +
+                (f.version.settings.startDate || '?') + ' a ' + (f.version.settings.endDate || '?') + ').');
             persist();
             return ok(f.survey, 'Versión ' + f.version.number + ' publicada.');
         },
@@ -361,6 +388,7 @@ var SurveyApi = (function ($) {
             var nv = U.cloneVersion(f.version, nextNumber(f.survey));
             f.survey.versions.push(nv);
             db.responses[nv.id] = [];
+            audit(surveyId, nv.number, 'newVersion', 'Creó la versión ' + nv.number + ' a partir de la versión ' + f.version.number + '.');
             persist();
             return ok(f.survey, 'Se creó la versión ' + nv.number + ' (borrador).');
         },
@@ -369,6 +397,8 @@ var SurveyApi = (function ($) {
             if (!f.version) return fail('La versión no existe.');
             if (status === 'Closed' && f.version.status !== 'Published') return fail('Solo se puede cerrar una versión publicada.');
             f.version.status = status;
+            audit(surveyId, f.version.number, status === 'Closed' ? 'closed' : 'archived',
+                (status === 'Closed' ? 'Cerró' : 'Archivó') + ' la versión ' + f.version.number + ' (' + (f.version.responseCount || 0) + ' respuestas).');
             persist();
             return ok(f.survey, 'Estado actualizado.');
         },
@@ -440,6 +470,7 @@ var SurveyApi = (function ($) {
         getSurvey: impl.getSurvey,
         getPublished: impl.getPublished,
         getEligibility: impl.getEligibility,
+        getHistory: impl.getHistory,
         duplicateSurvey: impl.duplicateSurvey,
         deleteSurvey: impl.deleteSurvey,
         getCatalogs: impl.getCatalogs,

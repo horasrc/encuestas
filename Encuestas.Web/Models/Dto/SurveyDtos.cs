@@ -258,6 +258,19 @@ namespace Encuestas.Web.Models.Dto
         }
     }
 
+    /// <summary>Entrada de la bitácora de cambios.</summary>
+    public class AuditEntryDto
+    {
+        public string SurveyId { get; set; }
+        public int? VersionNumber { get; set; }
+
+        /// <summary>created | saved | newVersion | published | archived | closed | duplicated | deleted</summary>
+        public string Action { get; set; }
+        public string Detail { get; set; }
+        public string UserName { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
     public class CreateSurveyRequest
     {
         public string Name { get; set; }

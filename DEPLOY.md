@@ -73,7 +73,8 @@ La aplicación solo lee y escribe datos; no necesita permisos para crear tablas.
   el sitio no hace ninguna petición fuera del servidor.
 - **Respaldos**: incluir `PortalEncuestas` en los respaldos de SQL Server.
 - **Actualizaciones**: volver a ejecutar `tools\publish.ps1` y reemplazar los archivos de la carpeta
-  (IIS reinicia la aplicación sola). Los cambios de base de datos vendrán como `Database\upgrade-NNN-*.sql`.
+  (IIS reinicia la aplicación sola). Los cambios de base de datos vienen como `Database\upgrade-NNN-*.sql`;
+  se aplican todos (en orden, se pueden repetir) con `tools\setup-db.ps1 -Server "..." -NoSamples` sobre la base existente.
 
 ## Problemas frecuentes
 | Síntoma | Causa probable |

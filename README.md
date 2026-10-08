@@ -36,7 +36,7 @@ Genera `publish\Encuestas.Web` (Release, vistas precompiladas, sin datos de prue
 | URL | Quién | Qué |
 |---|---|---|
 | `/Encuestas` | Administrador | Listado (filtro por estado, búsqueda), «Nueva encuesta», duplicar y eliminar (solo sin respuestas) |
-| `/Encuestas/Constructor/{id}` | Administrador | Constructor, configuración, vista previa y resultados (`#resultados` abre esa pestaña) |
+| `/Encuestas/Constructor/{id}` | Administrador | Constructor, configuración, vista previa y resultados (`#resultados` abre esa pestaña). El panel **Versiones** muestra la **actividad** (bitácora: quién creó, guardó, publicó, cerró, archivó) |
 | `/Encuestas/Responder/{id}` | Colaborador | Antes de mostrarla verifica si puede responder (vigencia, sesión, ya respondió, audiencia); luego responde la versión publicada |
 
 ## Estructura
@@ -48,7 +48,7 @@ Genera `publish\Encuestas.Web` (Release, vistas precompiladas, sin datos de prue
 | JS UI | `survey-list` · `survey-builder` · `survey-editor` · `survey-settings` · `survey-preview` · `survey-results` · `survey-app` (arranque) · `survey-respond` |
 | Back-end | `Controllers/SurveyApiController` · `Services/SurveyService` (versionado, publicación, envío) · `Services/SurveyLogic` (lógica condicional y validación en servidor) · `Services/ISurveyRepository` |
 | Seguridad | `Infrastructure/SurveyAdminAuthorizeAttribute` · `Infrastructure/ValidateJsonAntiForgeryTokenAttribute` |
-| BD | `Database/schema.sql` · `seed.sql` · `upgrade-001-audience-mode.sql` · `org-schema.sql` / `org-seed.sql` (catálogos de la organización) |
+| BD | `Database/schema.sql` · `seed.sql` · `upgrade-001-audience-mode.sql` · `upgrade-002-audit-log.sql` · `org-schema.sql` / `org-seed.sql` (catálogos de la organización) |
 | Pruebas | `tests/ServiceTests.cs` · `tests/run-tests.ps1` (reglas de negocio, sin VS ni BD) |
 
 ## Pruebas

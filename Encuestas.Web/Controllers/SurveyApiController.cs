@@ -1,4 +1,4 @@
-using System.Web.Mvc;
+﻿using System.Web.Mvc;
 using Encuestas.Web.Infrastructure;
 using Encuestas.Web.Models.Dto;
 using Encuestas.Web.Services;
@@ -12,6 +12,7 @@ namespace Encuestas.Web.Controllers
     /// Administración ([SurveyAdminAuthorize]):
     ///   GET  /SurveyApi/List                       -> SurveySummaryDto[]
     ///   GET  /SurveyApi/Survey/{surveyId}          -> SurveyDto (todas las versiones)
+    ///   GET  /SurveyApi/History/{surveyId}         -> AuditEntryDto[] (bitácora, últimas 100)
     ///   GET  /SurveyApi/Catalogs                   -> OrgCatalogs
     ///   GET  /SurveyApi/Results/{versionId}?surveyId=  -> ResultsDto
     ///   POST /SurveyApi/Create                     -> ApiResult&lt;SurveyDto&gt;
@@ -31,7 +32,13 @@ namespace Encuestas.Web.Controllers
     [ValidateJsonAntiForgeryToken]
     public class SurveyApiController : Controller
     {
-        private readonly SurveyService _service = SurveyServiceFactory.Create();
+        private SurveyService _service;
+
+        /// <summary>Se crea por petición con el usuario actual (lo usa la bitácora).</summary>
+        private SurveyService Service
+        {
+            get { return _service ?? (_service = SurveyServiceFactory.Create(CurrentUserName())); }
+        }
 
         // -----------------------------------------------------------------
         // Administración
@@ -40,69 +47,75 @@ namespace Encuestas.Web.Controllers
         [HttpGet, SurveyAdminAuthorize]
         public ActionResult List()
         {
-            return new JsonNetResult(_service.GetSurveyList());
+            return new JsonNetResult(Service.GetSurveyList());
         }
 
         [HttpGet, SurveyAdminAuthorize]
         public ActionResult Survey(string id)
         {
-            var survey = _service.GetSurvey(id);
+            var survey = Service.GetSurvey(id);
             return survey == null ? NotFound("Encuesta no encontrada") : new JsonNetResult(survey);
+        }
+
+        [HttpGet, SurveyAdminAuthorize]
+        public ActionResult History(string id)
+        {
+            return new JsonNetResult(Service.GetHistory(id));
         }
 
         [HttpGet, SurveyAdminAuthorize]
         public ActionResult Catalogs()
         {
-            return new JsonNetResult(_service.GetCatalogs());
+            return new JsonNetResult(Service.GetCatalogs());
         }
 
         [HttpGet, SurveyAdminAuthorize]
         public ActionResult Results(string id, string surveyId)
         {
-            var results = _service.GetResults(surveyId, id);
+            var results = Service.GetResults(surveyId, id);
             return results == null ? NotFound("Versión no encontrada") : new JsonNetResult(results);
         }
 
         [HttpPost, SurveyAdminAuthorize]
         public ActionResult Create()
         {
-            return Reply(_service.CreateSurvey(JsonNetResult.ReadBody<CreateSurveyRequest>(Request)));
+            return Reply(Service.CreateSurvey(JsonNetResult.ReadBody<CreateSurveyRequest>(Request)));
         }
 
         [HttpPost, SurveyAdminAuthorize]
         public ActionResult Duplicate()
         {
-            return Reply(_service.DuplicateSurvey(JsonNetResult.ReadBody<VersionActionRequest>(Request).SurveyId));
+            return Reply(Service.DuplicateSurvey(JsonNetResult.ReadBody<VersionActionRequest>(Request).SurveyId));
         }
 
         [HttpPost, SurveyAdminAuthorize]
         public ActionResult Delete()
         {
-            return Reply(_service.DeleteSurvey(JsonNetResult.ReadBody<VersionActionRequest>(Request).SurveyId));
+            return Reply(Service.DeleteSurvey(JsonNetResult.ReadBody<VersionActionRequest>(Request).SurveyId));
         }
 
         [HttpPost, SurveyAdminAuthorize]
         public ActionResult SaveDraft()
         {
-            return Reply(_service.SaveDraft(JsonNetResult.ReadBody<SaveDraftRequest>(Request)));
+            return Reply(Service.SaveDraft(JsonNetResult.ReadBody<SaveDraftRequest>(Request)));
         }
 
         [HttpPost, SurveyAdminAuthorize]
         public ActionResult Publish()
         {
-            return Reply(_service.Publish(JsonNetResult.ReadBody<VersionActionRequest>(Request)));
+            return Reply(Service.Publish(JsonNetResult.ReadBody<VersionActionRequest>(Request)));
         }
 
         [HttpPost, SurveyAdminAuthorize]
         public ActionResult CreateVersion()
         {
-            return Reply(_service.CreateVersion(JsonNetResult.ReadBody<VersionActionRequest>(Request)));
+            return Reply(Service.CreateVersion(JsonNetResult.ReadBody<VersionActionRequest>(Request)));
         }
 
         [HttpPost, SurveyAdminAuthorize]
         public ActionResult ChangeStatus()
         {
-            return Reply(_service.ChangeStatus(JsonNetResult.ReadBody<VersionActionRequest>(Request)));
+            return Reply(Service.ChangeStatus(JsonNetResult.ReadBody<VersionActionRequest>(Request)));
         }
 
         // -----------------------------------------------------------------
@@ -112,20 +125,20 @@ namespace Encuestas.Web.Controllers
         [HttpGet]
         public ActionResult Published(string id)
         {
-            var survey = _service.GetPublished(id);
+            var survey = Service.GetPublished(id);
             return survey == null ? NotFound("Encuesta no encontrada") : new JsonNetResult(survey);
         }
 
         [HttpGet]
         public ActionResult Eligibility(string id)
         {
-            return new JsonNetResult(_service.GetEligibility(id, CurrentUserName()));
+            return new JsonNetResult(Service.GetEligibility(id, CurrentUserName()));
         }
 
         [HttpPost]
         public ActionResult Submit()
         {
-            return Reply(_service.Submit(JsonNetResult.ReadBody<SubmitResponseDto>(Request), CurrentUserName()));
+            return Reply(Service.Submit(JsonNetResult.ReadBody<SubmitResponseDto>(Request), CurrentUserName()));
         }
 
         private string CurrentUserName()

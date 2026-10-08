@@ -28,6 +28,12 @@ namespace Encuestas.Web.Services
 
         /// <summary>Catálogos organizacionales para segmentación (roles, segmentos, regiones, sucursales, usuarios).</summary>
         OrgCatalogs GetCatalogs();
+
+        /// <summary>Registra una acción en la bitácora (SurveyAuditLog).</summary>
+        void AddAudit(AuditEntryDto entry);
+
+        /// <summary>Últimas entradas de la bitácora de una encuesta, de la más reciente a la más antigua.</summary>
+        IList<AuditEntryDto> GetAudit(string surveyId, int max);
     }
 
     /// <summary>

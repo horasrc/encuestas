@@ -162,6 +162,18 @@ CREATE TABLE dbo.QuestionResponse (
 );
 CREATE INDEX IX_QR_Question ON dbo.QuestionResponse(QuestionId) INCLUDE (QuestionOptionId, MatrixRowOptionId, DependentOptionId, NumberValue);
 CREATE INDEX IX_QR_Response ON dbo.QuestionResponse(SurveyResponseId);
+
+/* Bitácora: quién hizo qué y cuándo (no tiene FK a Survey para conservarse aunque la encuesta se elimine). */
+CREATE TABLE dbo.SurveyAuditLog (
+    AuditId          BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_SurveyAuditLog PRIMARY KEY,
+    SurveyId         INT            NOT NULL,
+    VersionNumber    INT            NULL,
+    Action           VARCHAR(30)    NOT NULL,   -- created, saved, newVersion, published, archived, closed, duplicated, deleted
+    Detail           NVARCHAR(500)  NULL,
+    UserName         NVARCHAR(100)  NOT NULL,
+    CreatedAt        DATETIME2(0)   NOT NULL CONSTRAINT DF_Audit_CreatedAt DEFAULT SYSDATETIME()
+);
+CREATE INDEX IX_Audit_Survey ON dbo.SurveyAuditLog(SurveyId, CreatedAt DESC);
 GO
 
 /* ---------------------------------------------------------------------

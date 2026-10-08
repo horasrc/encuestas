@@ -259,6 +259,39 @@ var SurveyBuilder = (function ($) {
     }
 
     // ---------------------------------------------------------------------
+    // Bitácora (actividad) en el panel de versiones
+    // ---------------------------------------------------------------------
+
+    var AUDIT_ICONS = {
+        created: 'bi-plus-circle', duplicated: 'bi-copy', saved: 'bi-floppy', newVersion: 'bi-layers',
+        published: 'bi-broadcast', archived: 'bi-archive', closed: 'bi-lock', deleted: 'bi-trash'
+    };
+
+    function formatDateTime(iso) {
+        var m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+        return m ? m[3] + '/' + m[2] + '/' + m[1] + ' ' + m[4] + ':' + m[5] : '';
+    }
+
+    function renderHistory() {
+        var survey = Store.survey();
+        var $box = $('#historyList');
+        if (!survey) return;
+        $box.html('<div class="small text-muted"><span class="spinner-border spinner-border-sm me-1"></span>Cargando…</div>');
+        SurveyApi.getHistory(survey.id).done(function (entries) {
+            if (!entries.length) { $box.html('<p class="small text-muted mb-0">Sin actividad registrada todavía.</p>'); return; }
+            $box.html($.map(entries, function (e) {
+                return '<div class="sv-history-item">' +
+                    '<i class="bi ' + (AUDIT_ICONS[e.action] || 'bi-dot') + '"></i>' +
+                    '<div><div class="small">' + esc(e.detail) + '</div>' +
+                    '<div class="sv-history-meta">' + esc(e.userName) + ' · ' + esc(formatDateTime(e.createdAt)) + '</div></div>' +
+                    '</div>';
+            }).join(''));
+        }).fail(function () {
+            $box.html('<p class="small text-danger mb-0">No fue posible cargar la actividad.</p>');
+        });
+    }
+
+    // ---------------------------------------------------------------------
     // Eventos
     // ---------------------------------------------------------------------
 
@@ -283,6 +316,8 @@ var SurveyBuilder = (function ($) {
             fitTitle();
             if (Store.isEditable()) Store.setName($(this).val());
         });
+
+        $('#versionsOffcanvas').on('show.bs.offcanvas', renderHistory);
 
         $('#logicSummary').on('click', '.sv-logic-group', function () {
             Store.select($(this).attr('data-qid'));
