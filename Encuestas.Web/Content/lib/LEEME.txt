@@ -1,0 +1,8 @@
+Librerías de terceros incluidas en el sitio (los equipos de los usuarios no tienen internet).
+Descargadas de cdn.jsdelivr.net el 07/10/2026 y verificadas contra los hashes SHA-256 de jsDelivr.
+No modificar: para actualizar, descargar la nueva versión completa y cambiar las rutas en
+Views/Shared/_Layout.cshtml y Views/Encuestas/Responder.cshtml.
+
+  bootstrap-5.2.3/          Bootstrap 5.2.3        MIT  https://getbootstrap.com
+  jquery-3.7.1/             jQuery 3.7.1           MIT  https://jquery.com
+  bootstrap-icons-1.11.3/   Bootstrap Icons 1.11.3 MIT  https://icons.getbootstrap.com

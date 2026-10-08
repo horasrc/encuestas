@@ -69,8 +69,8 @@ La aplicación solo lee y escribe datos; no necesita permisos para crear tablas.
 
 ## 6. Recomendaciones
 - **HTTPS**: publicar el sitio solo por HTTPS (certificado interno del dominio).
-- **Bootstrap, jQuery e iconos** se cargan desde `cdn.jsdelivr.net`. Si los equipos de los usuarios
-  no tienen salida a internet, hay que copiar esas librerías al sitio (pídelo y se ajusta el layout).
+- **Sin internet**: Bootstrap, jQuery y Bootstrap Icons van incluidos en `Content\lib` (ver `LEEME.txt`);
+  el sitio no hace ninguna petición fuera del servidor.
 - **Respaldos**: incluir `PortalEncuestas` en los respaldos de SQL Server.
 - **Actualizaciones**: volver a ejecutar `tools\publish.ps1` y reemplazar los archivos de la carpeta
   (IIS reinicia la aplicación sola). Los cambios de base de datos vendrán como `Database\upgrade-NNN-*.sql`.

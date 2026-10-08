@@ -141,6 +141,13 @@
     <Content Include="Views\Encuestas\_TabResults.cshtml" />
     <Content Include="Views\Encuestas\_TabSettings.cshtml" />
     <Content Include="Content\survey\survey.css" />
+    <Content Include="Content\lib\LEEME.txt" />
+    <Content Include="Content\lib\bootstrap-5.2.3\css\bootstrap.min.css" />
+    <Content Include="Content\lib\bootstrap-5.2.3\js\bootstrap.bundle.min.js" />
+    <Content Include="Content\lib\jquery-3.7.1\jquery.min.js" />
+    <Content Include="Content\lib\bootstrap-icons-1.11.3\bootstrap-icons.min.css" />
+    <Content Include="Content\lib\bootstrap-icons-1.11.3\fonts\bootstrap-icons.woff2" />
+    <Content Include="Content\lib\bootstrap-icons-1.11.3\fonts\bootstrap-icons.woff" />
     <Content Include="Scripts\survey\mock-data.js" />
     <Content Include="Scripts\survey\survey-api.js" />
     <Content Include="Scripts\survey\survey-app.js" />
