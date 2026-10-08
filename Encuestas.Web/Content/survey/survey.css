@@ -151,6 +151,9 @@ body.sv-respondent-body {
 
 .sv-topbar { display: flex; align-items: center; gap: .75rem; margin-bottom: 1rem; }
 
+/* Ancho máximo del contenido: en pantallas muy anchas (ultrawide) se centra en lugar de estirarse. */
+.sv-page { max-width: 1680px; margin-left: auto; margin-right: auto; }
+
 /* ---------- 1. Encabezado ---------- */
 .sv-page-header {
     background: var(--sv-surface);

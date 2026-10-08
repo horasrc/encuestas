@@ -26,8 +26,33 @@ var SurveyEditor = (function ($) {
     /** Estado visual que se conserva entre renders. */
     var ui = {
         open: { validation: true, logic: true },
-        depPath: {} // pregunta -> [id nivel 0, id nivel 1, ...] seleccionados en el editor de dependientes
+        depPath: {}, // pregunta -> [id nivel 0, id nivel 1, ...] seleccionados en el editor de dependientes
+        typeStash: {} // pregunta -> { tipo -> configuración } para recuperarla al regresar a un tipo anterior
     };
+
+    /** Configuración propia del tipo que se perdería al cambiar de tipo. */
+    var TYPE_KEYS = ['options', 'matrix', 'dependent', 'validation', 'rules', 'allowOther', 'otherLabel', 'randomizeOptions'];
+
+    function typeSnapshot(q) {
+        var snap = {};
+        $.each(TYPE_KEYS, function (_, k) { if (q[k] !== undefined) snap[k] = U.clone(q[k]); });
+        return snap;
+    }
+
+    /** ¿El cambio de tipo descartaría algo que el usuario configuró? */
+    function describeLoss(q, newType) {
+        var from = SurveyTypes.get(q.type), to = SurveyTypes.get(newType);
+        var lost = [];
+        var customOptions = $.grep(q.options || [], function (o) { return $.trim(o.text) && !/^Opción \d+$/.test(o.text); });
+        var keepsOptions = from.options && to.options && !from.fixedOptions && !to.fixedOptions;
+        if (customOptions.length && !keepsOptions) lost.push(customOptions.length + ' opción(es) de respuesta');
+        if (q.type === 'matrix') lost.push('las filas y columnas de la matriz');
+        if (q.type === 'dependent') lost.push('las listas dependientes');
+        if ((q.rules || []).length && (from.ruleKind !== to.ruleKind || (to.ruleKind === 'option' && !keepsOptions))) {
+            lost.push(q.rules.length + ' regla(s) condicional(es)');
+        }
+        return lost;
+    }
 
     // ---------------------------------------------------------------------
     // Render principal
@@ -514,12 +539,22 @@ var SurveyEditor = (function ($) {
         $ed.on('change', '[data-act-change="type"]', function () {
             var q = current();
             var newType = $(this).val();
-            var lossy = (q.rules || []).length || q.type === 'matrix' || q.type === 'dependent';
-            var apply = function () { update(function (x) { SurveyTypes.changeType(x, newType); }, true); };
-            if (!lossy) { apply(); return; }
+            var stash = ui.typeStash[q.id] || (ui.typeStash[q.id] = {});
+            var apply = function () {
+                update(function (x) {
+                    stash[x.type] = typeSnapshot(x);           // guarda lo del tipo actual
+                    SurveyTypes.changeType(x, newType);
+                    if (stash[newType]) $.extend(x, U.clone(stash[newType])); // regresa a un tipo usado: se recupera
+                }, true);
+            };
+            // Si ya se había usado ese tipo en esta sesión, su configuración se recupera: no hay pérdida que avisar.
+            var lost = stash[newType] ? [] : describeLoss(q, newType);
+            if (!lost.length) { apply(); return; }
             U.confirmDialog({
                 title: 'Cambiar tipo de pregunta',
-                message: '<p>Al cambiar a <strong>' + esc(SurveyTypes.get(newType).label) + '</strong> se perderá la configuración específica del tipo actual y, si no son compatibles, sus reglas condicionales.</p>',
+                message: '<p>Al cambiar a <strong>' + esc(SurveyTypes.get(newType).label) + '</strong> se quitarán: ' +
+                    '<strong>' + esc(lost.join(', ')) + '</strong>.</p>' +
+                    '<p class="small text-muted mb-0">Si regresas al tipo anterior antes de salir de la página, se recuperan.</p>',
                 confirmText: 'Cambiar tipo'
             }).done(apply).fail(function () { render(); });
         });
