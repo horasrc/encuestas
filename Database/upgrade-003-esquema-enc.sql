@@ -1,4 +1,4 @@
-/* =====================================================================
+﻿/* =====================================================================
    UPGRADE 003 - Mover las tablas del módulo del esquema dbo al esquema enc
    Solo para bases de DESARROLLO creadas antes de este cambio (cuando las
    tablas estaban en dbo). Una instalación nueva ya las crea en enc.

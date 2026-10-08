@@ -1,4 +1,4 @@
-/* =====================================================================
+﻿/* =====================================================================
    UPGRADE 002 - Bitácora de cambios (SurveyAuditLog)
    Para bases creadas antes de esta versión (el schema.sql actual ya la incluye).
    Se puede ejecutar varias veces.

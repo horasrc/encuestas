@@ -82,6 +82,24 @@ Recomendado (lo usa el proyecto de ejemplo en `Global.asax.cs` y `App_Start\Rout
   nombres de los controladores del portal. Así los controladores del módulo solo responden en `/Encuestas/...`.
 
 ## 4. Base de datos (dentro de la base del portal)
+
+### Opción A: con SQL Server Management Studio (SSMS)
+1. Conéctate al servidor y, en el selector de bases de la barra de herramientas, **elige la base del portal**
+   (o empieza cada script con `USE NombreDeLaBaseDelPortal;`).
+2. **Archivo → Abrir → Archivo** → `Database\schema.sql` → **Ejecutar** (F5).
+   Termina con el mensaje `Esquema enc: 12 tablas.`
+3. Catálogos de la organización:
+   - Si el portal **ya tiene** empleados/sucursales: crea las vistas `enc.Org*` (ver más abajo) y **no**
+     ejecutes `org-schema.sql`.
+   - Si **no** los tiene: abre y ejecuta `Database\org-schema.sql` (crea 5 tablas `enc.Org*` vacías que
+     llenará RH).
+4. Da permisos a la cuenta del sitio (ver abajo).
+
+**No ejecutes** `seed.sql` ni `org-seed.sql` en el portal: son datos de ejemplo para desarrollo.
+Los scripts solo crean objetos en el esquema `enc`: no modifican ni leen ninguna tabla del portal. Si se
+ejecutan dos veces, se detienen con un mensaje ("ya existen…") sin hacer cambios.
+
+### Opción B: con el script de PowerShell
 Desde el equipo de desarrollo, con permisos para crear tablas en la base del portal:
 ```
 powershell -ExecutionPolicy Bypass -File tools\setup-db.ps1 -Server "SQLPROD01\PORTAL" -Database BaseDelPortal -NoSamples

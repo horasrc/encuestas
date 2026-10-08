@@ -1,4 +1,4 @@
-/* =====================================================================
+﻿/* =====================================================================
    DATOS SEMILLA - encuesta de ejemplo para SqlSurveyRepository
    Ejecutar después de schema.sql. Crea la encuesta en BORRADOR (v1) con:
    opción única, selección múltiple con "Otro", texto libre con límite,

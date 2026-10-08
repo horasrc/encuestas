@@ -1,4 +1,4 @@
-/* =====================================================================
+﻿/* =====================================================================
    DATOS DE EJEMPLO para los catálogos organizacionales (org-schema.sql).
    Son los mismos catálogos de la demo (mock-data.js). En producción estas
    tablas las llena RH / ETL; NO ejecutar este script en producción.

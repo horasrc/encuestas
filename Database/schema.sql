@@ -1,4 +1,4 @@
-/* =====================================================================
+﻿/* =====================================================================
    MÓDULO DE ENCUESTAS DINÁMICAS - ESQUEMA SQL SERVER
    ---------------------------------------------------------------------
    Principios:
@@ -13,6 +13,14 @@
      la base del portal sin chocar con sus tablas (dbo.*), y los permisos se
      dan sobre el esquema completo (GRANT ... ON SCHEMA::enc).
    ===================================================================== */
+
+/* Si ya está instalado, no hace nada (SET NOEXEC ON salta el resto del script). */
+IF OBJECT_ID('enc.Survey', 'U') IS NOT NULL
+BEGIN
+    RAISERROR(N'Las tablas del módulo de encuestas ya existen (enc.Survey). No se ejecutó nada. Para actualizar una instalación existente usa los scripts upgrade-*.sql.', 16, 1);
+    SET NOEXEC ON;
+END
+GO
 
 IF SCHEMA_ID('enc') IS NULL EXEC('CREATE SCHEMA enc AUTHORIZATION dbo');
 GO
@@ -215,3 +223,9 @@ GO
 -- WHERE q.SurveyVersionId = @SurveyVersionId
 -- GROUP BY q.QuestionId, q.SortOrder, q.Text, o.SortOrder, o.Text
 -- ORDER BY q.SortOrder, o.SortOrder;
+
+SET NOEXEC OFF;
+GO
+DECLARE @n INT = (SELECT COUNT(*) FROM sys.tables WHERE schema_id = SCHEMA_ID('enc'));
+PRINT N'Esquema enc: ' + CAST(@n AS NVARCHAR(10)) + N' tablas.';
+GO

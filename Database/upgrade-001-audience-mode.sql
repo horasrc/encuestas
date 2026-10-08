@@ -1,4 +1,4 @@
-/* =====================================================================
+﻿/* =====================================================================
    UPGRADE 001 - Modo de segmentación por versión
    Solo para bases creadas con una versión anterior de schema.sql
    (el schema.sql actual ya incluye la columna). Se puede ejecutar varias veces.

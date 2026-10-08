@@ -1,4 +1,4 @@
-/* =====================================================================
+﻿/* =====================================================================
    CATÁLOGOS ORGANIZACIONALES (segmentación de encuestas)
    ---------------------------------------------------------------------
    Los lee SqlOrgCatalogProvider (Web.config -> Surveys:CatalogProvider = Sql).
@@ -16,6 +16,14 @@
    script y crear en su lugar VISTAS enc.OrgRole, enc.OrgUser, ... sobre las
    tablas del portal (ver INTEGRACION.md).
    ===================================================================== */
+
+/* Si ya existen (como tablas o como vistas sobre el portal), no hace nada. */
+IF OBJECT_ID('enc.OrgUser') IS NOT NULL
+BEGIN
+    RAISERROR(N'enc.OrgUser ya existe (tabla o vista). No se ejecutó nada.', 16, 1);
+    SET NOEXEC ON;
+END
+GO
 
 IF SCHEMA_ID('enc') IS NULL EXEC('CREATE SCHEMA enc AUTHORIZATION dbo');
 GO
@@ -60,3 +68,7 @@ CREATE TABLE enc.OrgUser (
     IsActive   BIT           NOT NULL CONSTRAINT DF_OrgUser_Active DEFAULT 1
 );
 CREATE INDEX IX_OrgUser_Branch_Role ON enc.OrgUser(BranchId, RoleId) WHERE IsActive = 1;
+GO
+
+SET NOEXEC OFF;
+GO
