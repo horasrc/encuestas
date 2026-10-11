@@ -200,7 +200,7 @@ namespace ModuloEncuestas.Services
     /// </summary>
     public static class SurveyServiceFactory
     {
-        /// <param name="userName">Usuario de la petición (User.Identity.Name), para la bitácora.</param>
+        /// <param name="userName">Usuario de la petición (Infrastructure.SurveyUser), para la bitácora.</param>
         public static SurveyService Create(string userName = null)
         {
             var settings = System.Configuration.ConfigurationManager.AppSettings;
@@ -215,7 +215,7 @@ namespace ModuloEncuestas.Services
             if (string.Equals(settings["Surveys:Repository"], "Sql", StringComparison.OrdinalIgnoreCase))
             {
                 var cs = System.Configuration.ConfigurationManager.ConnectionStrings[ConnectionStringName(settings)];
-                return new SurveyService(new SqlSurveyRepository(cs == null ? null : cs.ConnectionString, catalogs), options);
+                return new SurveyService(new SqlSurveyRepository(cs == null ? null : cs.ConnectionString, catalogs, userName), options);
             }
             return new SurveyService(new InMemorySurveyRepository(catalogs), options);
         }

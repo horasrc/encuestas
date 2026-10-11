@@ -8,18 +8,17 @@ namespace ModuloEncuestas.Controllers
     /// <summary>
     /// Páginas Razor del módulo. Toda la interacción ocurre en el navegador
     /// (jQuery) y la persistencia pasa por SurveyApiController.
+    /// El acceso a cada página lo controla el portal.
     /// </summary>
     public class EncuestasController : Controller
     {
         // GET /Encuestas  (listado + "Nueva encuesta")
-        [SurveyAdminAuthorize]
         public ActionResult Index()
         {
             return View(BuildModel(null));
         }
 
         // GET /Encuestas/Constructor/1
-        [SurveyAdminAuthorize]
         public ActionResult Constructor(string id)
         {
             if (string.IsNullOrEmpty(id) && !UseMock()) return RedirectToAction("Index");
@@ -39,7 +38,7 @@ namespace ModuloEncuestas.Controllers
                 // Los datos mock arrancan con la encuesta "s1".
                 SurveyId = string.IsNullOrEmpty(id) ? (UseMock() ? "s1" : "") : id,
                 UseMockData = UseMock(),
-                CurrentUser = User != null && User.Identity.IsAuthenticated ? User.Identity.Name : ""
+                CurrentUser = SurveyUser.Current(HttpContext) ?? ""
             };
         }
 

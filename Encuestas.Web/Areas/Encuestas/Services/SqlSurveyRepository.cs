@@ -44,12 +44,15 @@ namespace ModuloEncuestas.Services
 
         private readonly string _connectionString;
         private readonly IOrgCatalogProvider _catalogs;
+        private readonly string _userName;
 
-        public SqlSurveyRepository(string connectionString, IOrgCatalogProvider catalogs)
+        /// <param name="userName">Usuario de la petición (SurveyUser), para CreatedBy/UpdatedBy.</param>
+        public SqlSurveyRepository(string connectionString, IOrgCatalogProvider catalogs, string userName = null)
         {
             if (string.IsNullOrWhiteSpace(connectionString)) throw new ArgumentException("Falta la cadena de conexión 'SurveysDb'.");
             _connectionString = connectionString;
             _catalogs = catalogs;
+            _userName = userName;
         }
 
         public OrgCatalogs GetCatalogs()
@@ -348,7 +351,7 @@ FROM enc.SurveyAuditLog WHERE SurveyId = @S ORDER BY CreatedAt DESC, AuditId DES
             }
         }
 
-        private static int UpsertSurvey(SqlConnection conn, SqlTransaction tx, SurveyDto survey)
+        private int UpsertSurvey(SqlConnection conn, SqlTransaction tx, SurveyDto survey)
         {
             int id;
             if (TryParseKey(survey.Id, out id))
@@ -381,7 +384,7 @@ FROM enc.SurveyAuditLog WHERE SurveyId = @S ORDER BY CreatedAt DESC, AuditId DES
             return result;
         }
 
-        private static int InsertVersion(SqlConnection conn, SqlTransaction tx, int surveyId, SurveyVersionDto v)
+        private int InsertVersion(SqlConnection conn, SqlTransaction tx, int surveyId, SurveyVersionDto v)
         {
             var s = v.Settings ?? new PublishSettingsDto();
             var status = StatusToByte(v.Status);
@@ -957,8 +960,9 @@ ORDER BY r.SurveyResponseId, a.QuestionResponseId;";
                 : null;
         }
 
-        private static string CurrentUser()
+        private string CurrentUser()
         {
+            if (!string.IsNullOrEmpty(_userName)) return _userName;
             var principal = System.Threading.Thread.CurrentPrincipal;
             return principal != null && principal.Identity != null && principal.Identity.IsAuthenticated
                 ? principal.Identity.Name

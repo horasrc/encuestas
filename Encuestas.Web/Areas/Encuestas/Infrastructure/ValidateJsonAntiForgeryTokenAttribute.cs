@@ -16,9 +16,9 @@ namespace ModuloEncuestas.Infrastructure
         public const string HeaderName = "RequestVerificationToken";
 
         /// <summary>
-        /// Se ejecuta DESPUÉS de [SurveyAdminAuthorize] (Order por defecto -1): primero se exige
-        /// usuario autenticado (lo que dispara el desafío de Windows) y luego se valida el token,
-        /// que está ligado a ese usuario.
+        /// Se ejecuta DESPUÉS de los filtros de autorización que agregue el portal (Order por
+        /// defecto -1): primero se exige usuario autenticado y luego se valida el token, que está
+        /// ligado a ese usuario.
         /// </summary>
         public ValidateJsonAntiForgeryTokenAttribute()
         {

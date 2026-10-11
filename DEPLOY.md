@@ -33,10 +33,11 @@ columnas sobre las tablas que ya tengan). `OrgUser.Login` debe ser `DOMINIO\usua
 ## 2. Generar el paquete
 En el equipo de desarrollo:
 
-    powershell -ExecutionPolicy Bypass -File tools\publish.ps1 -SqlServer "SQLPROD01\PORTAL" -AdminRoles "MIDOMINIO\Encuestas-Admin"
+    powershell -ExecutionPolicy Bypass -File tools\publish.ps1 -SqlServer "SQLPROD01\PORTAL"
 
-- `-AdminRoles`: grupo(s) de Windows que pueden crear, editar, publicar y ver resultados (separados por coma).
-  Quien no esté en esos grupos solo puede **responder**.
+- El módulo **no restringe** quién administra: cualquier usuario que entre al sitio puede crear, editar,
+  publicar y ver resultados. Como sitio independiente, limita el acceso a `/Encuestas` y
+  `/Encuestas/Constructor` con la configuración de IIS o del sitio (ver INTEGRACION.md, paso 3).
 - Resultado: `publish\Encuestas.Web` (~3 MB). El script verifica que no quede `debug`, LocalDB ni datos de prueba.
 
 ## 3. IIS
@@ -68,11 +69,10 @@ La aplicación solo lee y escribe datos del esquema `enc`; no necesita permisos 
 el resto de la base.
 
 ## 5. Verificación
-1. Abrir `https://servidor/Encuestas` con un usuario del grupo administrador → debe verse el listado.
+1. Abrir `https://servidor/Encuestas` → debe verse el listado.
 2. Crear una encuesta de prueba, agregar una pregunta, **Publicar** y abrir la página de respuesta.
-3. Responderla con otro usuario (que no sea administrador) y revisar **Resultados**.
-4. Con un usuario que **no** es administrador, abrir `/Encuestas` → debe recibir *403 No tienes permisos*.
-5. Eliminar la encuesta de prueba (solo se puede si no tiene respuestas; si las tiene, archivarla).
+3. Responderla con otro usuario y revisar **Resultados**.
+4. Eliminar la encuesta de prueba (solo se puede si no tiene respuestas; si las tiene, archivarla).
 
 ## 6. Recomendaciones
 - **HTTPS**: publicar el sitio solo por HTTPS (certificado interno del dominio).
@@ -88,7 +88,6 @@ el resto de la base.
 |---|---|
 | Pide usuario y contraseña en cada página | El sitio no está en la zona "Intranet local" del navegador; agregarlo por directiva de grupo. |
 | "La página expiró por seguridad" al guardar | Autenticación anónima habilitada en IIS (paso 3.4). |
-| 403 *No tienes permisos para administrar encuestas* | El usuario no está en `Surveys:AdminRoles`, o el grupo está mal escrito (`DOMINIO\Grupo`). |
 | Error 500 al abrir el listado | Sin conexión o sin permisos en SQL Server (paso 4). Ver el Visor de eventos → Aplicación (origen ASP.NET). |
 | La segmentación no muestra roles ni sucursales | Las tablas `Org*` están vacías (paso 1). |
 | Los acentos se ven mal | Se editó una vista `.cshtml` y se guardó sin UTF-8; guardarla como "UTF-8 con firma". |

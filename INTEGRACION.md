@@ -53,8 +53,6 @@ Dentro de `<appSettings>`:
 <add key="Surveys:Repository" value="Sql" />
 <add key="Surveys:CatalogProvider" value="Sql" />
 <add key="Surveys:CatalogCacheMinutes" value="10" />
-<!-- Grupo(s) de Windows que administran encuestas. Nunca vacío en producción. -->
-<add key="Surveys:AdminRoles" value="MIDOMINIO\Encuestas-Admin" />
 <add key="Surveys:EnforceAudience" value="false" />
 <!-- Nombre de la cadena de conexión del PORTAL (las tablas enc.* viven en su base). -->
 <add key="Surveys:ConnectionStringName" value="NombreDeLaCadenaDelPortal" />
@@ -64,18 +62,60 @@ Dentro de `<appSettings>`:
 Si el portal no tiene una cadena de conexión con seguridad integrada, agrega una propia y apunta
 `Surveys:ConnectionStringName` a ella (por defecto busca `SurveysDb`).
 
-Exigir usuario de Windows en el módulo (si el portal no lo hace ya para todo el sitio):
-```xml
-<location path="Encuestas">
-  <system.web>
-    <authorization>
-      <deny users="?" />
-    </authorization>
-  </system.web>
-</location>
+### Seguridad: la pone el portal
+El módulo **no controla el acceso**: no pide grupos ni roles y no da 403 a nadie. Quién entra, quién administra
+y quién responde lo decide la seguridad del portal. El portal debe proteger estas rutas:
+
+| Para administrar (solo administradores) | Para responder (colaboradores) |
+|---|---|
+| `/Encuestas` (listado), `/Encuestas/Constructor/{id}` | `/Encuestas/Responder/{id}` |
+| `/Encuestas/Api/` `List`, `Survey`, `History`, `Catalogs`, `Results`, `Create`, `Duplicate`, `Delete`, `SaveDraft`, `Publish`, `CreateVersion`, `ChangeStatus` | `/Encuestas/Api/` `Published`, `Eligibility`, `Submit` |
+
+Si el portal ya tiene un filtro global (`GlobalFilters` / `FilterConfig`) que exige iniciar sesión, este también
+se aplica al módulo automáticamente. Para restringir la administración, un ejemplo de filtro que distingue las dos
+columnas (cambia `AuthorizeCore` por la regla del portal; probado: administración → 403, responder → 200):
+```csharp
+// using System.Linq; using System.Web; using System.Web.Mvc;
+public class EncuestasAccesoAttribute : AuthorizeAttribute
+{
+    private static readonly string[] ParaResponder = { "Responder", "Published", "Eligibility", "Submit" };
+
+    public override void OnAuthorization(AuthorizationContext filterContext)
+    {
+        if (!"Encuestas".Equals(filterContext.RouteData.DataTokens["area"])) return;    // solo el módulo
+        if (ParaResponder.Contains(filterContext.ActionDescriptor.ActionName)) return;  // quien responde
+        base.OnAuthorization(filterContext);                                           // administración
+    }
+
+    protected override bool AuthorizeCore(HttpContextBase httpContext)
+    {
+        return httpContext.User.IsInRole("MIDOMINIO\\Encuestas-Admin");   // ← regla del portal
+    }
+
+    // 403 en lugar de 401: con autenticación de Windows, un 401 hace que el navegador vuelva a pedir contraseña.
+    protected override void HandleUnauthorizedRequest(AuthorizationContext filterContext)
+    {
+        filterContext.Result = new HttpStatusCodeResult(403, "No tienes permiso para administrar encuestas.");
+    }
+}
+// Global.asax / FilterConfig:  GlobalFilters.Filters.Add(new EncuestasAccesoAttribute());
 ```
+Para las rutas `/Encuestas/Api/...` conviene responder **401/403** en lugar de redirigir a la página de inicio de
+sesión: el JavaScript del módulo muestra el mensaje del error, pero no puede seguir una redirección.
+
+**Quién es el usuario.** El módulo sí necesita saber quién está conectado: lo usa para la bitácora, para "ya
+respondiste", para la audiencia y para las respuestas no anónimas. Por defecto toma `User.Identity.Name`
+(autenticación de Windows o Forms). Si el portal guarda al usuario de otra forma (por ejemplo, en la sesión),
+indícalo una vez en `Application_Start` del `Global.asax.cs` del portal:
+```csharp
+ModuloEncuestas.Infrastructure.SurveyUser.Resolver =
+    http => http.Session == null ? null : (string)http.Session["Usuario"];   // ← como lo guarde el portal
+```
+Debe devolver el mismo valor que la columna `Login` de `enc.OrgUser`, o `null` si no hay usuario.
+
 Con autenticación de Windows **la autenticación anónima debe estar deshabilitada en IIS** para el sitio (o al
-menos para `/Encuestas`); si no, al guardar o enviar puede aparecer "La página expiró por seguridad".
+menos para `/Encuestas`); si no, al guardar o enviar puede aparecer "La página expiró por seguridad". El token
+antifalsificación de los POST se conserva: protege contra envíos desde otros sitios y no restringe a nadie.
 
 Recomendado (lo usa el proyecto de ejemplo en `Global.asax.cs` y `App_Start\RouteConfig.cs`):
 - En la ruta `Default` del portal, `route.DataTokens["UseNamespaceFallback"] = false;` con el espacio de
@@ -173,10 +213,12 @@ Enlace para el menú del portal:
 ```
 
 ## 6. Verificación
-1. Compila el portal y abre `/Encuestas` con un usuario del grupo administrador → listado.
+1. Compila el portal y abre `/Encuestas` con un usuario que el portal deja administrar → listado.
 2. Crea una encuesta, agrega una pregunta, **Publicar**, abre `/Encuestas/Responder/{id}` y responde.
-3. Con un usuario que **no** es administrador: `/Encuestas` → *403*, pero `/Encuestas/Responder/{id}` sí abre.
-4. En SQL: `SELECT * FROM enc.SurveyAuditLog` muestra quién hizo cada acción.
+3. Con un usuario que **no** debe administrar: `/Encuestas` lo bloquea la seguridad del portal, pero
+   `/Encuestas/Responder/{id}` sí abre.
+4. En SQL: `SELECT * FROM enc.SurveyAuditLog` muestra quién hizo cada acción (si sale `sistema`, el módulo no
+   está recibiendo el usuario: revisa `SurveyUser.Resolver`).
 
 ## Quitar el módulo
 1. Borra la carpeta `Areas\Encuestas` del proyecto y las líneas `Surveys:*` del `Web.config`.

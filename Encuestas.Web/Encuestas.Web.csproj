@@ -100,7 +100,7 @@
     <Compile Include="Areas\Encuestas\EncuestasAreaRegistration.cs" />
     <Compile Include="Areas\Encuestas\Infrastructure\AssetUrlExtensions.cs" />
     <Compile Include="Areas\Encuestas\Infrastructure\JsonNetResult.cs" />
-    <Compile Include="Areas\Encuestas\Infrastructure\SurveyAdminAuthorizeAttribute.cs" />
+    <Compile Include="Areas\Encuestas\Infrastructure\SurveyUser.cs" />
     <Compile Include="Areas\Encuestas\Infrastructure\ValidateJsonAntiForgeryTokenAttribute.cs" />
     <Compile Include="Areas\Encuestas\Models\Dto\SurveyDtos.cs" />
     <Compile Include="Areas\Encuestas\Models\Entities\Question.cs" />

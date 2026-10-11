@@ -9,7 +9,12 @@ namespace ModuloEncuestas.Controllers
     /// API JSON que consume Scripts/survey/survey-api.js cuando
     /// Surveys:UseMockData = false. Rutas: /Encuestas/Api/{accion}/{id}.
     ///
-    /// Administración ([SurveyAdminAuthorize]):
+    /// El acceso lo controla el portal (el módulo no restringe por usuario ni rol).
+    /// Para que solo ciertas personas administren, el portal debe proteger /Encuestas,
+    /// /Encuestas/Constructor y estas rutas de administración; /Encuestas/Responder,
+    /// Published, Eligibility y Submit son para quien responde.
+    ///
+    /// Administración:
     ///   GET  /Encuestas/Api/List                       -> SurveySummaryDto[]
     ///   GET  /Encuestas/Api/Survey/{surveyId}          -> SurveyDto (todas las versiones)
     ///   GET  /Encuestas/Api/History/{surveyId}         -> AuditEntryDto[] (bitácora, últimas 100)
@@ -44,75 +49,75 @@ namespace ModuloEncuestas.Controllers
         // Administración
         // -----------------------------------------------------------------
 
-        [HttpGet, SurveyAdminAuthorize]
+        [HttpGet]
         public ActionResult List()
         {
             return new JsonNetResult(Service.GetSurveyList());
         }
 
-        [HttpGet, SurveyAdminAuthorize]
+        [HttpGet]
         public ActionResult Survey(string id)
         {
             var survey = Service.GetSurvey(id);
             return survey == null ? NotFound("Encuesta no encontrada") : new JsonNetResult(survey);
         }
 
-        [HttpGet, SurveyAdminAuthorize]
+        [HttpGet]
         public ActionResult History(string id)
         {
             return new JsonNetResult(Service.GetHistory(id));
         }
 
-        [HttpGet, SurveyAdminAuthorize]
+        [HttpGet]
         public ActionResult Catalogs()
         {
             return new JsonNetResult(Service.GetCatalogs());
         }
 
-        [HttpGet, SurveyAdminAuthorize]
+        [HttpGet]
         public ActionResult Results(string id, string surveyId)
         {
             var results = Service.GetResults(surveyId, id);
             return results == null ? NotFound("Versión no encontrada") : new JsonNetResult(results);
         }
 
-        [HttpPost, SurveyAdminAuthorize]
+        [HttpPost]
         public ActionResult Create()
         {
             return Reply(Service.CreateSurvey(JsonNetResult.ReadBody<CreateSurveyRequest>(Request)));
         }
 
-        [HttpPost, SurveyAdminAuthorize]
+        [HttpPost]
         public ActionResult Duplicate()
         {
             return Reply(Service.DuplicateSurvey(JsonNetResult.ReadBody<VersionActionRequest>(Request).SurveyId));
         }
 
-        [HttpPost, SurveyAdminAuthorize]
+        [HttpPost]
         public ActionResult Delete()
         {
             return Reply(Service.DeleteSurvey(JsonNetResult.ReadBody<VersionActionRequest>(Request).SurveyId));
         }
 
-        [HttpPost, SurveyAdminAuthorize]
+        [HttpPost]
         public ActionResult SaveDraft()
         {
             return Reply(Service.SaveDraft(JsonNetResult.ReadBody<SaveDraftRequest>(Request)));
         }
 
-        [HttpPost, SurveyAdminAuthorize]
+        [HttpPost]
         public ActionResult Publish()
         {
             return Reply(Service.Publish(JsonNetResult.ReadBody<VersionActionRequest>(Request)));
         }
 
-        [HttpPost, SurveyAdminAuthorize]
+        [HttpPost]
         public ActionResult CreateVersion()
         {
             return Reply(Service.CreateVersion(JsonNetResult.ReadBody<VersionActionRequest>(Request)));
         }
 
-        [HttpPost, SurveyAdminAuthorize]
+        [HttpPost]
         public ActionResult ChangeStatus()
         {
             return Reply(Service.ChangeStatus(JsonNetResult.ReadBody<VersionActionRequest>(Request)));
@@ -143,7 +148,7 @@ namespace ModuloEncuestas.Controllers
 
         private string CurrentUserName()
         {
-            return User != null && User.Identity.IsAuthenticated ? User.Identity.Name : null;
+            return SurveyUser.Current(HttpContext);
         }
 
         private static ActionResult NotFound(string message)

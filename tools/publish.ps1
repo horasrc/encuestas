@@ -3,14 +3,12 @@
   Genera la carpeta lista para copiar al servidor IIS (configuración Release):
     - restaura NuGet, compila, precompila las vistas Razor
     - aplica Web.Release.config (sin debug, modo servidor, SQL)
-    - escribe el servidor SQL y los grupos administradores en el Web.config publicado
+    - escribe el servidor SQL en el Web.config publicado
 
-      powershell -ExecutionPolicy Bypass -File tools\publish.ps1 `
-          -SqlServer "SQLPROD01\PORTAL" -AdminRoles "MIDOMINIO\Encuestas-Admin"
+      powershell -ExecutionPolicy Bypass -File tools\publish.ps1 -SqlServer "SQLPROD01\PORTAL"
 
   Parámetros:
     -SqlServer   servidor\instancia de SQL Server de producción (obligatorio)
-    -AdminRoles  grupo(s) de Windows que administran encuestas, separados por coma (obligatorio)
     -Database    nombre de la base (por defecto PortalEncuestas)
     -AllowLocalDb  solo para probar la carpeta publicada en el equipo de desarrollo
 
@@ -18,7 +16,6 @@
 #>
 param(
     [Parameter(Mandatory = $true)][string]$SqlServer,
-    [Parameter(Mandatory = $true)][string]$AdminRoles,
     [string]$Database = 'PortalEncuestas',
     [switch]$AllowLocalDb
 )
@@ -45,7 +42,7 @@ try {
 $config = Join-Path $out 'Web.config'
 $xml = [IO.File]::ReadAllText($config, [Text.Encoding]::UTF8)
 $esc = { param($v) [Security.SecurityElement]::Escape($v) }
-$xml = $xml.Replace('__SQL_SERVER__', (& $esc $SqlServer)).Replace('__DATABASE__', (& $esc $Database)).Replace('__ADMIN_ROLES__', (& $esc $AdminRoles))
+$xml = $xml.Replace('__SQL_SERVER__', (& $esc $SqlServer)).Replace('__DATABASE__', (& $esc $Database))
 [IO.File]::WriteAllText($config, $xml, (New-Object Text.UTF8Encoding $true))
 
 # Verificaciones.
@@ -65,5 +62,4 @@ $size = (Get-ChildItem $out -Recurse -File | Measure-Object Length -Sum).Sum / 1
 Write-Host ''
 Write-Host ("Publicación lista: {0}  ({1:N1} MB)" -f $out, $size) -ForegroundColor Green
 Write-Host "  SQL Server:     $SqlServer / $Database"
-Write-Host "  Administradores: $AdminRoles"
 Write-Host 'Siguiente paso: copiar la carpeta al servidor y seguir DEPLOY.md.'

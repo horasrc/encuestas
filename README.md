@@ -33,7 +33,7 @@ Si compilas antes de restaurar NuGet verás el error «Faltan paquetes NuGet»: 
 `Web.config` → `Surveys:UseMockData`: `true` usa datos mock (localStorage); `false` usa la API del módulo.
 
 ## Publicar en el servidor
-    powershell -ExecutionPolicy Bypass -File tools\publish.ps1 -SqlServer "SERVIDOR\INSTANCIA" -AdminRoles "DOMINIO\Grupo-Admin"
+    powershell -ExecutionPolicy Bypass -File tools\publish.ps1 -SqlServer "SERVIDOR\INSTANCIA"
 
 Genera `publish\Encuestas.Web` (Release, vistas precompiladas, sin datos de prueba). Instalación en IIS: **[DEPLOY.md](DEPLOY.md)**.
 Para instalarlo **dentro del portal** (lo habitual), sigue **[INTEGRACION.md](INTEGRACION.md)**.
@@ -41,8 +41,8 @@ Para instalarlo **dentro del portal** (lo habitual), sigue **[INTEGRACION.md](IN
 ## Pantallas
 | URL | Quién | Qué |
 |---|---|---|
-| `/Encuestas` | Administrador | Listado (filtro por estado, búsqueda), «Nueva encuesta», duplicar y eliminar (solo sin respuestas) |
-| `/Encuestas/Constructor/{id}` | Administrador | Constructor, configuración, vista previa y resultados (`#resultados` abre esa pestaña). El panel **Versiones** muestra la **actividad** (bitácora) |
+| `/Encuestas` | Administrador (lo restringe el portal) | Listado (filtro por estado, búsqueda), «Nueva encuesta», duplicar y eliminar (solo sin respuestas) |
+| `/Encuestas/Constructor/{id}` | Administrador (lo restringe el portal) | Constructor, configuración, vista previa y resultados (`#resultados` abre esa pestaña). El panel **Versiones** muestra la **actividad** (bitácora) |
 | `/Encuestas/Responder/{id}` | Colaborador | Antes de mostrarla verifica si puede responder (vigencia, sesión, ya respondió, audiencia); luego responde la versión publicada |
 | `/Encuestas/Api/...` | (JavaScript) | API JSON del módulo |
 
@@ -54,7 +54,7 @@ Encuestas.Web\Areas\Encuestas\
   Services\       SurveyService (versionado, publicación, envío, bitácora) · SurveyLogic (lógica condicional
                   y validación en servidor) · SqlSurveyRepository · SqlOrgCatalogProvider · ISurveyRepository
   Models\         Dto · Entities · ViewModels
-  Infrastructure\ SurveyAdminAuthorize · ValidateJsonAntiForgeryToken · JsonNetResult · Url.Versioned
+  Infrastructure\ SurveyUser · ValidateJsonAntiForgeryToken · JsonNetResult · Url.Versioned
   Views\          Encuestas\ (Index, Constructor + parciales, Responder) · Shared\_LayoutEncuestas · Web.config
   Scripts\        survey-utils · survey-types · survey-logic · survey-renderer · survey-api · survey-store ·
                   survey-list · survey-builder · survey-editor · survey-settings · survey-preview ·
@@ -99,16 +99,18 @@ Cómo guarda `Services/SqlSurveyRepository.cs`:
 - Cadena de conexión: la indicada en `Surveys:ConnectionStringName` (por defecto `SurveysDb`).
 
 ## Seguridad y validación
-- El sitio exige usuario de Windows (`<deny users="?" />`). Con Windows Authentication la identidad es por conexión:
-  si se permitiera el acceso anónimo, algunos POST llegarían sin usuario y el token antifalsificación fallaría.
-  En IIS: habilitar **Autenticación de Windows** y deshabilitar la anónima.
-- `Surveys:AdminRoles`: grupos de Windows que administran encuestas (vacío = cualquier usuario autenticado; solo desarrollo).
+- **El módulo no controla el acceso**: quién entra, quién administra y quién responde lo decide la seguridad del
+  portal (ver [INTEGRACION.md](INTEGRACION.md), paso 3). El módulo solo necesita saber **quién es** el usuario
+  (`Infrastructure/SurveyUser.cs`: por defecto `User.Identity.Name`; el portal puede asignar `SurveyUser.Resolver`).
+- El sitio de prueba de este repositorio simula un portal con usuario de Windows obligatorio (`<deny users="?" />`).
+  Con Windows Authentication la identidad es por conexión: si se permitiera el acceso anónimo, algunos POST llegarían
+  sin usuario y el token antifalsificación fallaría. En IIS: habilitar **Autenticación de Windows** y deshabilitar la anónima.
 - Todos los POST de la API exigen el token antifalsificación (encabezado `RequestVerificationToken`, lo envía `survey-api.js`).
 - Quien responde solo recibe la versión publicada (`/Encuestas/Api/Published/{id}`), sin borradores ni segmentación.
 - Al enviar, el servidor recalcula la lógica condicional (`SurveyLogic.cs`, puerto de `survey-logic.js`):
   exige solo las obligatorias visibles, aplica límites y descarta respuestas de preguntas ocultas u opciones inexistentes.
   **Si cambias la lógica en `survey-logic.js` o las validaciones de `survey-renderer.js`, replica el cambio en `SurveyLogic.cs`.**
-- `Surveys:EnforceAudience = true`: rechaza a quien no pertenece a la segmentación (compara `User.Identity.Name`
+- `Surveys:EnforceAudience = true`: rechaza a quien no pertenece a la segmentación (compara el usuario de `SurveyUser`
   con `OrgUser.Login`). Requiere `Surveys:CatalogProvider = Sql` con usuarios reales.
 
 ## Agregar un tipo de pregunta
