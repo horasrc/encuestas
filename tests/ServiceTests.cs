@@ -168,6 +168,46 @@ class ServiceTest
         Check("Bitácora: sin usuario => 'sistema'", anonymousService.GetHistory(s4.Id).Single().UserName == "sistema");
         Check("Bitácora: separada por encuesta", audited.GetHistory(s4.Id).Count == 1 && audited.GetHistory(s3.Id).Count == 4);
 
+        CitasIcsTests();
+
         Console.WriteLine(failures == 0 ? "TODAS LAS PRUEBAS PASARON" : failures + " FALLAS");
+    }
+
+    // Citas -> archivo .ics para Outlook (Areas/Citas/Services/CalendarioIcs.cs)
+    static void CitasIcsTests()
+    {
+        var inicio = new DateTime(2026, 11, 3, 10, 0, 0, DateTimeKind.Local);
+        var notas = "Llevar estado de cuenta; revisar línea, plazo y tasa.\nSegunda línea con acentos: ñandú, acción, pingüino. " + new string('x', 120);
+        var bytes = ModuloCitas.Services.CalendarioIcs.Crear(new ModuloCitas.Services.EventoCalendario
+        {
+            Uid = "cita-7@portal", Asunto = "Revisión, cartera; cliente", Inicio = inicio, Fin = inicio.AddMinutes(45),
+            Lugar = "Sucursal Centro", Descripcion = notas, RecordatorioMinutos = 30
+        });
+        var ics = new System.Text.UTF8Encoding(false).GetString(bytes);
+        var lines = ics.Split(new[] { "\r\n" }, StringSplitOptions.None);
+
+        Check("ICS: sin BOM y con CRLF en todas las líneas", bytes[0] == (byte)'B' && !ics.Replace("\r\n", "").Contains("\n"));
+        Check("ICS: ninguna línea pasa de 75 bytes", lines.All(l => System.Text.Encoding.UTF8.GetByteCount(l) <= 75),
+            lines.Max(l => System.Text.Encoding.UTF8.GetByteCount(l)).ToString());
+        var unfolded = ics.Replace("\r\n ", "");
+        Check("ICS: inicio y fin en UTC", unfolded.Contains("DTSTART:" + inicio.ToUniversalTime().ToString("yyyyMMdd'T'HHmmss'Z'"))
+            && unfolded.Contains("DTEND:" + inicio.AddMinutes(45).ToUniversalTime().ToString("yyyyMMdd'T'HHmmss'Z'")));
+        Check("ICS: asunto con , y ; escapados", unfolded.Contains("SUMMARY:Revisión\\, cartera\\; cliente"));
+        Check("ICS: acentos y saltos de línea en notas intactos al desplegar",
+            unfolded.Contains("DESCRIPTION:Llevar estado de cuenta\\; revisar línea\\, plazo y tasa.\\nSegunda línea con acentos: ñandú\\, acción\\, pingüino. " + new string('x', 120)));
+        Check("ICS: recordatorio 30 min y UID estable", unfolded.Contains("TRIGGER:-PT30M") && unfolded.Contains("UID:cita-7@portal"));
+        Check("ICS: estructura completa", unfolded.StartsWith("BEGIN:VCALENDAR\r\n") && unfolded.EndsWith("END:VEVENT\r\nEND:VCALENDAR\r\n")
+            && unfolded.Contains("METHOD:PUBLISH"));
+
+        var sinAlarma = new System.Text.UTF8Encoding(false).GetString(ModuloCitas.Services.CalendarioIcs.Crear(new ModuloCitas.Services.EventoCalendario
+        {
+            Asunto = "Sin recordatorio", Inicio = inicio, Fin = inicio.AddHours(1)
+        }));
+        Check("ICS: sin recordatorio no agrega alarma ni lugar", !sinAlarma.Contains("VALARM") && !sinAlarma.Contains("LOCATION"));
+        bool rechazada;
+        try { ModuloCitas.Services.CalendarioIcs.Crear(new ModuloCitas.Services.EventoCalendario { Inicio = inicio, Fin = inicio }); rechazada = false; }
+        catch (ArgumentException) { rechazada = true; }
+        Check("ICS: fin igual al inicio rechazado", rechazada);
+        Check("ICS: nombre de archivo seguro", ModuloCitas.Services.CalendarioIcs.NombreArchivo("cita 7/../x") == "cita-7----x.ics");
     }
 }

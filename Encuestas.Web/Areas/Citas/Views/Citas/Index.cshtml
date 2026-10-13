@@ -1,0 +1,109 @@
+﻿@model CitaModel
+@{
+    ViewBag.Title = "Citas";
+    var proximas = (IList<CitaModel>)ViewBag.Proximas ?? new List<CitaModel>();
+}
+@functions {
+    private string Invalido(string campo)
+    {
+        var estado = ViewData.ModelState[campo];
+        return estado != null && estado.Errors.Count > 0 ? " is-invalid" : "";
+    }
+}
+@Html.Partial("~/Areas/Encuestas/Views/Encuestas/_ModuleStyles.cshtml")
+<link href="@Url.Versioned("~/Areas/Citas/Content/citas.css")" rel="stylesheet" />
+<div class="sv-page ct-page">
+    <header class="sv-page-header pb-3">
+        <h1 class="h4 fw-bold mb-1">Agendar cita</h1>
+        <p class="text-muted small mb-0">Al aceptar, la cita se guarda y se abre en Outlook para agregarla a tu calendario.</p>
+    </header>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            @using (Html.BeginForm("Guardar", "Citas", FormMethod.Post, new { @class = "card sv-card p-3 p-md-4", novalidate = "novalidate" }))
+            {
+                @Html.AntiForgeryToken()
+                @Html.ValidationSummary(true, "", new { @class = "alert alert-danger py-2" })
+
+                <div class="mb-3">
+                    <label for="Asunto" class="form-label">Asunto</label>
+                    @Html.TextBoxFor(m => m.Asunto, new { @class = "form-control" + Invalido("Asunto"), maxlength = "120", placeholder = "Ej. Revisión de cartera con cliente", autocomplete = "off" })
+                    @Html.ValidationMessageFor(m => m.Asunto, null, new { @class = "invalid-feedback" })
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-5">
+                        <label for="Fecha" class="form-label">Fecha</label>
+                        @Html.TextBoxFor(m => m.Fecha, "{0:yyyy-MM-dd}", new { type = "date", @class = "form-control" + Invalido("Fecha") })
+                        @Html.ValidationMessageFor(m => m.Fecha, null, new { @class = "invalid-feedback" })
+                    </div>
+                    <div class="col-6 col-sm-3">
+                        <label for="HoraInicio" class="form-label">Inicio</label>
+                        @Html.TextBoxFor(m => m.HoraInicio, "{0:hh\\:mm}", new { type = "time", step = "300", @class = "form-control" + Invalido("HoraInicio") })
+                        @Html.ValidationMessageFor(m => m.HoraInicio, null, new { @class = "invalid-feedback" })
+                    </div>
+                    <div class="col-6 col-sm-4">
+                        <label for="HoraFin" class="form-label">Fin</label>
+                        @Html.TextBoxFor(m => m.HoraFin, "{0:hh\\:mm}", new { type = "time", step = "300", @class = "form-control" + Invalido("HoraFin") })
+                        @Html.ValidationMessageFor(m => m.HoraFin, null, new { @class = "invalid-feedback" })
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="Lugar" class="form-label">Lugar <span class="text-muted fw-normal">(opcional)</span></label>
+                    @Html.TextBoxFor(m => m.Lugar, new { @class = "form-control" + Invalido("Lugar"), maxlength = "150", placeholder = "Sucursal, sala o enlace de la reunión" })
+                    @Html.ValidationMessageFor(m => m.Lugar, null, new { @class = "invalid-feedback" })
+                </div>
+
+                <div class="mb-3">
+                    <label for="Notas" class="form-label">Notas <span class="text-muted fw-normal">(opcional)</span></label>
+                    @Html.TextAreaFor(m => m.Notas, new { @class = "form-control" + Invalido("Notas"), rows = "3", maxlength = "1000" })
+                    @Html.ValidationMessageFor(m => m.Notas, null, new { @class = "invalid-feedback" })
+                </div>
+
+                <div class="mb-4">
+                    <label for="Recordatorio" class="form-label">Recordatorio en Outlook</label>
+                    @Html.DropDownListFor(m => m.Recordatorio, new SelectList(new[]
+                    {
+                        new { V = 0, T = "Sin recordatorio" },
+                        new { V = 15, T = "15 minutos antes" },
+                        new { V = 30, T = "30 minutos antes" },
+                        new { V = 60, T = "1 hora antes" },
+                        new { V = 1440, T = "1 día antes" }
+                    }, "V", "T", Model.Recordatorio), new { @class = "form-select" })
+                </div>
+
+                <div class="d-flex justify-content-end">
+                    <button type="submit" class="btn btn-accent"><i class="bi bi-check-lg me-1"></i> Aceptar</button>
+                </div>
+            }
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card sv-card">
+                <div class="sv-card-header"><h2 class="h6 fw-bold mb-0"><i class="bi bi-calendar-week me-1"></i> Mis próximas citas</h2></div>
+                @if (proximas.Count == 0)
+                {
+                    <p class="text-muted small p-3 mb-0">Aún no tienes citas registradas.</p>
+                }
+                else
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var c in proximas)
+                        {
+                            <li class="list-group-item d-flex align-items-center gap-2">
+                                <div class="flex-grow-1 min-w-0">
+                                    <div class="fw-semibold text-truncate">@c.Asunto</div>
+                                    <div class="small text-muted">@c.Inicio.ToString("ddd dd/MM/yyyy HH:mm") – @c.Fin.ToString("HH:mm")</div>
+                                </div>
+                                <a class="btn btn-sm btn-light border flex-shrink-0" href="@Url.Action("Outlook", new { id = c.Id })" title="Agregar a Outlook">
+                                    <i class="bi bi-calendar-plus"></i><span class="visually-hidden">Agregar a Outlook</span>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+</div>

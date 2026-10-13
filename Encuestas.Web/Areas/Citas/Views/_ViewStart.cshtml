@@ -1,0 +1,7 @@
+﻿@{
+    // Mismo layout que el módulo de Encuestas: el del portal (Surveys:Layout) o el de ejemplo.
+    var portalLayout = System.Configuration.ConfigurationManager.AppSettings["Surveys:Layout"];
+    Layout = string.IsNullOrWhiteSpace(portalLayout)
+        ? "~/Areas/Encuestas/Views/Shared/_LayoutEncuestas.cshtml"
+        : portalLayout;
+}

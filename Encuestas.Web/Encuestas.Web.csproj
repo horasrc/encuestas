@@ -50,6 +50,7 @@
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
@@ -95,6 +96,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="App_Start\RouteConfig.cs" />
+    <Compile Include="Areas\Citas\CitasAreaRegistration.cs" />
+    <Compile Include="Areas\Citas\Controllers\CitasController.cs" />
+    <Compile Include="Areas\Citas\Models\CitaModel.cs" />
+    <Compile Include="Areas\Citas\Services\CalendarioIcs.cs" />
+    <Compile Include="Areas\Citas\Services\CitaStore.cs" />
     <Compile Include="Areas\Encuestas\Controllers\EncuestasController.cs" />
     <Compile Include="Areas\Encuestas\Controllers\SurveyApiController.cs" />
     <Compile Include="Areas\Encuestas\EncuestasAreaRegistration.cs" />
@@ -128,6 +134,11 @@
     <Content Include="Areas\Encuestas\Content\lib\bootstrap-icons-1.11.3\fonts\bootstrap-icons.woff2" />
     <Content Include="Areas\Encuestas\Content\lib\jquery-3.7.1\jquery.min.js" />
     <Content Include="Areas\Encuestas\Content\lib\LEEME.txt" />
+    <Content Include="Areas\Citas\Content\citas.css" />
+    <Content Include="Areas\Citas\Views\_ViewStart.cshtml" />
+    <Content Include="Areas\Citas\Views\Citas\Index.cshtml" />
+    <Content Include="Areas\Citas\Views\Citas\Confirmada.cshtml" />
+    <Content Include="Areas\Citas\Views\Web.config" />
     <Content Include="Areas\Encuestas\Content\survey.css" />
     <Content Include="Areas\Encuestas\Scripts\mock-data.js" />
     <Content Include="Areas\Encuestas\Scripts\survey-api.js" />

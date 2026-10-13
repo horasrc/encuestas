@@ -24,7 +24,9 @@
                     <a class="nav-link" href="#"><i class="bi bi-chat-square-text"></i> Prompts de ventas</a>
                     <a class="nav-link" href="#"><i class="bi bi-folder2-open"></i> Recursos comerciales</a>
                     <a class="nav-link" href="#"><i class="bi bi-calendar-week"></i> Semana sistemática</a>
-                    <a class="nav-link active" aria-current="page" href="@Url.Action("Index", "Encuestas", new { area = "Encuestas" })"><i class="bi bi-clipboard2-check"></i> Encuestas</a>
+                    @{ var areaActual = (string)ViewContext.RouteData.DataTokens["area"]; }
+                    <a class="nav-link@(areaActual == "Encuestas" ? " active" : "")" @(areaActual == "Encuestas" ? Html.Raw("aria-current=\"page\"") : null) href="@Url.Action("Index", "Encuestas", new { area = "Encuestas" })"><i class="bi bi-clipboard2-check"></i> Encuestas</a>
+                    <a class="nav-link@(areaActual == "Citas" ? " active" : "")" @(areaActual == "Citas" ? Html.Raw("aria-current=\"page\"") : null) href="@Url.Action("Index", "Citas", new { area = "Citas" })"><i class="bi bi-calendar-plus"></i> Citas</a>
                     <a class="nav-link" href="#"><i class="bi bi-bar-chart-line"></i> Reportes</a>
                     <a class="nav-link" href="#"><i class="bi bi-mortarboard"></i> Capacitación</a>
                     <a class="nav-link" href="#"><i class="bi bi-gear"></i> Configuración</a>

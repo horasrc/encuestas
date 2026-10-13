@@ -66,10 +66,14 @@ tests\            ServiceTests.cs + run-tests.ps1 (unitarias) · e2e-tests.ps1 (
 ```
 Espacio de nombres del módulo: `ModuloEncuestas` (no depende del nombre del proyecto que lo contiene).
 
+Además, `Areas\Citas\` es un ejemplo independiente de formulario de citas que, al aceptar, agrega la cita al
+calendario de Outlook (archivo `.ics`). Se prueba en `/Citas`; cómo llevarlo al portal: **[CITAS-OUTLOOK.md](CITAS-OUTLOOK.md)**.
+
 ## Pruebas
     powershell -ExecutionPolicy Bypass -File tests\run-tests.ps1
 
-Compila con el `csc` de .NET Framework y ejecuta 35 pruebas de `SurveyService` / `SurveyLogic` sobre el repositorio en memoria.
+Compila con el `csc` de .NET Framework y ejecuta 45 pruebas: 35 de `SurveyService` / `SurveyLogic` sobre el repositorio en memoria y 10 del archivo
+`.ics` de Citas (`CalendarioIcs`).
 
 Integración (sitio corriendo contra LocalDB; **modifica datos**, usa una base de pruebas):
 

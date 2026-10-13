@@ -1,0 +1,49 @@
+﻿@model CitaModel
+@{
+    ViewBag.Title = "Cita registrada";
+    var urlOutlook = Url.Action("Outlook", new { id = Model.Id });
+}
+@Html.Partial("~/Areas/Encuestas/Views/Encuestas/_ModuleStyles.cshtml")
+<link href="@Url.Versioned("~/Areas/Citas/Content/citas.css")" rel="stylesheet" />
+<div class="sv-page ct-page">
+    <div class="card sv-card p-4 mx-auto ct-confirm">
+        <div class="d-flex align-items-start gap-3">
+            <span class="ct-check"><i class="bi bi-check-lg"></i></span>
+            <div class="min-w-0">
+                <h1 class="h5 fw-bold mb-1">Tu cita quedó registrada</h1>
+                <p class="text-muted mb-3">Se está descargando para que la agregues a tu calendario de Outlook.</p>
+            </div>
+        </div>
+
+        <dl class="row small mb-4">
+            <dt class="col-4 col-sm-3 text-muted fw-normal">Asunto</dt>
+            <dd class="col-8 col-sm-9">@Model.Asunto</dd>
+            <dt class="col-4 col-sm-3 text-muted fw-normal">Cuándo</dt>
+            <dd class="col-8 col-sm-9">@Model.Inicio.ToString("dddd dd/MM/yyyy") de @Model.Inicio.ToString("HH:mm") a @Model.Fin.ToString("HH:mm")</dd>
+            @if (!string.IsNullOrWhiteSpace(Model.Lugar))
+            {
+                <dt class="col-4 col-sm-3 text-muted fw-normal">Lugar</dt>
+                <dd class="col-8 col-sm-9">@Model.Lugar</dd>
+            }
+        </dl>
+
+        <div class="d-flex flex-wrap gap-2">
+            <a id="btnOutlook" class="btn btn-accent" href="@urlOutlook">
+                <i class="bi bi-calendar-plus me-1"></i> Agregar a mi calendario de Outlook
+            </a>
+            <a class="btn btn-light border" href="@Url.Action("Index")">Agendar otra cita</a>
+        </div>
+
+        <p class="small text-muted mt-4 mb-0">
+            <i class="bi bi-info-circle me-1"></i>Abre el archivo descargado (<strong>cita-@(Model.Id).ics</strong>):
+            Outlook mostrará la cita ya llena. Da <strong>Guardar y cerrar</strong> para dejarla en tu agenda.
+        </p>
+    </div>
+</div>
+
+@section scripts {
+    <script>
+        // Descarga automática del .ics; el botón queda por si el navegador la bloquea.
+        setTimeout(function () { window.location.href = document.getElementById('btnOutlook').href; }, 400);
+    </script>
+}
