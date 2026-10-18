@@ -135,6 +135,7 @@
     <Content Include="Areas\Encuestas\Content\lib\jquery-3.7.1\jquery.min.js" />
     <Content Include="Areas\Encuestas\Content\lib\LEEME.txt" />
     <Content Include="Areas\Citas\Content\citas.css" />
+    <Content Include="Areas\Citas\Scripts\cita-outlook.js" />
     <Content Include="Areas\Citas\Views\_ViewStart.cshtml" />
     <Content Include="Areas\Citas\Views\Citas\Index.cshtml" />
     <Content Include="Areas\Citas\Views\Citas\Confirmada.cshtml" />

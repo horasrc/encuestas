@@ -68,6 +68,8 @@ Espacio de nombres del módulo: `ModuloEncuestas` (no depende del nombre del pro
 
 Además, `Areas\Citas\` es un ejemplo independiente de formulario de citas que, al aceptar, agrega la cita al
 calendario de Outlook (archivo `.ics`). Se prueba en `/Citas`; cómo llevarlo al portal: **[CITAS-OUTLOOK.md](CITAS-OUTLOOK.md)**.
+`Areas\Citas\Scripts\cita-outlook.js` hace lo mismo solo en el navegador, para formularios que guardan con
+JavaScript (como "Registro de citas / visitas"): `CitaOutlook.descargar(formData)`.
 
 ## Pruebas
     powershell -ExecutionPolicy Bypass -File tests\run-tests.ps1
