@@ -1,3 +1,4 @@
+// ===== INICIO cita-outlook.js (v2, con hora) =====
 /*
  * cita-outlook.js
  * Genera EN EL NAVEGADOR la cita para Outlook (.ics) con los datos del formulario
@@ -7,26 +8,39 @@
  * Uso: en guardarCaptura(), cuando el guardado fue exitoso:
  *     CitaOutlook.descargar(formData);
  *
- * Datos que incluye (de formData): clientName, appointmentDate, appointmentType,
- * accompaniment, comments, isCustomer. Los textos de "Tipo de cita", "Acompañamiento" y
- * "¿Es cliente?" se leen de lo que ve el usuario en la pantalla, no del valor interno.
+ * Datos que incluye (de formData): clientName, appointmentDate, appointmentTime,
+ * appointmentType, accompaniment, comments, isCustomer. Los textos de "Tipo de cita",
+ * "Acompañamiento" y "¿Es cliente?" se leen de lo que ve el usuario, no del valor interno.
+ * Si formData no trae appointmentTime, se lee del campo #appointmentTime de la pantalla.
  *
- * La fecha no tiene hora: la cita entra como evento de TODO EL DÍA, marcada como "Libre"
- * (no bloquea el día) y con recordatorio a las 9:00 a.m. del día anterior.
- * Solo se genera si la fecha es hoy o futura (una visita que ya pasó no se agenda).
+ * CON hora: la cita queda a esa hora, dura DURACION_MIN minutos, aparece como "Ocupado" y
+ *           avisa RECORDATORIO_MIN minutos antes. Solo se genera si aún no pasa.
+ * SIN hora: evento de TODO EL DÍA, "Libre", con recordatorio a las 9:00 a.m. del día anterior.
+ *           Solo se genera si la fecha es hoy o futura.
  */
 (function (window, document) {
     'use strict';
 
     // Ids de los controles del formulario (cámbialos aquí si cambian en la vista).
     var IDS = {
+        hora: 'appointmentTime',
         tipoCita: 'appointmentType',
         acompanamiento: 'accompaniment',
         esClienteName: 'isCustomer'
     };
-    var RECORDATORIO = '-PT15H';   // 15 h antes de las 00:00 del día = 9:00 a.m. del día anterior
+    var DURACION_MIN = 60;          // duración de la cita con hora
+    var RECORDATORIO_MIN = 15;      // aviso antes de una cita con hora
+    var RECORDATORIO_TODO_EL_DIA = '-PT15H';   // 15 h antes de las 00:00 = 9:00 a.m. del día anterior
 
     function pad(n) { return (n < 10 ? '0' : '') + n; }
+
+    /** "14:30" o "9:05" (valor de <input type="time">) -> { h, m }; si no, null. */
+    function parseHora(valor) {
+        var m = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(String(valor || '').replace(/^\s+|\s+$/g, ''));
+        if (!m) return null;
+        var h = +m[1], min = +m[2];
+        return h < 24 && min < 60 ? { h: h, m: min } : null;
+    }
 
     /** "2026-10-20" (valor de <input type="date">) o "20/10/2026" -> Date local; si no, null. */
     function parseFecha(valor) {
@@ -95,14 +109,22 @@
 
     /**
      * Arma el texto del archivo .ics. Devuelve null si no hay fecha válida o si ya pasó.
-     * datos: { clientName, appointmentDate, tipoCita, acompanamiento, comments, esCliente }
+     * datos: { clientName, appointmentDate, appointmentTime, tipoCita, acompanamiento, comments, esCliente }
      */
     function crear(datos, ahora) {
         ahora = ahora || new Date();
         var dia = parseFecha(datos.appointmentDate);
         if (!dia) return null;
-        var hoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
-        if (dia < hoy) return null;
+        var hora = parseHora(datos.appointmentTime);
+        var inicio = null, fin = null;
+        if (hora) {
+            inicio = new Date(dia.getFullYear(), dia.getMonth(), dia.getDate(), hora.h, hora.m);
+            if (inicio < ahora) return null;
+            fin = new Date(inicio.getTime() + DURACION_MIN * 60000);
+        } else {
+            var hoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+            if (dia < hoy) return null;
+        }
         var siguiente = new Date(dia.getFullYear(), dia.getMonth(), dia.getDate() + 1);
 
         var nombre = String(datos.clientName || '').replace(/^\s+|\s+$/g, '');
@@ -125,15 +147,26 @@
         linea(out, 'BEGIN:VEVENT');
         linea(out, 'UID:' + uid);
         linea(out, 'DTSTAMP:' + utcIcs(ahora));
-        linea(out, 'DTSTART;VALUE=DATE:' + fechaIcs(dia));
-        linea(out, 'DTEND;VALUE=DATE:' + fechaIcs(siguiente));
+        if (hora) {
+            // Hora local del equipo -> UTC; Outlook la muestra en la zona horaria del usuario.
+            linea(out, 'DTSTART:' + utcIcs(inicio));
+            linea(out, 'DTEND:' + utcIcs(fin));
+        } else {
+            linea(out, 'DTSTART;VALUE=DATE:' + fechaIcs(dia));
+            linea(out, 'DTEND;VALUE=DATE:' + fechaIcs(siguiente));
+        }
         linea(out, 'SUMMARY:' + texto(asunto));
         if (notas.length) linea(out, 'DESCRIPTION:' + texto(notas.join('\n')));
-        linea(out, 'TRANSP:TRANSPARENT');                      // no bloquea el día ("Libre")
-        linea(out, 'X-MICROSOFT-CDO-BUSYSTATUS:FREE');
-        linea(out, 'X-MICROSOFT-CDO-ALLDAYEVENT:TRUE');
+        if (hora) {
+            linea(out, 'TRANSP:OPAQUE');                       // "Ocupado"
+            linea(out, 'X-MICROSOFT-CDO-BUSYSTATUS:BUSY');
+        } else {
+            linea(out, 'TRANSP:TRANSPARENT');                  // no bloquea el día ("Libre")
+            linea(out, 'X-MICROSOFT-CDO-BUSYSTATUS:FREE');
+            linea(out, 'X-MICROSOFT-CDO-ALLDAYEVENT:TRUE');
+        }
         linea(out, 'BEGIN:VALARM');
-        linea(out, 'TRIGGER:' + RECORDATORIO);
+        linea(out, 'TRIGGER:' + (hora ? '-PT' + RECORDATORIO_MIN + 'M' : RECORDATORIO_TODO_EL_DIA));
         linea(out, 'ACTION:DISPLAY');
         linea(out, 'DESCRIPTION:Recordatorio');
         linea(out, 'END:VALARM');
@@ -144,12 +177,14 @@
 
     /**
      * Toma el formData de guardarCaptura(), arma la cita y la descarga.
-     * Devuelve true si se descargó; false si no hay fecha o la fecha ya pasó.
+     * Devuelve true si se descargó; false si no hay fecha o la cita ya pasó.
      */
     function descargar(formData) {
+        var campoHora = document.getElementById(IDS.hora);
         var datos = {
             clientName: formData.clientName,
             appointmentDate: formData.appointmentDate,
+            appointmentTime: formData.appointmentTime || (campoHora ? campoHora.value : ''),
             tipoCita: textoSeleccionado(IDS.tipoCita) || formData.appointmentType || '',
             acompanamiento: textoSeleccionado(IDS.acompanamiento) || formData.accompaniment || '',
             comments: formData.comments,
@@ -158,7 +193,9 @@
         var ics = crear(datos);
         if (!ics) return false;
 
-        var nombreArchivo = 'cita-' + String(datos.appointmentDate).replace(/[^0-9]/g, '') + '.ics';
+        var hora = parseHora(datos.appointmentTime);
+        var nombreArchivo = 'cita-' + String(datos.appointmentDate).replace(/[^0-9]/g, '') +
+            (hora ? '-' + pad(hora.h) + pad(hora.m) : '') + '.ics';
         var blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
 
         if (window.navigator && window.navigator.msSaveOrOpenBlob) {      // Internet Explorer / Edge antiguo
@@ -178,3 +215,4 @@
 
     window.CitaOutlook = { descargar: descargar, crear: crear };
 })(window, document);
+// ===== FIN cita-outlook.js =====

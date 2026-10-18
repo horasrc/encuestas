@@ -30,9 +30,32 @@ Qué lleva la cita:
 - **Asunto:** `Cita: {Tipo de cita} - {Nombre del cliente}`.
 - **Notas:** cliente, ¿es cliente?, tipo de cita, acompañamiento y comentarios. Se usa el texto que ve el usuario
   en las listas, no el código interno.
-- **Fecha:** el formulario no tiene hora, así que entra como evento **de todo el día**, marcado como "Libre" (no
-  bloquea la agenda) y con recordatorio a las **9:00 a.m. del día anterior**.
-- Solo se genera si la fecha de la cita es **hoy o futura**: una visita que ya pasó no se agenda.
+- **Con hora** (campo `appointmentTime`): la cita queda a esa hora, dura **1 hora**, aparece como "Ocupado" y
+  avisa **15 minutos antes**. Solo se genera si todavía no pasa.
+- **Sin hora:** entra como evento **de todo el día**, "Libre" (no bloquea la agenda), con recordatorio a las
+  **9:00 a.m. del día anterior**. Solo se genera si la fecha es **hoy o futura**.
+- La duración y el aviso se cambian al inicio de `cita-outlook.js` (`DURACION_MIN`, `RECORDATORIO_MIN`).
+
+### Agregar el campo "Hora" al formulario
+1. **Vista:** busca `appointmentDate` (Ctrl+Shift+F) en el `.cshtml`/`.html` del formulario y, junto al campo de
+   fecha, agrega el de hora. Para no mover las demás columnas, ponlos lado a lado en la misma columna:
+   ```html
+   <div class="d-flex gap-2">
+       <!-- el <input id="appointmentDate" ...> que ya existe -->
+       <input type="time" id="appointmentTime" class="form-control" step="300" aria-label="Hora de la cita">
+   </div>
+   ```
+   y cambia la etiqueta a "Fecha y hora de la cita".
+2. **`Page.js`, en `guardarCaptura()`:** agrega la hora a `formData`, debajo de `appointmentDate`:
+   ```js
+   appointmentTime: $('#appointmentTime').val(),
+   ```
+   (Si se olvida, `cita-outlook.js` igual la lee de la pantalla; pero hace falta en `formData` para que el servidor
+   la guarde cuando conecten el `$.ajax` real: la tabla de citas necesitará una columna para la hora.)
+3. Si el formulario tiene una función que lo limpia después de guardar, agrega ahí `$('#appointmentTime').val('');`.
+4. **Actualizar el código pegado en `Page.js`:** borra la versión anterior (desde el comentario `/* cita-outlook.js`
+   hasta `})(window, document);`) y pega la nueva. La nueva viene entre `// ===== INICIO cita-outlook.js` y
+   `// ===== FIN cita-outlook.js =====` para que la próxima vez sea fácil reemplazarla.
 
 ### Pasos 1 y 2. Pega el código al inicio de `Page.js` (así quedó en Radar)
 En Radar, `guardarCaptura()` está en `Scripts\RadarIA\Citas\Page.js` y el portal **carga ese archivo por código**
