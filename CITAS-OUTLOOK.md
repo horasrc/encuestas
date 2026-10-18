@@ -34,12 +34,15 @@ Qué lleva la cita:
   bloquea la agenda) y con recordatorio a las **9:00 a.m. del día anterior**.
 - Solo se genera si la fecha de la cita es **hoy o futura**: una visita que ya pasó no se agenda.
 
-### Paso 1. Copia el archivo
-Copia `cita-outlook.js` a la carpeta de scripts del portal (por ejemplo `Scripts\cita-outlook.js`) e inclúyelo
-en el proyecto (clic derecho → Incluir en el proyecto).
+### Pasos 1 y 2. Pega el código al inicio de `Page.js` (así quedó en Radar)
+En Radar, `guardarCaptura()` está en `Scripts\RadarIA\Citas\Page.js` y el portal **carga ese archivo por código**
+(en la consola aparece como `VM…`/`<anonymous>`), así que una etiqueta `<script>` aparte no se ejecuta.
+Lo que funcionó: copiar **todo** el contenido de `cita-outlook.js` y pegarlo al **inicio** de `Page.js`.
+Luego recargar con **Ctrl+F5**. Para comprobarlo, escribir `CitaOutlook` en la consola (F12): debe responder
+`{descargar: ƒ, crear: ƒ}`.
 
-### Paso 2. Cárgalo en la página del formulario
-En la vista donde está el formulario, **antes** del script que tiene `guardarCaptura()`:
+En un portal que cargue los scripts de forma normal también se puede dejar como archivo aparte y cargarlo
+**antes** del script que tiene `guardarCaptura()`:
 ```cshtml
 <script src="@Url.Content("~/Scripts/cita-outlook.js")"></script>
 ```
