@@ -39,7 +39,8 @@ var SurveyApi = (function ($) {
             publish: '/Encuestas/Api/Publish',
             createVersion: '/Encuestas/Api/CreateVersion',
             changeStatus: '/Encuestas/Api/ChangeStatus',
-            submit: '/Encuestas/Api/Submit'
+            submit: '/Encuestas/Api/Submit',
+            lastResponse: '/Encuestas/Api/LastResponse'
         }
     }, window.SURVEY_CONFIG || {});
 
@@ -91,6 +92,10 @@ var SurveyApi = (function ($) {
         },
         submit: function (surveyId, versionId, answers) {
             return post(cfg.endpoints.submit, { surveyId: surveyId, versionId: versionId, answers: answers });
+        },
+        /** POST para que el valor (ej. número de cliente) no quede en la URL ni en las bitácoras de IIS. */
+        lastResponse: function (surveyId, value) {
+            return post(cfg.endpoints.lastResponse, { surveyId: surveyId, value: value });
         }
     };
 
@@ -414,6 +419,37 @@ var SurveyApi = (function ($) {
             persist();
             return ok(record.id, f.version.settings.thankYouMessage);
         },
+        /** Misma regla que SurveyService.GetLastResponse: última captura (cualquier versión) con ese identificador. */
+        lastResponse: function (surveyId, value) {
+            var s = loadDb().surveys[surveyId];
+            var published = s ? $.grep(s.versions, function (v) { return v.status === 'Published'; })[0] : null;
+            var none = function (message) { return later({ found: false, message: message, answers: {} }); };
+            if (!published) return none('Esta encuesta no está abierta en este momento.');
+            if (!SurveyLogic.identifierQuestion(published.questions || [])) return none('La encuesta no tiene una pregunta identificador.');
+            value = $.trim(value || '');
+            if (!value) return none('Escribe el valor a buscar.');
+
+            var best = null, from = null;
+            $.each(s.versions, function (_, v) {
+                var key = SurveyLogic.identifierQuestion(v.questions || []);
+                if (!key) return;
+                $.each(db.responses[v.id] || [], function (_, r) {
+                    var a = r.answers && r.answers[key.id];
+                    if (a && $.trim(a.text || '').toLowerCase() === value.toLowerCase() && (!best || r.submittedAt >= best.submittedAt)) {
+                        best = r;
+                        from = v;
+                    }
+                });
+            });
+            if (!best) return none('No hay capturas anteriores para «' + value + '».');
+            return later({
+                found: true,
+                submittedAt: best.submittedAt,
+                versionNumber: from.number,
+                answers: mapAnswers(from, published, best.answers || {}),
+                message: 'Se cargó la captura del ' + U.formatDate(best.submittedAt.substring(0, 10)) + '.'
+            });
+        },
         /** Solo demo: borra lo guardado en localStorage y regenera los datos. */
         reset: function () {
             try { window.localStorage.removeItem(STORAGE_KEY); } catch (e) { /* sin acceso */ }
@@ -421,6 +457,48 @@ var SurveyApi = (function ($) {
             loadDb();
         }
     };
+
+    /**
+     * Traduce respuestas de una versión a otra (igual que SurveyService.MapAnswers): preguntas por
+     * tipo y texto; opciones, filas y columnas por texto. Lo que ya no existe se omite.
+     */
+    function mapAnswers(from, to, answers) {
+        if (from.id === to.id) return U.clone(answers);
+        var same = function (a, b) { return $.trim(a || '').toLowerCase() === $.trim(b || '').toLowerCase(); };
+        var byText = function (target, source, id, sameLevel) {
+            var o = $.grep(source || [], function (x) { return x.id === id; })[0];
+            var m = o && $.grep(target || [], function (x) { return same(x.text, o.text) && (!sameLevel || x.level === o.level); })[0];
+            return m ? m.id : null;
+        };
+        var used = {}, result = {};
+        $.each(SurveyLogic.sorted(to.questions), function (_, t) {
+            var src = $.grep(SurveyLogic.sorted(from.questions), function (q) { return !used[q.id] && q.type === t.type && same(q.text, t.text); })[0];
+            var a = src && answers[src.id];
+            if (!a) return;
+            used[src.id] = true;
+            var m = { text: a.text, number: a.number, date: a.date };
+            if (a.optionIds) {
+                m.optionIds = [];
+                $.each(a.optionIds, function (_, id) {
+                    var x = id === '__other__' ? (t.allowOther ? id : null)
+                        : t.type === 'dependent' ? byText(t.dependent.options, src.dependent.options, id, true)
+                        : byText(t.options, src.options, id);
+                    if (x && $.inArray(x, m.optionIds) < 0) m.optionIds.push(x);
+                });
+                if ($.inArray('__other__', m.optionIds) >= 0) m.otherText = a.otherText;
+            }
+            if (a.matrix && src.matrix && t.matrix) {
+                m.matrix = {};
+                $.each(a.matrix, function (row, cols) {
+                    var r = byText(t.matrix.rows, src.matrix.rows, row);
+                    var c = $.map(cols || [], function (col) { return byText(t.matrix.columns, src.matrix.columns, col); });
+                    if (r && c.length) m.matrix[r] = c;
+                });
+            }
+            if (!SurveyLogic.isEmpty(m)) result[t.id] = m;
+        });
+        return result;
+    }
 
     // =====================================================================
     // Validación previa a publicar (misma regla que SurveyService.ValidateForPublish)
@@ -480,6 +558,7 @@ var SurveyApi = (function ($) {
         createVersion: impl.createVersion,
         changeStatus: impl.changeStatus,
         submit: impl.submit,
+        lastResponse: impl.lastResponse,
         resetDemo: mock.reset,
         validateForPublish: validateForPublish,
         estimateAudience: audience

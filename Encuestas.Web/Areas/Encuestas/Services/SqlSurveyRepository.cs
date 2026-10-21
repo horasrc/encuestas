@@ -141,6 +141,7 @@ WHERE v.SurveyId = @SurveyId ORDER BY a.AudienceRuleId;";
 
             var versions = new Dictionary<int, SurveyVersionDto>();
             var questions = new Dictionary<int, QuestionDto>();
+            var optionParents = new Dictionary<QuestionDto, Dictionary<string, string>>();
             SurveyDto survey;
 
             using (var conn = Open())
@@ -175,7 +176,8 @@ WHERE v.SurveyId = @SurveyId ORDER BY a.AudienceRuleId;";
                         AllowOther = r.GetBoolean(9),
                         OtherLabel = Str(r, 10)
                     };
-                    ApplySettings(q, Str(r, 11));
+                    var parents = ApplySettings(q, Str(r, 11));
+                    if (parents != null) optionParents[q] = parents;
                     questions[r.GetInt32(0)] = q;
                     versions[r.GetInt32(1)].Questions.Add(q);
                 }
@@ -190,6 +192,10 @@ WHERE v.SurveyId = @SurveyId ORDER BY a.AudienceRuleId;";
                     if (role == RoleChoice) q.Options.Add(option);
                     else if (role == RoleMatrixRow) EnsureMatrix(q).Rows.Add(option);
                     else EnsureMatrix(q).Columns.Add(option);
+
+                    Dictionary<string, string> parents;
+                    string parentId;
+                    if (role == RoleChoice && optionParents.TryGetValue(q, out parents) && parents.TryGetValue(option.Id, out parentId)) option.ParentId = parentId;
                 }
 
                 // Niveles dependientes
@@ -691,10 +697,55 @@ VALUES (@R, @Q, @O, @Row, @D, @Text, @Number, @Date);",
         public IList<ResponseRecordDto> GetResponses(string versionId)
         {
             int vId;
-            var result = new List<ResponseRecordDto>();
-            if (!TryParseKey(versionId, out vId)) return result;
+            if (!TryParseKey(versionId, out vId)) return new List<ResponseRecordDto>();
+            using (var conn = Open())
+            {
+                return ReadResponses(conn, "r.SurveyVersionId = @V AND r.SubmittedAt IS NOT NULL", "@V", vId);
+            }
+        }
 
-            const string sql = @"
+        public ResponseRecordDto FindLatestResponse(string surveyId, IList<string> questionIds, string value, out string versionId)
+        {
+            versionId = null;
+            int sId;
+            if (!TryParseKey(surveyId, out sId) || questionIds == null || questionIds.Count == 0) return null;
+
+            var parameters = new List<object> { "@S", sId, "@Value", value };
+            var keys = new List<string>();
+            for (var i = 0; i < questionIds.Count; i++)
+            {
+                keys.Add("@K" + i);
+                parameters.Add("@K" + i);
+                parameters.Add(questionIds[i]);
+            }
+
+            using (var conn = Open())
+            {
+                long responseId;
+                using (var r = Command(conn, null, @"
+SELECT TOP (1) r.SurveyResponseId, r.SurveyVersionId
+FROM enc.SurveyResponse r
+JOIN enc.SurveyVersion v ON v.SurveyVersionId = r.SurveyVersionId
+JOIN enc.QuestionResponse a ON a.SurveyResponseId = r.SurveyResponseId
+JOIN enc.Question q ON q.QuestionId = a.QuestionId AND q.SurveyVersionId = r.SurveyVersionId
+WHERE v.SurveyId = @S AND r.SubmittedAt IS NOT NULL
+  AND q.ClientKey IN (" + string.Join(", ", keys) + @")
+  AND LTRIM(RTRIM(a.TextValue)) = @Value
+ORDER BY r.SubmittedAt DESC, r.SurveyResponseId DESC;", parameters.ToArray()).ExecuteReader())
+                {
+                    if (!r.Read()) return null;
+                    responseId = r.GetInt64(0);
+                    versionId = Key(r.GetInt32(1));
+                }
+                return ReadResponses(conn, "r.SurveyResponseId = @R", "@R", responseId).FirstOrDefault();
+            }
+        }
+
+        /// <summary>Lee respuestas completas (con sus valores) que cumplan el filtro sobre enc.SurveyResponse r.</summary>
+        private static List<ResponseRecordDto> ReadResponses(SqlConnection conn, string where, string name, object value)
+        {
+            var result = new List<ResponseRecordDto>();
+            var sql = @"
 SELECT r.SurveyResponseId, r.SubmittedAt, q.ClientKey AS QKey, t.Code, o.ClientKey AS OKey, mr.ClientKey AS RowKey,
        d.ClientKey AS DKey, a.TextValue, a.NumberValue, a.DateValue
 FROM enc.SurveyResponse r
@@ -704,11 +755,10 @@ LEFT JOIN enc.QuestionType t ON t.QuestionTypeId = q.QuestionTypeId
 LEFT JOIN enc.QuestionOption o ON o.QuestionOptionId = a.QuestionOptionId
 LEFT JOIN enc.QuestionOption mr ON mr.QuestionOptionId = a.MatrixRowOptionId
 LEFT JOIN enc.DependentOption d ON d.DependentOptionId = a.DependentOptionId
-WHERE r.SurveyVersionId = @V AND r.SubmittedAt IS NOT NULL
+WHERE " + where + @"
 ORDER BY r.SurveyResponseId, a.QuestionResponseId;";
 
-            using (var conn = Open())
-            using (var r = Command(conn, null, sql, "@V", vId).ExecuteReader())
+            using (var r = Command(conn, null, sql, name, value).ExecuteReader())
             {
                 ResponseRecordDto current = null;
                 long currentId = -1;
@@ -801,24 +851,43 @@ ORDER BY r.SurveyResponseId, a.QuestionResponseId;";
             public QuestionValidationDto Validation { get; set; }
             public string MatrixSelection { get; set; }
             public bool? DependentMultiple { get; set; }
+
+            /// <summary>Desplegable en cascada: ClientKey de la pregunta padre.</summary>
+            public string ParentQuestion { get; set; }
+
+            /// <summary>Desplegable en cascada: ClientKey de opción -> ClientKey de la opción padre.</summary>
+            public Dictionary<string, string> OptionParents { get; set; }
+
+            public bool? Identifier { get; set; }
         }
 
         private static string SerializeSettings(QuestionDto q)
         {
+            var cascade = !string.IsNullOrEmpty(q.ParentQuestionId);
             return Json.Serialize(new StoredSettings
             {
                 Validation = q.Validation ?? new QuestionValidationDto(),
                 MatrixSelection = q.Matrix != null ? q.Matrix.SelectionType : null,
-                DependentMultiple = q.Dependent != null ? (bool?)q.Dependent.Multiple : null
+                DependentMultiple = q.Dependent != null ? (bool?)q.Dependent.Multiple : null,
+                ParentQuestion = cascade ? q.ParentQuestionId : null,
+                OptionParents = cascade
+                    ? (q.Options ?? new List<OptionDto>()).Where(o => !string.IsNullOrEmpty(o.ParentId) && o.Id != null)
+                        .GroupBy(o => o.Id).ToDictionary(g => g.Key, g => g.First().ParentId)
+                    : null,
+                Identifier = q.Identifier ? (bool?)true : null
             });
         }
 
-        private static void ApplySettings(QuestionDto q, string json)
+        /// <summary>Devuelve el mapa de opciones padre (se aplica cuando ya se leyeron las opciones).</summary>
+        private static Dictionary<string, string> ApplySettings(QuestionDto q, string json)
         {
             var settings = string.IsNullOrWhiteSpace(json) ? new StoredSettings() : Json.Deserialize<StoredSettings>(json);
             q.Validation = settings.Validation ?? new QuestionValidationDto();
             if (q.Type == "matrix") EnsureMatrix(q).SelectionType = settings.MatrixSelection ?? "single";
             if (q.Type == "dependent") EnsureDependent(q).Multiple = settings.DependentMultiple ?? true;
+            q.ParentQuestionId = settings.ParentQuestion;
+            q.Identifier = settings.Identifier ?? false;
+            return settings.OptionParents;
         }
 
         private static MatrixDto EnsureMatrix(QuestionDto q)

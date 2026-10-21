@@ -168,9 +168,113 @@ class ServiceTest
         Check("Bitácora: sin usuario => 'sistema'", anonymousService.GetHistory(s4.Id).Single().UserName == "sistema");
         Check("Bitácora: separada por encuesta", audited.GetHistory(s4.Id).Count == 1 && audited.GetHistory(s3.Id).Count == 4);
 
+        CascadeTests(catalogs);
+        IdentifierTests(catalogs);
         CitasIcsTests();
 
         Console.WriteLine(failures == 0 ? "TODAS LAS PRUEBAS PASARON" : failures + " FALLAS");
+    }
+
+    static OptionDto O(string id, string t, string parent) { return new OptionDto { Id = id, Text = t, ParentId = parent }; }
+
+    // Desplegable cuyas opciones dependen de lo elegido en otro desplegable
+    static void CascadeTests(IOrgCatalogProvider catalogs)
+    {
+        var service = new SurveyService(new InMemorySurveyRepository(catalogs));
+        var s = service.CreateSurvey(new CreateSurveyRequest { Name = "Cascada" }).Data;
+        var v = s.Versions[0];
+        v.Settings.AllowMultipleResponses = true;
+        v.Questions = new List<QuestionDto>
+        {
+            new QuestionDto { Id = "banca", Order = 1, Type = "dropdown", Text = "Banca", Required = true,
+                Options = { O("bp", "Personal"), O("be", "Empresarial"), O("bx", "Sin productos") } },
+            new QuestionDto { Id = "prod", Order = 2, Type = "dropdown", Text = "Producto", Required = true, ParentQuestionId = "banca",
+                Options = { O("tdc", "Tarjeta", "bp"), O("hip", "Hipoteca", "bp"), O("cred", "Crédito PyME", "be") } }
+        };
+        service.SaveDraft(new SaveDraftRequest { SurveyId = s.Id, Version = v });
+        var pub = service.Publish(new VersionActionRequest { SurveyId = s.Id, VersionId = v.Id });
+        Check("Cascada: publica", pub.Ok, string.Join("; ", pub.Errors));
+
+        Func<Dictionary<string, AnswerDto>, ApiResult<string>> submit = answers =>
+            service.Submit(new SubmitResponseDto { SurveyId = s.Id, VersionId = v.Id, Answers = answers }, "DOM\\u");
+        var r = submit(new Dictionary<string, AnswerDto> { { "banca", Opt("bp") }, { "prod", Opt("hip") } });
+        Check("Cascada: opción de la banca elegida aceptada", r.Ok, string.Join("; ", r.Errors));
+        r = submit(new Dictionary<string, AnswerDto> { { "banca", Opt("bp") }, { "prod", Opt("cred") } });
+        Check("Cascada: opción de otra banca descartada (obligatoria)", !r.Ok && r.Errors.Any(e => e.StartsWith("P2")), string.Join("; ", r.Errors));
+        r = submit(new Dictionary<string, AnswerDto> { { "banca", Opt("bx") } });
+        Check("Cascada: sin opciones para lo elegido no se exige", r.Ok, string.Join("; ", r.Errors));
+        r = submit(new Dictionary<string, AnswerDto> { { "prod", Opt("tdc") } });
+        Check("Cascada: sin padre no hay opciones", !r.Ok && r.Errors.Any(e => e.StartsWith("P1")) && !r.Errors.Any(e => e.StartsWith("P2")), string.Join("; ", r.Errors));
+
+        var copy = SurveyVersionCloner.Clone(v, 2);
+        var parent = copy.Questions.First(q => q.Text == "Banca");
+        var child = copy.Questions.First(q => q.Text == "Producto");
+        Check("Cascada: nueva versión reapunta pregunta y opciones padre",
+            child.ParentQuestionId == parent.Id && child.Options.All(o => parent.Options.Any(p => p.Id == o.ParentId)));
+
+        child.Order = 1; parent.Order = 2;
+        var errors = service.ValidateForPublish(copy);
+        Check("Cascada: padre después del hijo no se publica", errors.Any(e => e.Contains("está después")), string.Join("; ", errors));
+        child.Order = 2; parent.Order = 1;
+        parent.Options.RemoveAt(0);
+        errors = service.ValidateForPublish(copy);
+        Check("Cascada: opción padre eliminada no se publica", errors.Any(e => e.Contains("opción que ya no existe")), string.Join("; ", errors));
+    }
+
+    // Identificador (ej. número de cliente): recupera la última captura, aunque sea de otra versión
+    static void IdentifierTests(IOrgCatalogProvider catalogs)
+    {
+        var service = new SurveyService(new InMemorySurveyRepository(catalogs));
+        var s = service.CreateSurvey(new CreateSurveyRequest { Name = "Visitas" }).Data;
+        var v = s.Versions[0];
+        v.Settings.AllowMultipleResponses = true;
+        v.Questions = new List<QuestionDto>
+        {
+            new QuestionDto { Id = "cli", Order = 1, Type = "text", Text = "Número de cliente", Required = true, Identifier = true,
+                Validation = new QuestionValidationDto { TextMode = "short" } },
+            new QuestionDto { Id = "int", Order = 2, Type = "singleChoice", Text = "Interés", Options = { O("alto", "Alto"), O("bajo", "Bajo") } },
+            new QuestionDto { Id = "com", Order = 3, Type = "text", Text = "Comentarios" }
+        };
+        service.SaveDraft(new SaveDraftRequest { SurveyId = s.Id, Version = v });
+        service.Publish(new VersionActionRequest { SurveyId = s.Id, VersionId = v.Id });
+
+        Func<string, string, string, ApiResult<string>> capture = (client, interest, comment) => service.Submit(new SubmitResponseDto
+        {
+            SurveyId = s.Id, VersionId = v.Id,
+            Answers = new Dictionary<string, AnswerDto> { { "cli", new AnswerDto { Text = client } }, { "int", Opt(interest) }, { "com", new AnswerDto { Text = comment } } }
+        }, "DOM\\ejecutivo");
+        capture("00123", "bajo", "primera visita");
+        capture("00999", "bajo", "otro cliente");
+        var c = capture("00123", "alto", "segunda visita");
+        Check("Identificador: varias capturas del mismo usuario", c.Ok, c.Message);
+
+        var last = service.GetLastResponse(s.Id, " 00123 ", "DOM\\otro");
+        Check("Identificador: devuelve la última captura de ese cliente", last.Found && last.Answers["com"].Text == "segunda visita"
+            && last.Answers["int"].OptionIds.SequenceEqual(new[] { "alto" }) && last.VersionNumber == 1, last.Message);
+        last = service.GetLastResponse(s.Id, "123", "DOM\\otro");
+        Check("Identificador: sin coincidencia exacta no encuentra", !last.Found && last.Message.Contains("No hay capturas"), last.Message);
+        last = service.GetLastResponse(s.Id, "00123", null);
+        Check("Identificador: exige poder responder", !last.Found && last.Message.Contains("iniciar sesión"), last.Message);
+
+        // Versión 2: preguntas con IDs nuevos, una opción renombrada y otro orden
+        var created = service.CreateVersion(new VersionActionRequest { SurveyId = s.Id, VersionId = v.Id });
+        var v2 = created.Data.Versions.First(x => x.Number == 2);
+        var q2 = v2.Questions.First(q => q.Text == "Interés");
+        q2.Options.First(o => o.Text == "Bajo").Text = "Poco";
+        v2.Questions.First(q => q.Text == "Comentarios").Order = 0;
+        service.SaveDraft(new SaveDraftRequest { SurveyId = s.Id, Version = v2 });
+        service.Publish(new VersionActionRequest { SurveyId = s.Id, VersionId = v2.Id });
+
+        last = service.GetLastResponse(s.Id, "00123", "DOM\\otro");
+        var com2 = v2.Questions.First(q => q.Text == "Comentarios").Id;
+        Check("Identificador: captura de la versión anterior traducida a la nueva", last.Found && last.VersionNumber == 1
+            && last.Answers[com2].Text == "segunda visita" && last.Answers[q2.Id].OptionIds.Single() == q2.Options.First(o => o.Text == "Alto").Id, last.Message);
+        last = service.GetLastResponse(s.Id, "00999", "DOM\\otro");
+        Check("Identificador: opción renombrada se omite, lo demás se carga", last.Found && !last.Answers.ContainsKey(q2.Id)
+            && last.Answers[com2].Text == "otro cliente", last.Message);
+
+        var dto = SurveyVersionCloner.Clone(v2, 3);
+        Check("Identificador: se conserva al crear versión", dto.Questions.Count(q => q.Identifier) == 1);
     }
 
     // Citas -> archivo .ics para Outlook (Areas/Citas/Services/CalendarioIcs.cs)

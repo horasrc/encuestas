@@ -205,10 +205,19 @@ namespace ModuloEncuestas.Services
             var questions = version.Questions.OrderBy(q => q.Order).ToList();
 
             var clean = new Dictionary<string, AnswerDto>();
+            var cascades = new Dictionary<string, HashSet<string>>();
             foreach (var q in questions)
             {
                 AnswerDto raw;
                 if (answers != null && answers.TryGetValue(q.Id, out raw) && raw != null) clean[q.Id] = Sanitize(q, raw);
+
+                // Desplegable en cascada: solo valen las opciones de lo elegido en la pregunta padre.
+                AnswerDto parent, own;
+                clean.TryGetValue(q.ParentQuestionId ?? "", out parent);
+                var available = CascadeOptions(q, parent);
+                if (available == null) continue;
+                cascades[q.Id] = available;
+                if (clean.TryGetValue(q.Id, out own) && own.OptionIds != null) own.OptionIds = own.OptionIds.Where(available.Contains).ToList();
             }
 
             var visibility = ComputeVisibility(questions, clean);
@@ -219,11 +228,27 @@ namespace ModuloEncuestas.Services
 
                 AnswerDto answer;
                 clean.TryGetValue(q.Id, out answer);
+                HashSet<string> cascade;
+                if (cascades.TryGetValue(q.Id, out cascade) && cascade.Count == 0 && IsEmpty(answer)) continue; // nada que elegir: no se exige
                 var error = ValidateAnswer(q, answer);
                 if (error != null) errors.Add("P" + (i + 1) + ": " + error);
                 else if (!IsEmpty(answer)) accepted[q.Id] = answer;
             }
             return errors;
+        }
+
+        /// <summary>
+        /// Desplegable en cascada: IDs de las opciones disponibles según la respuesta de la
+        /// pregunta padre (las opciones sin padre siempre están). Null si no es en cascada.
+        /// Igual que SurveyLogic.cascadeOptions en survey-logic.js.
+        /// </summary>
+        public static HashSet<string> CascadeOptions(QuestionDto q, AnswerDto parentAnswer)
+        {
+            if (q.Type != "dropdown" || string.IsNullOrEmpty(q.ParentQuestionId)) return null;
+            var chosen = parentAnswer == null || parentAnswer.OptionIds == null ? new List<string>() : parentAnswer.OptionIds;
+            return new HashSet<string>((q.Options ?? new List<OptionDto>())
+                .Where(o => string.IsNullOrEmpty(o.ParentId) || chosen.Contains(o.ParentId))
+                .Select(o => o.Id));
         }
 
         /// <summary>Deja solo valores que existen en la definición de la pregunta.</summary>

@@ -428,6 +428,14 @@ body.sv-readonly .sv-edit-only { display: none !important; }
 .sv-opt-row { display: flex; align-items: center; gap: .4rem; margin-bottom: .4rem; }
 .sv-opt-row.sv-dragging { opacity: .45; }
 .sv-opt-bullet { color: var(--sv-muted); width: 16px; text-align: center; }
+/* Desplegable en cascada: junto a cada opción, con qué respuesta de la pregunta padre aparece. */
+.sv-opt-row .sv-opt-parent { flex: 0 0 42%; min-width: 0; }
+@media (max-width: 575.98px) {
+    .sv-opt-row-cascade { flex-wrap: wrap; }
+    .sv-opt-row-cascade [data-item-text] { flex: 1 1 60%; }
+    .sv-opt-row .sv-opt-parent { flex: 1 1 100%; order: 3; margin-left: 22px; }
+}
+.sv-respond .sv-dropdown:disabled { background-color: var(--bs-secondary-bg, #e9ecef); }
 
 .sv-switches {
     display: flex;

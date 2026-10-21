@@ -173,7 +173,7 @@ var SurveyStore = (function ($) {
         return copy;
     }
 
-    /** Elimina la pregunta y las reglas de otras preguntas que la apuntaban. */
+    /** Elimina la pregunta, las reglas que la apuntaban y las cascadas que dependían de ella. */
     function remove(id) {
         var list = questions();
         var index = -1;
@@ -184,6 +184,10 @@ var SurveyStore = (function ($) {
         v.questions = $.grep(v.questions, function (q) { return q.id !== id; });
         $.each(v.questions, function (_, q) {
             q.rules = $.grep(q.rules || [], function (r) { return r.targetQuestionId !== id; });
+            if (q.parentQuestionId === id) {
+                delete q.parentQuestionId;
+                $.each(q.options || [], function (_, o) { delete o.parentId; });
+            }
         });
 
         var remaining = questions();

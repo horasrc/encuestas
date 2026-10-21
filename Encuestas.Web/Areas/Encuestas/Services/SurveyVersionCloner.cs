@@ -8,7 +8,8 @@ namespace ModuloEncuestas.Services
     /// <summary>
     /// Copia profunda de una versión generando IDs nuevos para preguntas, opciones,
     /// filas/columnas, opciones dependientes y reglas. Las referencias internas
-    /// (regla -> pregunta destino, regla -> opción, opción dependiente -> padre)
+    /// (regla -> pregunta destino, regla -> opción, opción dependiente -> padre,
+    /// desplegable en cascada -> pregunta y opción padre)
     /// se reescriben con los IDs nuevos para que la copia sea independiente.
     /// Equivalente en JS: SurveyUtils.cloneVersion().
     /// </summary>
@@ -60,8 +61,10 @@ namespace ModuloEncuestas.Services
                     RandomizeOptions = q.RandomizeOptions,
                     AllowOther = q.AllowOther,
                     OtherLabel = q.OtherLabel,
+                    ParentQuestionId = q.ParentQuestionId,
+                    Identifier = q.Identifier,
                     Validation = CloneValidation(q.Validation),
-                    Options = q.Options.Select(o => new OptionDto { Id = newId(o.Id), Text = o.Text }).ToList()
+                    Options = q.Options.Select(o => new OptionDto { Id = newId(o.Id), Text = o.Text, ParentId = o.ParentId }).ToList()
                 };
 
                 if (q.Matrix != null)
@@ -98,6 +101,8 @@ namespace ModuloEncuestas.Services
             // 2) Segunda pasada: reescribir referencias cruzadas con los IDs nuevos.
             foreach (var q in copy.Questions)
             {
+                q.ParentQuestionId = remap(q.ParentQuestionId);
+                foreach (var o in q.Options) o.ParentId = remap(o.ParentId);
                 if (q.Dependent != null)
                 {
                     foreach (var o in q.Dependent.Options) o.ParentId = remap(o.ParentId);

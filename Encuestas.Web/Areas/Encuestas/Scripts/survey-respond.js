@@ -5,6 +5,8 @@
  *      autenticación, una respuesta por usuario, audiencia).
  *   2. Si puede, carga la versión PUBLICADA y la muestra.
  *   3. Envía con SurveyApi.submit (el servidor vuelve a validar todo).
+ *   Si la encuesta tiene pregunta identificador, "Buscar" precarga la última
+ *   captura con ese valor (SurveyApi.lastResponse).
  * ========================================================================= */
 (function ($) {
     'use strict';
@@ -56,6 +58,9 @@
                     d.reject();
                 });
                 return d.promise();
+            },
+            onLookup: function (value) {
+                return SurveyApi.lastResponse(survey.id, value);
             }
         });
     }

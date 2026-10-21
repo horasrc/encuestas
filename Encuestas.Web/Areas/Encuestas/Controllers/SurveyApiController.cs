@@ -12,7 +12,7 @@ namespace ModuloEncuestas.Controllers
     /// El acceso lo controla el portal (el módulo no restringe por usuario ni rol).
     /// Para que solo ciertas personas administren, el portal debe proteger /Encuestas,
     /// /Encuestas/Constructor y estas rutas de administración; /Encuestas/Responder,
-    /// Published, Eligibility y Submit son para quien responde.
+    /// Published, Eligibility, Submit y LastResponse son para quien responde.
     ///
     /// Administración:
     ///   GET  /Encuestas/Api/List                       -> SurveySummaryDto[]
@@ -31,6 +31,7 @@ namespace ModuloEncuestas.Controllers
     ///   GET  /Encuestas/Api/Published/{surveyId}       -> SurveyDto (solo la versión publicada)
     ///   GET  /Encuestas/Api/Eligibility/{surveyId}     -> EligibilityDto (¿puede responder ahora?)
     ///   POST /Encuestas/Api/Submit                     -> ApiResult&lt;string&gt;
+    ///   POST /Encuestas/Api/LastResponse { surveyId, value } -> LastResponseDto (última captura con ese identificador)
     ///
     /// Todos los POST exigen el encabezado RequestVerificationToken.
     /// </summary>
@@ -144,6 +145,13 @@ namespace ModuloEncuestas.Controllers
         public ActionResult Submit()
         {
             return Reply(Service.Submit(JsonNetResult.ReadBody<SubmitResponseDto>(Request), CurrentUserName()));
+        }
+
+        [HttpPost]
+        public ActionResult LastResponse()
+        {
+            var request = JsonNetResult.ReadBody<LastResponseRequest>(Request) ?? new LastResponseRequest();
+            return new JsonNetResult(Service.GetLastResponse(request.SurveyId, request.Value, CurrentUserName()));
         }
 
         private string CurrentUserName()

@@ -68,13 +68,31 @@ var SurveyRenderer = (function ($) {
         return 'Selecciona al menos ' + v.minSelections + ' opciones.';
     }
 
+    /** En cascada se dibujan todas; al montar la encuesta se dejan solo las de lo elegido en la pregunta padre. */
     function renderDropdown(q, name, opts) {
         var html = '<select class="form-select sv-dropdown" name="' + esc(name) + '" aria-label="' + esc(q.text) + '">' +
             '<option value="">Selecciona una opción…</option>';
-        $.each(orderedOptions(q, opts), function (_, o) {
+        $.each(SurveyLogic.isCascade(q) ? q.options || [] : orderedOptions(q, opts), function (_, o) {
             html += '<option value="' + esc(o.id) + '">' + esc(o.text) + '</option>';
         });
         return html + '</select>';
+    }
+
+    /** Desplegable en cascada: deja solo las opciones disponibles y conserva la selección si sigue siendo válida. */
+    function applyCascade($q, q, parentAnswer) {
+        var available = SurveyLogic.cascadeOptions(q, parentAnswer);
+        if (!available) return;
+        var $s = $q.find('select.sv-dropdown');
+        var key = $.map(available, function (o) { return o.id; }).join('|');
+        $q.toggleClass('sv-cascade-empty', !available.length);
+        if ($s.attr('data-available') === key) return;
+
+        var current = $s.val();
+        var chosen = parentAnswer && parentAnswer.optionIds && parentAnswer.optionIds.length;
+        var html = '<option value="">' + (available.length ? 'Selecciona una opción…' : chosen ? 'No hay opciones para lo que elegiste' : 'Primero responde la pregunta anterior') + '</option>';
+        $.each(available, function (_, o) { html += '<option value="' + esc(o.id) + '">' + esc(o.text) + '</option>'; });
+        $s.html(html).attr('data-available', key).prop('disabled', !available.length);
+        $s.val($.grep(available, function (o) { return o.id === current; }).length ? current : '');
     }
 
     function renderYesNo(q, name) {
@@ -91,6 +109,14 @@ var SurveyRenderer = (function ($) {
     function renderText(q, name) {
         var v = q.validation || {};
         var max = v.maxLength ? ' maxlength="' + Number(v.maxLength) + '"' : '';
+        if (q.identifier) {
+            // Identificador (ej. número de cliente): con "Buscar" se precarga la última captura con ese valor.
+            return '<div class="input-group sv-lookup">' +
+                '<input type="text" class="form-control sv-text" name="' + esc(name) + '"' + max + ' placeholder="Escribe y presiona Buscar" autocomplete="off">' +
+                '<button type="button" class="btn btn-outline-dark sv-lookup-btn"><i class="bi bi-search me-1"></i>Buscar</button></div>' +
+                '<div class="form-text">Si ya se capturó antes, se cargan los datos de la última captura para actualizarlos.</div>' +
+                '<div class="sv-lookup-msg small mt-2 d-none" role="status" aria-live="polite"></div>';
+        }
         var field = v.textMode === 'short'
             ? '<input type="text" class="form-control sv-text" name="' + esc(name) + '"' + max + ' placeholder="Escribe tu respuesta">'
             : '<textarea class="form-control sv-text" name="' + esc(name) + '" rows="3"' + max + ' placeholder="Escribe tu respuesta"></textarea>';
@@ -356,6 +382,60 @@ var SurveyRenderer = (function ($) {
         return SurveyLogic.isEmpty(a) && !a.rawInvalid ? null : a;
     }
 
+    /**
+     * Pone en pantalla una respuesta (mismo formato que readAnswer). Con una respuesta vacía
+     * ({}) limpia la pregunta. Dispara los eventos para que "Otro", contadores y listas
+     * dependientes se actualicen.
+     */
+    function setAnswer($q, q, a) {
+        a = a || {};
+        var ids = a.optionIds || [];
+        var has = function (v) { return $.inArray(String(v), ids) >= 0; };
+        switch (q.type) {
+            case 'singleChoice':
+            case 'multipleChoice':
+            case 'yesNo':
+                var $inputs = $q.find('.sv-q-input input').not('.sv-other-input');
+                $inputs.prop('disabled', false).each(function () { this.checked = has(this.value); });
+                $q.find('.sv-other-input').val(a.otherText || '');
+                $inputs.first().trigger('change');
+                break;
+            case 'dropdown':
+                $q.find('select').val(ids[0] || '');
+                if ($q.find('select').val() === null) $q.find('select').val('');
+                break;
+            case 'text':
+                $q.find('.sv-text').val(a.text || '').trigger('input');
+                break;
+            case 'scale':
+                $q.find('.sv-scale input').each(function () { this.checked = a.number !== null && a.number !== undefined && Number(this.value) === Number(a.number); });
+                break;
+            case 'number':
+                $q.find('.sv-number').val(a.number === null || a.number === undefined ? '' : a.number);
+                break;
+            case 'date':
+                $q.find('.sv-date').val(a.date || '');
+                break;
+            case 'matrix':
+                $q.find('tr[data-row-id]').each(function () {
+                    var cols = (a.matrix || {})[$(this).attr('data-row-id')] || [];
+                    $(this).find('input').each(function () { this.checked = $.inArray(this.value, cols) >= 0; });
+                });
+                break;
+            case 'dependent':
+                $q.find('.sv-dep-check').each(function () { this.checked = has(this.value); });
+                $q.find('.sv-dep-children').each(function () {
+                    $(this).toggleClass('d-none', !$(this).closest('.sv-dep-node').find('> .form-check .sv-dep-check').prop('checked'));
+                });
+                // Selects encadenados: cada nivel llena el siguiente al cambiar.
+                $q.find('.sv-dep-select').each(function () {
+                    var match = $(this).find('option').filter(function () { return this.value && has(this.value); }).first().val();
+                    $(this).val(match || '').trigger('change');
+                });
+                break;
+        }
+    }
+
     /** Devuelve el mensaje de error o null si la respuesta es válida. */
     function validate(q, answer) {
         var v = q.validation || {};
@@ -413,6 +493,8 @@ var SurveyRenderer = (function ($) {
      * config: {
      *   name, version, preview (bool),
      *   onSubmit(answers) -> promesa jQuery (opcional),
+     *   onLookup(value)   -> promesa con LastResponseDto { found, message, answers } (opcional;
+     *                        pregunta identificador: precarga la última captura con ese valor),
      *   onRestart()      (opcional, solo vista previa)
      * }
      */
@@ -462,8 +544,23 @@ var SurveyRenderer = (function ($) {
             return answers;
         }
 
+        /** Desplegables en cascada: opciones según lo elegido en su pregunta padre (en orden, para cadenas). */
+        function applyCascades() {
+            $.each(questions, function (_, q) {
+                if (!SurveyLogic.isCascade(q)) return;
+                var parent = findQuestion(q.parentQuestionId);
+                applyCascade($cards[q.id], q, parent ? readAnswer($cards[parent.id], parent) : null);
+            });
+        }
+
+        /** Error de una pregunta; un desplegable en cascada sin opciones disponibles no se exige. */
+        function check(q, answer) {
+            return $cards[q.id].hasClass('sv-cascade-empty') && !answer ? null : validate(q, answer);
+        }
+
         /** Aplica la lógica condicional y renumera las preguntas visibles. */
         function refresh() {
+            applyCascades();
             var answers = collect();
             var state = SurveyLogic.computeVisibility(questions, answers);
             var n = 0, answered = 0;
@@ -489,11 +586,68 @@ var SurveyRenderer = (function ($) {
 
         $page.on('change input', '.sv-q-input', function () {
             var $q = $(this).closest('.sv-q');
-            if ($q.hasClass('sv-q-invalid')) {
-                var q = findQuestion($q.attr('data-qid'));
-                showError($q, validate(q, readAnswer($q, q)));
-            }
+            var q = findQuestion($q.attr('data-qid'));
             refresh();
+            if ($q.hasClass('sv-q-invalid')) showError($q, check(q, readAnswer($q, q)));
+        });
+
+        // ---- Identificador: buscar la última captura con ese valor y precargarla ----
+        var loaded = false; // en pantalla hay datos cargados de una búsqueda
+
+        function lookupMessage($q, html, variant) {
+            $q.find('.sv-lookup-msg').removeClass('d-none text-success text-danger text-muted')
+                .addClass(variant === 'success' ? 'text-success' : variant === 'danger' ? 'text-danger' : 'text-muted').html(html);
+        }
+
+        /** Limpia todo menos el identificador y pone las respuestas encontradas (padres antes que hijos). */
+        function fill(identifierId, answers) {
+            $.each(questions, function (_, q) {
+                if (q.id === identifierId) return;
+                setAnswer($cards[q.id], q, answers[q.id]);
+                showError($cards[q.id], null);
+                applyCascades();
+            });
+            refresh();
+        }
+
+        function lookup($q) {
+            var q = findQuestion($q.attr('data-qid'));
+            var value = $.trim($q.find('.sv-text').val());
+            if (!value) { lookupMessage($q, 'Escribe el valor a buscar.', 'danger'); $q.find('.sv-text').trigger('focus'); return; }
+            if (!config.onLookup) { lookupMessage($q, 'En la vista previa no se buscan capturas anteriores.'); return; }
+
+            var $btn = $q.find('.sv-lookup-btn').prop('disabled', true);
+            lookupMessage($q, '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Buscando…');
+            $.when(config.onLookup(value)).done(function (result) {
+                if (!result || !result.found) {
+                    // Si en pantalla quedaron los datos cargados de otro valor, se limpian para no enviarlos con este.
+                    var cleared = loaded;
+                    if (cleared) { fill(q.id, {}); loaded = false; }
+                    lookupMessage($q, '<i class="bi bi-info-circle me-1"></i>' + esc(result && result.message ? result.message : 'No se encontraron capturas anteriores.') +
+                        (cleared ? ' Se limpiaron los datos de la búsqueda anterior.' : '') + ' Captura los datos como nuevos.');
+                    return;
+                }
+                var load = function () {
+                    fill(q.id, result.answers || {});
+                    loaded = true;
+                    lookupMessage($q, '<i class="bi bi-check-circle me-1"></i>' + esc(result.message) + ' Revisa y actualiza lo necesario antes de enviar.', 'success');
+                };
+                var others = $.grep(questions, function (x) { return x.id !== q.id && readAnswer($cards[x.id], x); }).length;
+                if (!others) { load(); return; }
+                // Ya hay respuestas escritas: se pide confirmación antes de reemplazarlas.
+                lookupMessage($q, '<i class="bi bi-exclamation-triangle me-1"></i>Hay una captura anterior. ¿Reemplazar lo que ya escribiste con esos datos? ' +
+                    '<button type="button" class="btn btn-sm btn-accent ms-1 sv-lookup-load">Cargar</button> ' +
+                    '<button type="button" class="btn btn-sm btn-light border sv-lookup-cancel">No</button>');
+                $q.find('.sv-lookup-load').one('click', load);
+                $q.find('.sv-lookup-cancel').one('click', function () { $q.find('.sv-lookup-msg').addClass('d-none'); });
+            }).fail(function () {
+                lookupMessage($q, 'No fue posible buscar. Intenta de nuevo.', 'danger');
+            }).always(function () { $btn.prop('disabled', false); });
+        }
+
+        $page.on('click', '.sv-lookup-btn', function () { lookup($(this).closest('.sv-q')); });
+        $page.on('keydown', '.sv-lookup .sv-text', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); lookup($(this).closest('.sv-q')); }
         });
 
         function findQuestion(id) {
@@ -511,7 +665,7 @@ var SurveyRenderer = (function ($) {
                 var $c = $cards[q.id];
                 if (result.state.visible[q.id] === false) return; // las ocultas no se validan ni se envían
                 var answer = result.answers[q.id];
-                var error = validate(q, answer);
+                var error = check(q, answer);
                 showError($c, error);
                 if (error && !firstError) firstError = $c;
                 if (answer && !error) payload[q.id] = answer;
@@ -544,6 +698,7 @@ var SurveyRenderer = (function ($) {
         OTHER: OTHER,
         renderQuestion: renderQuestion,
         readAnswer: readAnswer,
+        setAnswer: setAnswer,
         validate: validate,
         showError: showError,
         mountSurvey: mountSurvey

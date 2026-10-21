@@ -31,7 +31,7 @@ var SurveyEditor = (function ($) {
     };
 
     /** Configuración propia del tipo que se perdería al cambiar de tipo. */
-    var TYPE_KEYS = ['options', 'matrix', 'dependent', 'validation', 'rules', 'allowOther', 'otherLabel', 'randomizeOptions'];
+    var TYPE_KEYS = ['options', 'matrix', 'dependent', 'validation', 'rules', 'allowOther', 'otherLabel', 'randomizeOptions', 'parentQuestionId', 'identifier'];
 
     function typeSnapshot(q) {
         var snap = {};
@@ -144,19 +144,24 @@ var SurveyEditor = (function ($) {
     function typeSection(q, type) {
         var body = '';
         switch (q.type) {
+            case 'dropdown':
+                body = cascadeSection(q) +
+                    '<label class="form-label">Opciones de respuesta</label>' +
+                    listEditor(q.options, 'options', { placeholder: 'Texto de la opción', addLabel: 'Agregar opción', parent: cascadeParent(q) });
+                break;
             case 'singleChoice':
             case 'multipleChoice':
-            case 'dropdown':
             case 'yesNo':
                 body = '<label class="form-label">Opciones de respuesta</label>' +
                     listEditor(q.options, 'options', { fixed: type.fixedOptions, placeholder: 'Texto de la opción', addLabel: 'Agregar opción' });
                 break;
             case 'text':
-                body = '<label class="form-label">Formato de respuesta</label>' +
+                body = (q.identifier ? '' : '<label class="form-label">Formato de respuesta</label>' +
                     radioGroup('textMode', q.validation.textMode || 'long', [
                         { value: 'short', label: 'Campo corto', icon: 'bi-input-cursor-text' },
                         { value: 'long', label: 'Párrafo (textarea)', icon: 'bi-text-paragraph' }
-                    ]);
+                    ])) +
+                    identifierSection(q);
                 break;
             case 'scale':
                 body = scaleSection(q);
@@ -177,13 +182,68 @@ var SurveyEditor = (function ($) {
         return '<div class="sv-type-section mb-3">' + body + '</div>';
     }
 
-    /** Lista editable reutilizable: opciones, filas y columnas de matriz. */
+    // ---- Desplegable en cascada: sus opciones dependen de lo elegido en otra pregunta ----
+
+    function cascadeParent(q) {
+        return q.parentQuestionId ? Store.question(q.parentQuestionId) : null;
+    }
+
+    function cascadeSection(q) {
+        var questions = Store.questions();
+        var candidates = SurveyLogic.cascadeParentCandidates(q, questions);
+        var parent = cascadeParent(q);
+        var options = '<option value="">No, mostrar siempre todas las opciones</option>' + $.map(candidates, function (c) {
+            var label = SurveyLogic.questionLabel(questions, c.id) + ' · ' + (c.text || 'Sin texto');
+            if (label.length > 60) label = label.substring(0, 57) + '…';
+            return '<option value="' + esc(c.id) + '"' + (parent && c.id === parent.id ? ' selected' : '') + '>' + esc(label) + '</option>';
+        }).join('');
+        // Si el padre quedó después (se reordenó), se conserva en la lista para que se vea el problema.
+        if (parent && $.inArray(parent, candidates) < 0) {
+            options += '<option value="' + esc(parent.id) + '" selected>' + esc(SurveyLogic.questionLabel(questions, parent.id) + ' · ' + (parent.text || 'Sin texto')) + ' (está después)</option>';
+        }
+        return '<div class="sv-cascade mb-3">' +
+            '<label class="form-label" for="edCascade"><i class="bi bi-diagram-2 me-1"></i>¿Las opciones dependen de otra pregunta?</label>' +
+            '<select id="edCascade" class="form-select form-select-sm" data-act-change="cascade"' + (candidates.length || parent ? '' : ' disabled') + '>' + options + '</select>' +
+            (candidates.length || parent ? '' : '<div class="form-text">Agrega antes una pregunta de opciones (por ejemplo otro desplegable) para encadenarla.</div>') +
+            (parent ? '<div class="form-text">A cada opción indícale con qué respuesta de ' + esc(SurveyLogic.questionLabel(questions, parent.id)) +
+                ' aparece. Las marcadas «Siempre» se muestran con cualquier respuesta.</div>' : '') +
+            (parent && parent.order > q.order ? '<div class="small text-danger mt-1">Esa pregunta está después de esta: muévela antes para poder publicar.</div>' : '') +
+            '</div>';
+    }
+
+    function parentSelect(item, parent) {
+        var known = !item.parentId || $.grep(parent.options || [], function (o) { return o.id === item.parentId; }).length;
+        return '<select class="form-select form-select-sm sv-opt-parent' + (known ? '' : ' is-invalid') + '" data-item-parent aria-label="Aparece cuando la respuesta es">' +
+            '<option value="">Siempre</option>' +
+            $.map(parent.options || [], function (o) {
+                return '<option value="' + esc(o.id) + '"' + (o.id === item.parentId ? ' selected' : '') + '>' + esc('Si: ' + (o.text || '(sin texto)')) + '</option>';
+            }).join('') +
+            (known ? '' : '<option value="' + esc(item.parentId) + '" selected>(opción eliminada)</option>') +
+            '</select>';
+    }
+
+    // ---- Identificador: busca la última captura con ese valor ----
+
+    function identifierSection(q) {
+        return '<div class="sv-identifier mt-3">' +
+            switchControl('edIdentifier', 'identifier', !!q.identifier, 'Es identificador (ej. número de cliente)', true) +
+            '<div class="form-text">Quien responde escribe el valor y presiona <strong>Buscar</strong>: si ya hay una captura con ese ' +
+            'valor, se cargan los datos de la última para actualizarlos. Cada envío queda como una captura nueva.</div>' +
+            (q.identifier && !(Store.version().settings || {}).allowMultipleResponses
+                ? '<div class="alert alert-warning small py-2 mt-2 mb-0"><i class="bi bi-exclamation-triangle me-1"></i>Para que una persona capture varios clientes, ' +
+                  'en la pestaña <strong>Configuración</strong> elige <strong>Múltiples respuestas</strong>.</div>'
+                : '') +
+            '</div>';
+    }
+
+    /** Lista editable reutilizable: opciones, filas y columnas de matriz. opts.parent: pregunta padre (cascada). */
     function listEditor(items, path, opts) {
         var html = '<div class="sv-opt-list" data-list="' + path + '">';
         $.each(items || [], function (i, item) {
-            html += '<div class="sv-opt-row" data-sort-id="' + esc(item.id) + '">' +
+            html += '<div class="sv-opt-row' + (opts.parent ? ' sv-opt-row-cascade' : '') + '" data-sort-id="' + esc(item.id) + '">' +
                 (opts.fixed ? '<span class="sv-opt-bullet"><i class="bi bi-dot"></i></span>' : '<span class="drag-handle sv-edit-only" title="Arrastrar"><i class="bi bi-grip-vertical"></i></span>') +
                 '<input type="text" class="form-control form-control-sm" data-item-text maxlength="300" value="' + esc(item.text) + '" placeholder="' + esc(opts.placeholder) + '" aria-label="' + esc(opts.placeholder + ' ' + (i + 1)) + '">' +
+                (opts.parent ? parentSelect(item, opts.parent) : '') +
                 (opts.fixed ? '' : '<button type="button" class="btn btn-sm btn-icon sv-edit-only" data-act="del-item" title="Eliminar"' + (items.length <= 1 ? ' disabled' : '') + '><i class="bi bi-trash"></i></button>') +
                 '</div>';
         });
@@ -516,6 +576,13 @@ var SurveyEditor = (function ($) {
         };
     }
 
+    /** Opción nueva; en un desplegable en cascada hereda la condición de la opción de al lado. */
+    function newItem(q, path, neighbor) {
+        var item = { id: U.newId('o'), text: '' };
+        if (path === 'options' && q.parentQuestionId && neighbor && neighbor.parentId) item.parentId = neighbor.parentId;
+        return item;
+    }
+
     function reorderList(list, ids) {
         var byId = {};
         $.each(list, function (_, it) { byId[it.id] = it; });
@@ -568,7 +635,39 @@ var SurveyEditor = (function ($) {
 
             var kind = $el.attr('data-kind');
             var value = kind === 'bool' ? this.checked : kind === 'number' ? U.toNumberOrNull($el.val()) : $el.val();
-            update(function (q) { U.setPath(q, $el.attr('data-field'), value); }, $el.is('[data-rerender]'));
+            var field = $el.attr('data-field');
+            if (field === 'identifier' && value) {
+                // Solo un identificador por encuesta; el valor se escribe en un campo corto.
+                var others = $.grep(Store.questions(), function (x) { return x.identifier && x.id !== current().id; });
+                $.each(others, function (_, x) { Store.update(x.id, function (o) { delete o.identifier; }); });
+                if (others.length) U.toast('Ahora el identificador es esta pregunta (solo puede haber uno).', 'info');
+            }
+            update(function (q) {
+                U.setPath(q, field, value);
+                if (field === 'identifier' && value) q.validation.textMode = 'short';
+            }, $el.is('[data-rerender]'));
+        });
+
+        // Desplegable en cascada: pregunta de la que dependen las opciones.
+        $ed.on('change', '[data-act-change="cascade"]', function () {
+            var parentId = $(this).val() || null;
+            update(function (q) {
+                if (parentId === (q.parentQuestionId || null)) return;
+                if (parentId) q.parentQuestionId = parentId; else delete q.parentQuestionId;
+                $.each(q.options, function (_, o) { delete o.parentId; }); // otra pregunta padre: otras opciones
+            }, true);
+        });
+
+        $ed.on('change', '[data-item-parent]', function () {
+            var id = $(this).closest('.sv-opt-row').attr('data-sort-id');
+            var parentId = $(this).val() || null;
+            $(this).removeClass('is-invalid');
+            update(function (q) {
+                $.each(q.options, function (_, o) {
+                    if (o.id !== id) return;
+                    if (parentId) o.parentId = parentId; else delete o.parentId;
+                });
+            });
         });
 
         // Botones de radio (formato de texto, selección de matriz).
@@ -608,7 +707,7 @@ var SurveyEditor = (function ($) {
                 var list = U.getPath(q, path);
                 var idx = 0;
                 $.each(list, function (i, it) { if (it.id === after) idx = i + 1; });
-                list.splice(idx, 0, { id: U.newId('o'), text: '' });
+                list.splice(idx, 0, newItem(q, path, list[idx - 1]));
             }, true);
             var $list = $('#questionEditor [data-list="' + path + '"]');
             var pos = $list.find('.sv-opt-row[data-sort-id="' + after + '"]').index() + 1;
@@ -617,7 +716,10 @@ var SurveyEditor = (function ($) {
 
         $ed.on('click', '[data-act="add-item"]', function () {
             var path = $(this).attr('data-list');
-            update(function (q) { U.getPath(q, path).push({ id: U.newId('o'), text: '' }); }, true);
+            update(function (q) {
+                var list = U.getPath(q, path);
+                list.push(newItem(q, path, list[list.length - 1]));
+            }, true);
             focusLater('[data-list="' + path + '"] [data-item-text]');
         });
 

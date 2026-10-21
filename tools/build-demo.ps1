@@ -50,6 +50,10 @@ function Expand-Razor([string]$text) {
     })
     $text = [regex]::Replace($text, '@\*[\s\S]*?\*@\r?\n?', '')
     $text = [regex]::Replace($text, '@Url\.(?:Content|Versioned)\("~/([^"]+)"\)', '$1')
+    # Menú del layout: en la demo solo existe Encuestas (siempre activa); Citas necesita el servidor.
+    $text = [regex]::Replace($text, '[ \t]*@\{ var areaActual = [^\r\n]*\}\r?\n', '')
+    $text = [regex]::Replace($text, '<a class="nav-link@\(areaActual == "Encuestas"[^\r\n]*?>', '<a class="nav-link active" aria-current="page" href="demo-index.html">')
+    $text = [regex]::Replace($text, '[ \t]*<a class="nav-link@\(areaActual == "Citas"[^\r\n]*</a>\r?\n', '')
     $text = $text.Replace('@Url.Action("Index", "Encuestas", new { area = "Encuestas" })', 'demo-index.html')
     return $text
 }

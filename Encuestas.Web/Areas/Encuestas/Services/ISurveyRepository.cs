@@ -26,6 +26,13 @@ namespace ModuloEncuestas.Services
         void AddResponse(string versionId, ResponseRecordDto response, string userHash);
         bool HasUserResponded(string versionId, string userHash);
 
+        /// <summary>
+        /// Respuesta más reciente de la encuesta (cualquier versión) en la que alguna de las preguntas
+        /// <paramref name="questionIds"/> tiene como texto <paramref name="value"/> (sin distinguir
+        /// mayúsculas ni espacios al inicio/fin). Null si no hay; <paramref name="versionId"/> = versión de la respuesta.
+        /// </summary>
+        ResponseRecordDto FindLatestResponse(string surveyId, IList<string> questionIds, string value, out string versionId);
+
         /// <summary>Catálogos organizacionales para segmentación (roles, segmentos, regiones, sucursales, usuarios).</summary>
         OrgCatalogs GetCatalogs();
 

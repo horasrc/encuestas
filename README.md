@@ -74,8 +74,8 @@ JavaScript (como "Registro de citas / visitas"): `CitaOutlook.descargar(formData
 ## Pruebas
     powershell -ExecutionPolicy Bypass -File tests\run-tests.ps1
 
-Compila con el `csc` de .NET Framework y ejecuta 45 pruebas: 35 de `SurveyService` / `SurveyLogic` sobre el repositorio en memoria y 10 del archivo
-`.ics` de Citas (`CalendarioIcs`).
+Compila con el `csc` de .NET Framework y ejecuta 60 pruebas: 50 de `SurveyService` / `SurveyLogic` sobre el repositorio en memoria
+(incluye desplegables en cascada e identificador) y 10 del archivo `.ics` de Citas (`CalendarioIcs`).
 
 Integración (sitio corriendo contra LocalDB; **modifica datos**, usa una base de pruebas):
 
@@ -118,6 +118,17 @@ Cómo guarda `Services/SqlSurveyRepository.cs`:
   **Si cambias la lógica en `survey-logic.js` o las validaciones de `survey-renderer.js`, replica el cambio en `SurveyLogic.cs`.**
 - `Surveys:EnforceAudience = true`: rechaza a quien no pertenece a la segmentación (compara el usuario de `SurveyUser`
   con `OrgUser.Login`). Requiere `Surveys:CatalogProvider = Sql` con usuarios reales.
+
+## Desplegables en cascada e identificador
+- **Desplegable en cascada:** en un *Desplegable*, «¿Las opciones dependen de otra pregunta?» elige una pregunta
+  anterior de opciones; a cada opción se le indica con qué respuesta aparece («Siempre» = con cualquiera). Al responder,
+  la lista se llena según lo elegido. Si para lo elegido no hay opciones, la pregunta no se exige. El servidor descarta
+  opciones que no correspondan (`SurveyLogic.CascadeOptions`). Se guarda en `Question.SettingsJson`: **no cambia tablas**.
+- **Identificador** (ej. número de cliente): una pregunta de *Texto libre* marcada «Es identificador». Quien responde
+  escribe el valor y presiona **Buscar**: `POST /Encuestas/Api/LastResponse` devuelve la última captura de la encuesta con
+  ese valor (cualquier versión; entre versiones se emparejan preguntas y opciones por su texto) y se precarga para
+  actualizarla. Cada envío queda como captura nueva (historial). Para que una persona capture varios clientes, la
+  encuesta debe tener **Múltiples respuestas**. La búsqueda exige lo mismo que responder (vigencia, sesión, audiencia).
 
 ## Agregar un tipo de pregunta
 `survey-types.js` → `survey-renderer.js` → `survey-editor.js` → `survey-results.js` → `SurveyLogic.cs` (validación) → fila en `enc.QuestionType`.

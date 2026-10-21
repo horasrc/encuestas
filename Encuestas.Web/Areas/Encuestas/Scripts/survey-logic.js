@@ -215,14 +215,46 @@ var SurveyLogic = (function ($) {
         return $.grep(sorted(questions), function (q) { return q.order > question.order; });
     }
 
+    /** Tipos que pueden ser "padre" de un desplegable en cascada. */
+    var CASCADE_PARENT_TYPES = ['singleChoice', 'multipleChoice', 'dropdown', 'yesNo'];
+
+    /** ¿Es un desplegable cuyas opciones dependen de otra pregunta? */
+    function isCascade(question) {
+        return question.type === 'dropdown' && !!question.parentQuestionId;
+    }
+
+    /** Preguntas anteriores que pueden ser padre de un desplegable en cascada. */
+    function cascadeParentCandidates(question, questions) {
+        return $.grep(sorted(questions), function (q) {
+            return q.order < question.order && $.inArray(q.type, CASCADE_PARENT_TYPES) >= 0;
+        });
+    }
+
+    /**
+     * Opciones disponibles de un desplegable en cascada según la respuesta de la pregunta
+     * padre (las opciones sin padre siempre están). Null si no es en cascada.
+     * Igual que SurveyLogic.CascadeOptions en SurveyLogic.cs.
+     */
+    function cascadeOptions(question, parentAnswer) {
+        if (!isCascade(question)) return null;
+        var chosen = parentAnswer && parentAnswer.optionIds ? parentAnswer.optionIds : [];
+        return $.grep(question.options || [], function (o) { return !o.parentId || $.inArray(o.parentId, chosen) >= 0; });
+    }
+
+    /** Pregunta marcada como identificador (ej. número de cliente) o null. */
+    function identifierQuestion(questions) {
+        return $.grep(sorted(questions), function (q) { return q.identifier && q.type === 'text'; })[0] || null;
+    }
+
     /** Problemas de lógica para mostrar antes de publicar. */
     function validate(questions) {
         var errors = [];
         var byId = {};
+        var list = sorted(questions);
         $.each(questions, function (_, q) { byId[q.id] = q; });
-        $.each(sorted(questions), function (i, q) {
+        $.each(list, function (i, q) {
+            var label = 'P' + (i + 1);
             $.each(q.rules || [], function (_, r) {
-                var label = 'P' + (i + 1);
                 if (r.action !== 'end') {
                     var t = byId[r.targetQuestionId];
                     if (!t) errors.push(label + ': una regla apunta a una pregunta que no existe.');
@@ -231,7 +263,20 @@ var SurveyLogic = (function ($) {
                 if (r.operator !== 'answered' && (r.value === undefined || r.value === null || r.value === ''))
                     errors.push(label + ': una regla no tiene valor de comparación.');
             });
+            if (isCascade(q)) {
+                var p = byId[q.parentQuestionId];
+                if (!p) errors.push(label + ': depende de una pregunta que ya no existe.');
+                else if (p.order > q.order) errors.push(label + ': depende de ' + questionLabel(questions, p.id) + ', que está después; muévela antes.');
+                else {
+                    var ids = $.map(p.options || [], function (o) { return o.id; });
+                    var orphan = $.grep(q.options || [], function (o) { return o.parentId && $.inArray(o.parentId, ids) < 0; });
+                    if (orphan.length) errors.push(label + ': una opción depende de una opción que ya no existe en ' + questionLabel(questions, p.id) + '.');
+                }
+            }
         });
+        if ($.grep(list, function (q) { return q.identifier && q.type === 'text'; }).length > 1) {
+            errors.push('Solo puede haber una pregunta marcada como identificador.');
+        }
         return errors;
     }
 
@@ -247,6 +292,10 @@ var SurveyLogic = (function ($) {
         describeRule: describeRule,
         incomingRules: incomingRules,
         targetCandidates: targetCandidates,
+        isCascade: isCascade,
+        cascadeParentCandidates: cascadeParentCandidates,
+        cascadeOptions: cascadeOptions,
+        identifierQuestion: identifierQuestion,
         validate: validate,
         sorted: sorted
     };

@@ -69,7 +69,7 @@ y quién responde lo decide la seguridad del portal. El portal debe proteger est
 | Para administrar (solo administradores) | Para responder (colaboradores) |
 |---|---|
 | `/Encuestas` (listado), `/Encuestas/Constructor/{id}` | `/Encuestas/Responder/{id}` |
-| `/Encuestas/Api/` `List`, `Survey`, `History`, `Catalogs`, `Results`, `Create`, `Duplicate`, `Delete`, `SaveDraft`, `Publish`, `CreateVersion`, `ChangeStatus` | `/Encuestas/Api/` `Published`, `Eligibility`, `Submit` |
+| `/Encuestas/Api/` `List`, `Survey`, `History`, `Catalogs`, `Results`, `Create`, `Duplicate`, `Delete`, `SaveDraft`, `Publish`, `CreateVersion`, `ChangeStatus` | `/Encuestas/Api/` `Published`, `Eligibility`, `Submit`, `LastResponse` |
 
 Si el portal ya tiene un filtro global (`GlobalFilters` / `FilterConfig`) que exige iniciar sesión, este también
 se aplica al módulo automáticamente. Para restringir la administración, un ejemplo de filtro que distingue las dos
@@ -78,7 +78,7 @@ columnas (cambia `AuthorizeCore` por la regla del portal; probado: administraci�
 // using System.Linq; using System.Web; using System.Web.Mvc;
 public class EncuestasAccesoAttribute : AuthorizeAttribute
 {
-    private static readonly string[] ParaResponder = { "Responder", "Published", "Eligibility", "Submit" };
+    private static readonly string[] ParaResponder = { "Responder", "Published", "Eligibility", "Submit", "LastResponse" };
 
     public override void OnAuthorization(AuthorizationContext filterContext)
     {

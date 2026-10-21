@@ -244,6 +244,8 @@ var SurveyUtils = (function ($) {
 
         // Segunda pasada: referencias cruzadas.
         $.each(copy.questions, function (_, q) {
+            if (q.parentQuestionId && map[q.parentQuestionId]) q.parentQuestionId = map[q.parentQuestionId];
+            $.each(q.options || [], function (_, o) { if (o.parentId && map[o.parentId]) o.parentId = map[o.parentId]; });
             if (q.dependent) {
                 $.each(q.dependent.options, function (_, o) { if (o.parentId && map[o.parentId]) o.parentId = map[o.parentId]; });
             }

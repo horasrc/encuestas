@@ -303,7 +303,23 @@ namespace ModuloEncuestas.Services
                     if (needsTarget && (string.IsNullOrEmpty(r.TargetQuestionId) || !ids.Contains(r.TargetQuestionId)))
                         errors.Add(label + ": una regla condicional apunta a una pregunta que ya no existe.");
                 }
+
+                if (q.Type == "dropdown" && !string.IsNullOrEmpty(q.ParentQuestionId))
+                {
+                    var p = questions.FindIndex(x => x.Id == q.ParentQuestionId);
+                    if (p < 0) errors.Add(label + ": depende de una pregunta que ya no existe.");
+                    else if (p > i) errors.Add(label + ": depende de P" + (p + 1) + ", que está después; muévela antes.");
+                    else
+                    {
+                        var parentOptions = new HashSet<string>(questions[p].Options.Select(o => o.Id));
+                        if (q.Options.Any(o => !string.IsNullOrEmpty(o.ParentId) && !parentOptions.Contains(o.ParentId)))
+                            errors.Add(label + ": una opción depende de una opción que ya no existe en P" + (p + 1) + ".");
+                    }
+                }
             }
+
+            if (questions.Count(q => q.Identifier && q.Type == "text") > 1)
+                errors.Add("Solo puede haber una pregunta marcada como identificador.");
 
             var s = version.Settings ?? new PublishSettingsDto();
             DateTime start, end;
@@ -423,6 +439,130 @@ namespace ModuloEncuestas.Services
             // El repositorio guarda la respuesta e incrementa ResponseCount en la misma operación.
             _repository.AddResponse(version.Id, record, userHash);
             return ApiResult<string>.Success(record.Id, version.Settings.ThankYouMessage);
+        }
+
+        /// <summary>
+        /// Busca la última respuesta capturada (en cualquier versión) cuya pregunta identificador
+        /// tenga ese valor (ej. número de cliente) y la devuelve con los IDs de la versión publicada,
+        /// para precargar el formulario. Solo para quien puede responder la encuesta ahora.
+        /// </summary>
+        public LastResponseDto GetLastResponse(string surveyId, string value, string userName)
+        {
+            var survey = _repository.GetSurvey(surveyId);
+            var version = survey == null ? null : survey.Versions.FirstOrDefault(v => v.Status == SurveyStatuses.Published);
+            if (version == null) return new LastResponseDto { Message = "Esta encuesta no está abierta en este momento." };
+
+            string userHash;
+            var denied = CheckEligibility(version, userName, out userHash);
+            if (denied != null) return new LastResponseDto { Message = denied.Reason };
+
+            var key = IdentifierOf(version);
+            if (key == null) return new LastResponseDto { Message = "La encuesta no tiene una pregunta identificador." };
+            value = (value ?? "").Trim();
+            if (value.Length == 0) return new LastResponseDto { Message = "Escribe el valor a buscar." };
+
+            // La pregunta identificador de cada versión (las versiones nuevas tienen IDs nuevos).
+            var keys = survey.Versions.Select(IdentifierOf).Where(k => k != null).Select(k => k.Id).Distinct().ToList();
+            string fromVersionId;
+            var record = _repository.FindLatestResponse(survey.Id, keys, value, out fromVersionId);
+            if (record == null) return new LastResponseDto { Message = "No hay capturas anteriores para «" + value + "»." };
+
+            var from = survey.Versions.First(v => v.Id == fromVersionId);
+            return new LastResponseDto
+            {
+                Found = true,
+                SubmittedAt = record.SubmittedAt,
+                VersionNumber = from.Number,
+                Answers = MapAnswers(from, version, record.Answers ?? new Dictionary<string, AnswerDto>()),
+                Message = "Se cargó la captura del " + FormatSubmitted(record.SubmittedAt) + "."
+            };
+        }
+
+        private static QuestionDto IdentifierOf(SurveyVersionDto version)
+        {
+            return version.Questions.OrderBy(q => q.Order).FirstOrDefault(q => q.Identifier && q.Type == "text");
+        }
+
+        private static string FormatSubmitted(string iso)
+        {
+            DateTime at;
+            return DateTime.TryParse(iso, CultureInfo.InvariantCulture, DateTimeStyles.None, out at) ? at.ToString("dd/MM/yyyy HH:mm") : iso;
+        }
+
+        /// <summary>
+        /// Traduce respuestas de una versión a otra. Las preguntas se emparejan por tipo y texto,
+        /// y las opciones, filas y columnas por su texto: lo que ya no existe se omite.
+        /// </summary>
+        public static Dictionary<string, AnswerDto> MapAnswers(SurveyVersionDto from, SurveyVersionDto to, IDictionary<string, AnswerDto> answers)
+        {
+            var result = new Dictionary<string, AnswerDto>();
+            var used = new HashSet<string>();
+            foreach (var target in to.Questions.OrderBy(q => q.Order))
+            {
+                var source = from.Id == to.Id
+                    ? target
+                    : from.Questions.OrderBy(q => q.Order).FirstOrDefault(q => !used.Contains(q.Id) && q.Type == target.Type && SameText(q.Text, target.Text));
+                AnswerDto a;
+                if (source == null || !answers.TryGetValue(source.Id, out a) || a == null) continue;
+                used.Add(source.Id);
+
+                var mapped = MapAnswer(source, target, a);
+                if (!SurveyLogic.IsEmpty(mapped)) result[target.Id] = mapped;
+            }
+            return result;
+        }
+
+        private static AnswerDto MapAnswer(QuestionDto source, QuestionDto target, AnswerDto a)
+        {
+            var result = new AnswerDto { Text = a.Text, Number = a.Number, Date = a.Date };
+            if (a.OptionIds != null)
+            {
+                result.OptionIds = new List<string>();
+                foreach (var id in a.OptionIds)
+                {
+                    string mapped = null;
+                    if (id == SurveyLogic.OtherOption) mapped = target.AllowOther ? id : null;
+                    else if (target.Type == "dependent") mapped = MapDependent(source.Dependent, target.Dependent, id);
+                    else mapped = MapOption(source.Options, target.Options, id);
+                    if (mapped != null && !result.OptionIds.Contains(mapped)) result.OptionIds.Add(mapped);
+                }
+                if (result.OptionIds.Contains(SurveyLogic.OtherOption)) result.OtherText = a.OtherText;
+            }
+            if (a.Matrix != null && source.Matrix != null && target.Matrix != null)
+            {
+                result.Matrix = new Dictionary<string, List<string>>();
+                foreach (var row in a.Matrix)
+                {
+                    var rowId = MapOption(source.Matrix.Rows, target.Matrix.Rows, row.Key);
+                    if (rowId == null || row.Value == null) continue;
+                    var cols = row.Value.Select(c => MapOption(source.Matrix.Columns, target.Matrix.Columns, c)).Where(c => c != null).Distinct().ToList();
+                    if (cols.Count > 0) result.Matrix[rowId] = cols;
+                }
+            }
+            return result;
+        }
+
+        private static string MapOption(IList<OptionDto> from, IList<OptionDto> to, string id)
+        {
+            if (from == null || to == null) return null;
+            if (from == to) return to.Any(o => o.Id == id) ? id : null;
+            var option = from.FirstOrDefault(o => o.Id == id);
+            var match = option == null ? null : to.FirstOrDefault(o => SameText(o.Text, option.Text));
+            return match == null ? null : match.Id;
+        }
+
+        private static string MapDependent(DependentDto from, DependentDto to, string id)
+        {
+            if (from == null || to == null) return null;
+            if (from == to) return to.Options.Any(o => o.Id == id) ? id : null;
+            var option = from.Options.FirstOrDefault(o => o.Id == id);
+            var match = option == null ? null : to.Options.FirstOrDefault(o => o.Level == option.Level && SameText(o.Text, option.Text));
+            return match == null ? null : match.Id;
+        }
+
+        private static bool SameText(string a, string b)
+        {
+            return string.Equals((a ?? "").Trim(), (b ?? "").Trim(), StringComparison.CurrentCultureIgnoreCase);
         }
 
         public ResultsDto GetResults(string surveyId, string versionId)

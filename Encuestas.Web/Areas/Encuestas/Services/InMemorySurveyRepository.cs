@@ -108,6 +108,38 @@ namespace ModuloEncuestas.Services
             lock (Sync) return Respondents.Contains(versionId + "|" + userHash);
         }
 
+        public ResponseRecordDto FindLatestResponse(string surveyId, IList<string> questionIds, string value, out string versionId)
+        {
+            versionId = null;
+            lock (Sync)
+            {
+                SurveyDto survey;
+                if (!Surveys.TryGetValue(surveyId ?? "", out survey)) return null;
+                ResponseRecordDto best = null;
+                foreach (var v in survey.Versions)
+                {
+                    List<ResponseRecordDto> list;
+                    if (!Responses.TryGetValue(v.Id, out list)) continue;
+                    foreach (var r in list)
+                    {
+                        var match = questionIds.Any(k =>
+                        {
+                            AnswerDto a;
+                            return r.Answers != null && r.Answers.TryGetValue(k, out a) && a != null &&
+                                string.Equals((a.Text ?? "").Trim(), value, StringComparison.OrdinalIgnoreCase);
+                        });
+                        // SubmittedAt es ISO ("s"): se compara como texto; a igual hora gana la última guardada.
+                        if (match && (best == null || string.CompareOrdinal(r.SubmittedAt, best.SubmittedAt) >= 0))
+                        {
+                            best = r;
+                            versionId = v.Id;
+                        }
+                    }
+                }
+                return best;
+            }
+        }
+
         public OrgCatalogs GetCatalogs()
         {
             return _catalogs.GetCatalogs();

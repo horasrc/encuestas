@@ -93,6 +93,19 @@ namespace ModuloEncuestas.Models.Dto
         public bool RandomizeOptions { get; set; }
         public bool AllowOther { get; set; }
         public string OtherLabel { get; set; }
+
+        /// <summary>
+        /// Desplegable en cascada: Id de la pregunta (anterior, de opciones) de la que dependen
+        /// sus opciones. Cada opción indica en OptionDto.ParentId con qué opción de esa pregunta aparece.
+        /// </summary>
+        public string ParentQuestionId { get; set; }
+
+        /// <summary>
+        /// Texto que identifica lo capturado (ej. número de cliente). Con él se busca la última
+        /// respuesta de la encuesta que tenga ese valor para precargarla.
+        /// </summary>
+        public bool Identifier { get; set; }
+
         public QuestionValidationDto Validation { get; set; }
         public List<OptionDto> Options { get; set; }
         public MatrixDto Matrix { get; set; }
@@ -133,6 +146,9 @@ namespace ModuloEncuestas.Models.Dto
     {
         public string Id { get; set; }
         public string Text { get; set; }
+
+        /// <summary>Desplegable en cascada: opción de la pregunta padre con la que aparece (null = siempre).</summary>
+        public string ParentId { get; set; }
     }
 
     public class MatrixDto
@@ -215,6 +231,32 @@ namespace ModuloEncuestas.Models.Dto
         public string Id { get; set; }
         public string SubmittedAt { get; set; }
         public Dictionary<string, AnswerDto> Answers { get; set; }
+    }
+
+    /// <summary>Búsqueda por identificador. Va en el cuerpo de un POST para que el valor no quede en las bitácoras de IIS.</summary>
+    public class LastResponseRequest
+    {
+        public string SurveyId { get; set; }
+        public string Value { get; set; }
+    }
+
+    /// <summary>Última respuesta capturada con un identificador (ej. número de cliente), lista para precargar.</summary>
+    public class LastResponseDto
+    {
+        public bool Found { get; set; }
+        public string Message { get; set; }
+        public string SubmittedAt { get; set; }
+
+        /// <summary>Número de la versión en que se capturó (puede ser anterior a la publicada).</summary>
+        public int VersionNumber { get; set; }
+
+        /// <summary>Respuestas expresadas con los IDs de la versión publicada.</summary>
+        public Dictionary<string, AnswerDto> Answers { get; set; }
+
+        public LastResponseDto()
+        {
+            Answers = new Dictionary<string, AnswerDto>();
+        }
     }
 
     public class ResultsDto
