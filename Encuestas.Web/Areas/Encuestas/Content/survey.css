@@ -174,6 +174,10 @@ body.sv-respondent-body {
 .sv-back { font-size: .82rem; color: var(--sv-muted); text-decoration: none; }
 .sv-back:hover { color: var(--sv-accent); }
 
+/* Dentro del layout del portal, sus estilos de títulos (color, tamaño, visibilidad) no deben ocultar el del módulo. */
+.sv-page .sv-page-header h1 { display: block; visibility: visible; color: var(--sv-ink); font-size: 1.5rem; line-height: 1.2; }
+.sv-page .sv-page-header p { font-size: .875rem; }
+
 .sv-header-row {
     display: flex;
     flex-wrap: wrap;

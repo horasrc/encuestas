@@ -257,6 +257,34 @@ var SurveyUtils = (function ($) {
         return copy;
     }
 
+    /**
+     * Dentro del layout del portal, el contenedor del contenido puede ser más ancho que la
+     * ventana: el botón «Nueva encuesta», el buscador y parte de la tabla quedaban fuera de
+     * la vista. Si la página del módulo se sale por la derecha, se limita a lo visible.
+     */
+    function fitToViewport() {
+        $('.sv-page').each(function () {
+            this.style.maxWidth = '';
+            this.style.marginLeft = '';
+            this.style.marginRight = '';
+            var rect = this.getBoundingClientRect();
+            var viewport = document.documentElement.clientWidth;
+            if (rect.right <= viewport + 1) return;
+            // Sin márgenes automáticos: centrada en un contenedor ancho quedaría otra vez fuera de la vista.
+            this.style.marginLeft = '0';
+            this.style.marginRight = '0';
+            var left = this.getBoundingClientRect().left;
+            var available = viewport - left - 16;
+            if (available >= 320) this.style.maxWidth = available + 'px';
+        });
+    }
+
+    $(function () {
+        fitToViewport();
+        var timer = null;
+        $(window).on('resize', function () { clearTimeout(timer); timer = setTimeout(fitToViewport, 150); });
+    });
+
     return {
         newId: newId,
         clone: clone,
@@ -274,6 +302,7 @@ var SurveyUtils = (function ($) {
         sortable: sortable,
         statusInfo: statusInfo,
         statusBadge: statusBadge,
-        cloneVersion: cloneVersion
+        cloneVersion: cloneVersion,
+        fitToViewport: fitToViewport
     };
 })(jQuery);
