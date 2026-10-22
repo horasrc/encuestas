@@ -1,0 +1,384 @@
+<title>Manual del Módulo de Encuestas</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: manual de una columna (~68ch) con índice al inicio; las pantallas del módulo se citan como botones/etiquetas reales. */
+:root {
+  --paper: #fbfbfa;
+  --ink: #1f2328;
+  --muted: #5d6470;
+  --rule: #dfe1e4;
+  --panel: #f1f2f3;
+  --accent: #b4232f;        /* rojo del botón principal del módulo */
+  --accent-soft: #f7e3e4;
+  --ok: #1d6b45;
+  --ok-soft: #e2f1e8;
+  --warn: #8a5a00;
+  --warn-soft: #fbf0d9;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
+  --font-ui: "IBM Plex Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #16181b; --ink: #e7e9ec; --muted: #a2a9b4; --rule: #30343a; --panel: #1f2226;
+    --accent: #ef6b74; --accent-soft: #3a1d20; --ok: #6fcf9a; --ok-soft: #17301f; --warn: #e6b450; --warn-soft: #33290f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #16181b; --ink: #e7e9ec; --muted: #a2a9b4; --rule: #30343a; --panel: #1f2226;
+  --accent: #ef6b74; --accent-soft: #3a1d20; --ok: #6fcf9a; --ok-soft: #17301f; --warn: #e6b450; --warn-soft: #33290f;
+  color-scheme: dark;
+}
+body { background: var(--paper); color: var(--ink); font-family: var(--font-body); font-size: 15.5px; line-height: 1.6; }
+.doc { max-width: 46rem; margin: 0 auto; padding-block: 40px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--font-display); line-height: 1.15; text-wrap: balance; margin: 0; }
+h1 { font-size: 2.6rem; font-weight: 700; letter-spacing: -.01em; }
+h2 { font-size: 1.55rem; font-weight: 700; display: flex; gap: .6rem; align-items: baseline; }
+h2 .n { font-family: var(--font-ui); font-size: .85rem; color: var(--accent); font-weight: 500; min-width: 1.6rem; }
+h3 { font-size: 1.12rem; font-weight: 600; margin-top: 1.4rem; }
+p { margin: .7rem 0; }
+a { color: var(--accent); }
+.eyebrow { font-family: var(--font-ui); font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.cover { border-bottom: 3px solid var(--ink); padding-bottom: 1.4rem; display: grid; gap: .6rem; }
+.cover .sub { color: var(--muted); font-size: 1.05rem; margin: 0; max-width: 36rem; }
+.meta { display: flex; flex-wrap: wrap; gap: .4rem 1.4rem; font-size: .85rem; color: var(--muted); }
+.meta b { color: var(--ink); font-weight: 600; }
+
+.toc { margin: 1.6rem 0 0; padding: 1rem 1.2rem; background: var(--panel); border-radius: 6px; }
+.toc ol { margin: .4rem 0 0; padding: 0; list-style: none; columns: 2 16rem; column-gap: 2rem; font-size: .93rem; }
+.toc li { break-inside: avoid; padding: .12rem 0; display: flex; gap: .5rem; }
+.toc li span { font-family: var(--font-ui); color: var(--muted); font-size: .8rem; min-width: 1.4rem; padding-top: .15rem; }
+.toc a { color: var(--ink); text-decoration: none; }
+.toc a:hover, .toc a:focus-visible { color: var(--accent); text-decoration: underline; }
+
+section { margin-top: 2.6rem; padding-top: 1.4rem; border-top: 1px solid var(--rule); }
+.who { display: inline-block; font-family: var(--font-ui); font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; padding: .1rem .45rem; border-radius: 3px; margin-left: auto; align-self: center; white-space: nowrap; }
+.who.admin { background: var(--accent-soft); color: var(--accent); }
+.who.colab { background: var(--ok-soft); color: var(--ok); }
+
+/* Nombres de botones, pestañas y campos tal como aparecen en pantalla */
+.ui { font-family: var(--font-ui); font-size: .82em; background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; padding: .05rem .35rem; white-space: nowrap; }
+.ui.primary { background: var(--accent); border-color: var(--accent); color: var(--paper); }
+
+ol.steps { counter-reset: s; list-style: none; padding: 0; margin: .9rem 0; display: grid; gap: .55rem; }
+ol.steps > li { counter-increment: s; display: grid; grid-template-columns: 1.8rem 1fr; gap: .4rem; }
+ol.steps > li::before { content: counter(s); font-family: var(--font-ui); font-size: .8rem; width: 1.45rem; height: 1.45rem; border-radius: 50%; border: 1.5px solid var(--ink); display: grid; place-items: center; margin-top: .12rem; }
+ol.steps > li > div { min-width: 0; }
+ul { padding-left: 1.2rem; margin: .6rem 0; }
+li { margin: .2rem 0; }
+
+.table-wrap { overflow-x: auto; margin: .9rem 0; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; vertical-align: top; padding: .45rem .6rem; border-bottom: 1px solid var(--rule); }
+th { font-family: var(--font-display); font-weight: 600; font-size: .92rem; border-bottom: 2px solid var(--ink); }
+td:first-child { font-weight: 600; white-space: nowrap; }
+
+.note { border-left: 3px solid var(--muted); background: var(--panel); padding: .6rem .9rem; margin: 1rem 0; font-size: .93rem; border-radius: 0 4px 4px 0; }
+.note.tip { border-color: var(--ok); background: var(--ok-soft); }
+.note.warn { border-color: var(--warn); background: var(--warn-soft); }
+.note b:first-child { display: block; font-family: var(--font-display); font-size: .95rem; margin-bottom: .15rem; }
+
+/* Ejemplos de reglas y cascada */
+.rule { font-family: var(--font-ui); font-size: .85rem; background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: .7rem .9rem; display: grid; gap: .35rem; margin: .9rem 0; }
+.kw { display: inline-block; padding: 0 .35rem; border-radius: 3px; color: var(--paper); background: var(--ink); font-size: .75rem; margin-right: .3rem; }
+.kw.then { background: var(--accent); }
+.cascade { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: .8rem; margin: .9rem 0; }
+.cascade > div { border: 1px solid var(--rule); border-radius: 6px; padding: .7rem .9rem; min-width: 0; }
+.cascade .q { font-family: var(--font-display); font-weight: 600; }
+.cascade ul { list-style: none; padding: 0; margin: .4rem 0 0; font-size: .9rem; }
+.cascade li { display: flex; justify-content: space-between; gap: .6rem; border-top: 1px dashed var(--rule); padding: .25rem 0; }
+.cascade li small { color: var(--muted); font-family: var(--font-ui); font-size: .75rem; white-space: nowrap; }
+
+footer { margin-top: 3rem; padding-top: 1rem; border-top: 3px solid var(--ink); font-size: .85rem; color: var(--muted); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+@media print {
+  :root, :root[data-theme="dark"], :root:not([data-theme="light"]) {
+    --paper: #ffffff; --ink: #1f2328; --muted: #555b65; --rule: #d4d7db; --panel: #f2f3f4;
+    --accent: #b4232f; --accent-soft: #f7e3e4; --ok: #1d6b45; --ok-soft: #e6f2ea; --warn: #7a5000; --warn-soft: #fbf0d9;
+    color-scheme: light;
+  }
+  @page { size: letter; margin: 15mm 16mm; }
+  body { font-size: 10.5pt; }
+  .doc { max-width: none; padding: 0; }
+  h1 { font-size: 26pt; }
+  section { break-before: auto; }
+  h2, h3, .rule, .cascade, .note, table, ol.steps > li { break-inside: avoid; }
+  h2, h3 { break-after: avoid; }
+  .toc a { text-decoration: none; }
+  .print-break { break-before: page; }
+}
+</style>
+
+<main class="doc">
+  <header class="cover">
+    <span class="eyebrow">Manual de usuario</span>
+    <h1>Módulo de Encuestas</h1>
+    <p class="sub">Cómo crear, publicar y consultar encuestas en el portal, y cómo responderlas.</p>
+    <div class="meta"><span><b>Versión:</b> octubre 2026</span><span><b>Para:</b> administradores de encuestas y colaboradores</span></div>
+  </header>
+
+  <nav class="toc" aria-label="Contenido">
+    <span class="eyebrow">Contenido</span>
+    <ol>
+      <li><span>1</span><a href="#roles">Quién hace qué</a></li>
+      <li><span>2</span><a href="#listado">Listado de encuestas</a></li>
+      <li><span>3</span><a href="#constructor">Construir la encuesta</a></li>
+      <li><span>4</span><a href="#tipos">Tipos de pregunta</a></li>
+      <li><span>5</span><a href="#logica">Lógica condicional</a></li>
+      <li><span>6</span><a href="#cascada">Desplegables en cascada</a></li>
+      <li><span>7</span><a href="#identificador">Identificador (número de cliente)</a></li>
+      <li><span>8</span><a href="#configuracion">Configuración</a></li>
+      <li><span>9</span><a href="#publicar">Vista previa y publicación</a></li>
+      <li><span>10</span><a href="#versiones">Versiones e historial</a></li>
+      <li><span>11</span><a href="#resultados">Resultados</a></li>
+      <li><span>12</span><a href="#responder">Responder una encuesta</a></li>
+      <li><span>13</span><a href="#faq">Preguntas frecuentes</a></li>
+    </ol>
+  </nav>
+
+  <section id="roles">
+    <h2><span class="n">1</span>Quién hace qué</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Perfil</th><th>Qué hace</th><th>Dónde</th></tr></thead>
+      <tbody>
+        <tr><td>Administrador</td><td>Crea encuestas, agrega preguntas, define a quién van dirigidas, publica y consulta resultados.</td><td>Menú <span class="ui">Encuestas</span></td></tr>
+        <tr><td>Colaborador</td><td>Responde las encuestas que le comparten.</td><td>El enlace de la encuesta</td></tr>
+      </tbody>
+    </table></div>
+    <p>Quién puede administrar lo define la seguridad del portal. Si al abrir el menú aparece un mensaje de acceso denegado, solicita el permiso al área responsable del portal.</p>
+  </section>
+
+  <section id="listado">
+    <h2><span class="n">2</span>Listado de encuestas <span class="who admin">Administrador</span></h2>
+    <p>Al entrar a <span class="ui">Encuestas</span> se ven todas las encuestas con su <b>estado</b>, <b>versión</b>, <b>respuestas</b> y <b>vigencia</b>. Las pestañas <span class="ui">Todas</span> <span class="ui">Borrador</span> <span class="ui">Publicadas</span> <span class="ui">Cerradas</span> <span class="ui">Archivadas</span> filtran la lista.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Estado</th><th>Significa</th></tr></thead>
+      <tbody>
+        <tr><td>Borrador</td><td>En preparación. Nadie la puede responder todavía.</td></tr>
+        <tr><td>Publicada</td><td>Abierta: se puede responder dentro de su vigencia.</td></tr>
+        <tr><td>Cerrada</td><td>Ya no recibe respuestas. Los resultados se conservan.</td></tr>
+        <tr><td>Archivada</td><td>Versión anterior guardada como histórico, con sus resultados.</td></tr>
+      </tbody>
+    </table></div>
+    <h3>Crear una encuesta</h3>
+    <ol class="steps">
+      <li><div>Presiona <span class="ui primary">Nueva encuesta</span>.</div></li>
+      <li><div>Escribe el <b>Nombre</b> y, si quieres, una <b>Descripción</b>.</div></li>
+      <li><div>Presiona <span class="ui primary">Crear y abrir constructor</span>. Se crea como borrador (versión 1).</div></li>
+    </ol>
+    <h3>Otras acciones de la lista</h3>
+    <ul>
+      <li><b>Duplicar:</b> crea una encuesta nueva en borrador con las mismas preguntas y configuración, sin respuestas. Útil para repetir una encuesta en otro periodo.</li>
+      <li><b>Eliminar:</b> solo se permite si la encuesta <b>no tiene respuestas</b>. Si ya las tiene, ciérrala o archívala para conservar los resultados.</li>
+    </ul>
+  </section>
+
+  <section id="constructor">
+    <h2><span class="n">3</span>Construir la encuesta <span class="who admin">Administrador</span></h2>
+    <p>El constructor tiene cuatro pestañas: <span class="ui">Constructor</span> <span class="ui">Configuración</span> <span class="ui">Vista previa</span> <span class="ui">Resultados</span>. En la pestaña <span class="ui">Constructor</span> hay tres zonas:</p>
+    <ul>
+      <li><b>Preguntas</b> (izquierda): la lista en orden. Arrastra una pregunta para moverla.</li>
+      <li><b>Editar pregunta</b> (centro): el texto, las opciones y la configuración de la pregunta seleccionada.</li>
+      <li><b>Vista previa de la pregunta</b> y <b>Tipos de pregunta</b> (derecha): cómo se verá, y la paleta para agregar preguntas con un clic.</li>
+    </ul>
+    <h3>Editar una pregunta</h3>
+    <ol class="steps">
+      <li><div>Selecciona la pregunta en la lista, o agrega una con <span class="ui">Agregar pregunta</span> o desde <b>Tipos de pregunta</b>.</div></li>
+      <li><div>Elige el <b>Tipo de pregunta</b> y escribe la <b>Pregunta</b>. La <b>Descripción</b> es opcional: una instrucción breve para quien responde.</div></li>
+      <li><div>Si es de opciones, escribe cada opción. <kbd class="ui">Enter</kbd> agrega otra debajo; arrastra para reordenar.</div></li>
+      <li><div>Activa lo que aplique: <span class="ui">Obligatoria</span>, <span class="ui">Orden aleatorio de opciones</span>, <span class="ui">Permitir «Otro»</span> (agrega una opción con campo de texto).</div></li>
+      <li><div>En <b>Validaciones</b> define límites cuando el tipo los tenga: mínimo y máximo de caracteres, de selecciones o de valor.</div></li>
+    </ol>
+    <p>Con los botones del encabezado del panel puedes <b>subir</b>, <b>bajar</b>, <b>duplicar</b> o <b>eliminar</b> la pregunta. Los cambios se guardan hasta presionar <span class="ui">Guardar borrador</span>; mientras tanto se muestra <b>Cambios sin guardar</b>.</p>
+    <div class="note tip"><b>Cambiar de tipo</b>Si cambias el tipo de una pregunta y se perdería algo (opciones, filas de matriz, reglas), el módulo te avisa antes. Si regresas al tipo anterior sin salir de la página, se recupera lo que tenías.</div>
+  </section>
+
+  <section id="tipos">
+    <h2><span class="n">4</span>Tipos de pregunta <span class="who admin">Administrador</span></h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Tipo</th><th>Quien responde…</th><th>Se puede configurar</th></tr></thead>
+      <tbody>
+        <tr><td>Opción única</td><td>elige una opción.</td><td>Opciones, «Otro», orden aleatorio</td></tr>
+        <tr><td>Selección múltiple</td><td>marca varias opciones.</td><td>Opciones, «Otro», mínimo y máximo de selecciones</td></tr>
+        <tr><td>Desplegable</td><td>elige de una lista.</td><td>Opciones; puede <a href="#cascada">depender de otra pregunta</a></td></tr>
+        <tr><td>Texto libre</td><td>escribe una respuesta.</td><td>Campo corto o párrafo, mínimo y máximo de caracteres; puede ser <a href="#identificador">identificador</a></td></tr>
+        <tr><td>Sí / No</td><td>elige Sí o No.</td><td>Solo los textos</td></tr>
+        <tr><td>Escala</td><td>califica con un número (1 a 5, 1 a 10…).</td><td>Rango y etiquetas de los extremos</td></tr>
+        <tr><td>Matriz</td><td>evalúa varias filas con la misma escala.</td><td>Filas, columnas, una o varias respuestas por fila</td></tr>
+        <tr><td>Multiselección dependiente</td><td>elige en listas por niveles (ej. Banca → Producto → Recurso) dentro de una sola pregunta.</td><td>Niveles y opciones de cada nivel; selección múltiple o una por nivel</td></tr>
+        <tr><td>Fecha</td><td>elige una fecha.</td><td>—</td></tr>
+        <tr><td>Número</td><td>escribe un número.</td><td>Valor mínimo y máximo</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="logica">
+    <h2><span class="n">5</span>Lógica condicional <span class="who admin">Administrador</span></h2>
+    <p>Hace que la encuesta cambie según lo que se responde. Se define en la sección <b>Lógica condicional</b> de la pregunta <em>de la que depende</em>, con <span class="ui">Agregar regla</span>:</p>
+    <div class="rule">
+      <div><span class="kw">SI</span>la respuesta <b>es</b> «Sí»</div>
+      <div><span class="kw then">ENTONCES</span>Mostrar pregunta · P5 ¿Qué módulo usas?</div>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Acción</th><th>Qué pasa</th></tr></thead>
+      <tbody>
+        <tr><td>Mostrar pregunta</td><td>La pregunta destino queda <b>oculta</b> y solo aparece si se cumple la regla.</td></tr>
+        <tr><td>Ocultar pregunta</td><td>La pregunta destino desaparece si se cumple la regla.</td></tr>
+        <tr><td>Ir a pregunta</td><td>Se saltan las preguntas entre esta y la de destino.</td></tr>
+        <tr><td>Finalizar encuesta</td><td>No se muestran más preguntas; se puede enviar.</td></tr>
+      </tbody>
+    </table></div>
+    <p>Las condiciones dependen del tipo: <b>es / no es</b> una opción, <b>mayor / menor / igual a</b> un número, <b>contiene</b> un texto, o <b>fue respondida</b>. Las reglas solo pueden apuntar a preguntas posteriores. Las preguntas ocultas no se exigen ni se guardan, aunque sean obligatorias.</p>
+    <p>Debajo de cada regla aparece su resumen en palabras. Al editar una pregunta que depende de otra, se muestra «Esta pregunta depende de:».</p>
+  </section>
+
+  <section id="cascada">
+    <h2><span class="n">6</span>Desplegables en cascada <span class="who admin">Administrador</span></h2>
+    <p>Un <b>Desplegable</b> puede mostrar solo las opciones que corresponden a lo elegido en otra pregunta. Por ejemplo, el producto según la banca:</p>
+    <div class="cascade" aria-label="Ejemplo de desplegables en cascada">
+      <div><div class="q">P2 · Banca</div><ul><li>Personal</li><li>Empresarial</li></ul></div>
+      <div><div class="q">P3 · Producto</div><ul>
+        <li>Tarjeta <small>Si: Personal</small></li>
+        <li>Hipoteca <small>Si: Personal</small></li>
+        <li>Crédito PyME <small>Si: Empresarial</small></li>
+        <li>Otro <small>Siempre</small></li>
+      </ul></div>
+    </div>
+    <ol class="steps">
+      <li><div>Crea primero la pregunta “padre” (en el ejemplo, <b>Banca</b>). Puede ser Desplegable, Opción única, Selección múltiple o Sí / No.</div></li>
+      <li><div>Debajo, crea un <b>Desplegable</b> (Producto). En <b>«¿Las opciones dependen de otra pregunta?»</b> elige la pregunta padre.</div></li>
+      <li><div>Junto a cada opción aparece una lista: elige con qué respuesta se muestra (<span class="ui">Si: Personal</span>) o <span class="ui">Siempre</span> para que aparezca con cualquier respuesta.</div></li>
+      <li><div>Revisa en <span class="ui">Vista previa</span>: al cambiar la banca, la lista de productos cambia.</div></li>
+    </ol>
+    <ul>
+      <li>Se pueden encadenar varias: Región → Sucursal → Ejecutivo.</li>
+      <li>Si la persona cambia la respuesta padre, la selección que ya no corresponde se borra.</li>
+      <li>Si para lo elegido no hay opciones, la pregunta queda deshabilitada y no se exige.</li>
+      <li>La pregunta padre debe ir <b>antes</b>. Si la mueves después, el constructor lo marca y no deja publicar.</li>
+    </ul>
+    <div class="note"><b>¿Cascada o Multiselección dependiente?</b>Usa la cascada cuando cada nivel es una pregunta con su propio texto y sus propios resultados. Usa <b>Multiselección dependiente</b> cuando todos los niveles forman una sola respuesta, o cuando se pueden marcar varias ramas a la vez.</div>
+  </section>
+
+  <section id="identificador">
+    <h2><span class="n">7</span>Identificador (número de cliente) <span class="who admin">Administrador</span></h2>
+    <p>Sirve para encuestas que se capturan <b>por cliente</b> u otro dato (número de cliente, de contrato, de sucursal). Al escribir el número, el módulo busca la <b>última captura</b> de esa encuesta con ese número y llena el formulario con sus datos para actualizarlos.</p>
+    <ol class="steps">
+      <li><div>Agrega una pregunta de <b>Texto libre</b> (por ejemplo «Número de cliente») y actívale <span class="ui">Es identificador (ej. número de cliente)</span>. Conviene marcarla también como <span class="ui">Obligatoria</span>.</div></li>
+      <li><div>En <span class="ui">Configuración</span>, en <b>Respuestas por usuario</b>, elige <span class="ui">Múltiples respuestas</span>. Así una persona puede capturar varios clientes. Si no lo haces, el constructor te lo recuerda.</div></li>
+      <li><div>Publica. Quien responda verá el campo con el botón <span class="ui">Buscar</span> (ver <a href="#responder">sección 12</a>).</div></li>
+    </ol>
+    <ul>
+      <li>Solo puede haber un identificador por encuesta. Si marcas otra pregunta, la anterior deja de serlo.</li>
+      <li>Cada envío se guarda como una <b>captura nueva</b>. Las anteriores no se borran y siguen contando en resultados.</li>
+      <li>La búsqueda encuentra capturas de versiones anteriores de la encuesta. Lo que se renombró o eliminó en la versión nueva queda vacío para capturarlo otra vez.</li>
+      <li>No distingue mayúsculas ni espacios al inicio o al final, pero sí el número completo: «00123» y «123» son distintos.</li>
+    </ul>
+    <div class="note warn"><b>Quién ve las capturas</b>Cualquier persona que pueda responder la encuesta puede recuperar la última captura de cualquier número, aunque la haya hecho otra persona. Tenlo en cuenta al decidir a quién va dirigida.</div>
+  </section>
+
+  <section id="configuracion">
+    <h2><span class="n">8</span>Configuración <span class="who admin">Administrador</span></h2>
+    <h3>Publicación</h3>
+    <div class="table-wrap"><table>
+      <tbody>
+        <tr><td>Fecha de inicio y de cierre</td><td>Fuera de estas fechas la encuesta no se puede responder. El cierre debe ser posterior al inicio.</td></tr>
+        <tr><td>Respuestas por usuario</td><td><b>Una respuesta</b>: cada persona responde una vez. <b>Múltiples respuestas</b>: puede responder varias veces (necesario para capturas por cliente).</td></tr>
+        <tr><td>Encuesta anónima</td><td>Los resultados no muestran quién respondió.</td></tr>
+        <tr><td>Requiere usuario autenticado</td><td>Necesario para controlar «una respuesta por usuario».</td></tr>
+        <tr><td>Mensaje inicial y final</td><td>Texto que se ve al abrir la encuesta y al terminar de enviarla.</td></tr>
+      </tbody>
+    </table></div>
+    <h3>Segmentación · ¿quién puede responder?</h3>
+    <p><span class="ui">Todos los colaboradores</span> o <span class="ui">Audiencia segmentada</span>. En la segmentada se eligen roles, segmentos, regiones, sucursales y usuarios específicos:</p>
+    <ul>
+      <li>Dentro de cada grupo se suma (O): «Ejecutivos <b>o</b> Gerentes».</li>
+      <li>Entre grupos se combina (Y): «Ejecutivos <b>y</b> de la región Norte».</li>
+      <li>Los usuarios específicos siempre se incluyen.</li>
+    </ul>
+    <p><b>Audiencia estimada</b> muestra cuántos colaboradores cumplen los filtros. Si es 0, no se puede publicar.</p>
+  </section>
+
+  <section id="publicar">
+    <h2><span class="n">9</span>Vista previa y publicación <span class="who admin">Administrador</span></h2>
+    <p>La pestaña <span class="ui">Vista previa</span> muestra la encuesta como la verá el colaborador, en <b>Desktop</b>, <b>Tablet</b> o <b>Móvil</b>. Incluye los cambios sin guardar y permite probar la lógica y las cascadas; las respuestas no se guardan. <span class="ui">Reiniciar</span> la vuelve a empezar.</p>
+    <ol class="steps">
+      <li><div>Presiona <span class="ui">Guardar borrador</span>.</div></li>
+      <li><div>Presiona <span class="ui primary">Publicar encuesta</span> y confirma. Si algo falta, el módulo lista los errores (pregunta sin texto, menos de 2 opciones, regla que apunta a una pregunta eliminada, cascada desordenada, fechas, audiencia vacía…). Corrígelos y vuelve a publicar.</div></li>
+      <li><div>Comparte el enlace: en el menú del constructor, <span class="ui">Abrir página de respuesta</span> abre la página que verá el colaborador. Copia esa dirección y envíala.</div></li>
+    </ol>
+    <p>Al publicar una versión nueva, la versión publicada anterior pasa a <b>Archivada</b> con sus resultados.</p>
+    <h3>Cerrar o archivar</h3>
+    <p>En el menú del constructor: <span class="ui">Cerrar encuesta</span> deja de recibir respuestas; <span class="ui">Archivar versión</span> la pasa al histórico. En ambos casos los resultados se conservan.</p>
+  </section>
+
+  <section id="versiones">
+    <h2><span class="n">10</span>Versiones e historial <span class="who admin">Administrador</span></h2>
+    <p>Una versión publicada <b>que ya tiene respuestas no se modifica</b>, para no alterar lo que la gente contestó. Si necesitas cambiarla:</p>
+    <ol class="steps">
+      <li><div>Usa <span class="ui">Editar como nueva versión</span> (o guarda tus cambios: el módulo crea la versión nueva en borrador y te lo avisa).</div></li>
+      <li><div>Haz los cambios en ese borrador y publícalo. La versión anterior queda archivada con sus resultados.</div></li>
+    </ol>
+    <p>Una versión publicada <b>sin respuestas</b> sí se puede editar directamente.</p>
+    <p><span class="ui">Historial de versiones</span> muestra todas las versiones y la <b>Actividad</b>: quién creó, guardó, publicó, cerró o archivó la encuesta, y cuándo.</p>
+  </section>
+
+  <section id="resultados">
+    <h2><span class="n">11</span>Resultados <span class="who admin">Administrador</span></h2>
+    <p>En la pestaña <span class="ui">Resultados</span> elige la <b>Versión</b> a consultar. Arriba aparecen los indicadores: total de respuestas, tasa de respuesta (contra la audiencia estimada), respuestas pendientes, y fechas de inicio y de cierre con los días que faltan.</p>
+    <ul>
+      <li><b>Por pregunta:</b> conteos y porcentajes por opción; promedio y distribución en escalas y números; tabla en matrices; fecha más antigua y más reciente en fechas.</li>
+      <li><b>Texto libre:</b> lista de respuestas con buscador.</li>
+      <li><span class="ui">Exportar CSV</span> descarga todas las respuestas de la versión para abrirlas en Excel.</li>
+    </ul>
+    <p>Las capturas por cliente (identificador) cuentan como respuestas separadas: si un cliente se capturó tres veces, aparece tres veces.</p>
+  </section>
+
+  <section id="responder">
+    <h2><span class="n">12</span>Responder una encuesta <span class="who colab">Colaborador</span></h2>
+    <ol class="steps">
+      <li><div>Abre el enlace que te compartieron.</div></li>
+      <li><div>Contesta las preguntas. Las marcadas con <b style="color:var(--accent)">*</b> son obligatorias. Arriba ves cuántas llevas respondidas.</div></li>
+      <li><div>Algunas preguntas aparecen o desaparecen según tus respuestas, y algunas listas cambian sus opciones según lo que elegiste antes.</div></li>
+      <li><div>Presiona <span class="ui primary">Enviar respuestas</span>. Si falta algo, la pregunta se marca en rojo con el motivo.</div></li>
+    </ol>
+    <h3>Encuestas por número de cliente</h3>
+    <ol class="steps">
+      <li><div>Escribe el número en el campo identificador y presiona <span class="ui">Buscar</span> (o <kbd class="ui">Enter</kbd>).</div></li>
+      <li><div><b>Si ya se capturó antes:</b> se cargan los datos de la última captura. Si ya habías escrito algo, primero te pregunta si quieres reemplazarlo (<span class="ui">Cargar</span> / <span class="ui">No</span>).</div></li>
+      <li><div><b>Si no hay capturas:</b> te avisa y capturas los datos como nuevos. Si en pantalla quedaban datos de otro cliente que buscaste antes, se limpian.</div></li>
+      <li><div>Revisa, actualiza lo necesario y envía. Se guarda como una captura nueva.</div></li>
+    </ol>
+    <h3>Si la encuesta no se puede responder</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Mensaje</th><th>Motivo</th></tr></thead>
+      <tbody>
+        <tr><td>Encuesta no disponible</td><td>No está publicada o se cerró.</td></tr>
+        <tr><td>La encuesta aún no inicia</td><td>Todavía no llega su fecha de inicio.</td></tr>
+        <tr><td>La encuesta ya cerró</td><td>Pasó su fecha de cierre.</td></tr>
+        <tr><td>Inicia sesión para responder</td><td>El portal no te identificó.</td></tr>
+        <tr><td>Ya respondiste esta encuesta</td><td>Solo admite una respuesta por persona.</td></tr>
+        <tr><td>Encuesta no disponible para tu perfil</td><td>La encuesta está dirigida a otro grupo.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="faq">
+    <h2><span class="n">13</span>Preguntas frecuentes</h2>
+    <h3>Cambié la encuesta pero no veo los cambios al responder.</h3>
+    <p>Guarda y vuelve a <b>publicar</b>. Si la versión ya tenía respuestas, tus cambios están en una versión nueva en borrador que falta publicar.</p>
+    <h3>No me deja eliminar una encuesta.</h3>
+    <p>Tiene respuestas. Ciérrala o archívala; así conservas los resultados.</p>
+    <h3>Una pregunta obligatoria no se exigió.</h3>
+    <p>Estaba oculta por la lógica condicional, o era un desplegable en cascada sin opciones para lo elegido. Revísalo en <span class="ui">Vista previa</span>.</p>
+    <h3>El botón Buscar no encuentra un cliente que sí se capturó.</h3>
+    <p>Verifica que el número sea idéntico, incluidos los ceros a la izquierda, y que la captura se haya enviado en esta misma encuesta.</p>
+    <h3>Una persona no puede capturar un segundo cliente.</h3>
+    <p>La encuesta está en <b>Una respuesta</b>. Cámbiala a <b>Múltiples respuestas</b> en una versión nueva y publícala.</p>
+  </section>
+
+  <footer>Módulo de Encuestas · Manual de usuario · octubre 2026. Los nombres de botones y pestañas corresponden a las pantallas del módulo.</footer>
+</main>
