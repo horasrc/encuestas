@@ -280,6 +280,9 @@ var SurveyUtils = (function ($) {
     }
 
     $(function () {
+        // Las ventanas del módulo (.sv-scope) van directo en <body>: dentro del contenedor del portal sus
+        // estilos (posición, overflow, transform) las desacomodaban y aparecían en una esquina.
+        $('.modal.sv-scope, .offcanvas.sv-scope').appendTo(document.body);
         fitToViewport();
         var timer = null;
         $(window).on('resize', function () { clearTimeout(timer); timer = setTimeout(fitToViewport, 150); });

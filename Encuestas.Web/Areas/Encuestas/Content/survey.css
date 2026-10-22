@@ -177,9 +177,27 @@ body.sv-respondent-body {
 /* Dentro del layout del portal, sus estilos de títulos (color, tamaño, visibilidad) no deben ocultar el del módulo. */
 .sv-page .sv-page-header h1 { display: block; visibility: visible; color: var(--sv-ink); font-size: 1.5rem; line-height: 1.2; text-align: left; }
 .sv-page .sv-page-header p { font-size: .875rem; text-align: left; }
-/* Botones principales: los estilos generales del portal (button, .btn) no deben despintarlos. */
-.sv-page .btn-accent, .sv-page .btn-accent:focus { color: #fff !important; background-color: var(--sv-accent) !important; border: 1px solid var(--sv-accent) !important; background-image: none !important; }
-.sv-page .btn-accent:hover, .sv-page .btn-accent:active { background-color: var(--sv-accent-hover) !important; border-color: var(--sv-accent-hover) !important; }
+/* Botones del módulo (páginas .sv-page y ventanas .sv-scope): el portal pinta todos los .btn como los de su
+   menú rojo (texto y borde blancos, fondo transparente), que sobre fondo blanco son invisibles. */
+:is(.sv-page, .sv-scope) .btn { background-image: none !important; text-shadow: none !important; }
+:is(.sv-page, .sv-scope) .btn-accent, :is(.sv-page, .sv-scope) .btn-accent:focus { color: #fff !important; background-color: var(--sv-accent) !important; border: 1px solid var(--sv-accent) !important; }
+:is(.sv-page, .sv-scope) .btn-accent:hover, :is(.sv-page, .sv-scope) .btn-accent:active { background-color: var(--sv-accent-hover) !important; border-color: var(--sv-accent-hover) !important; }
+:is(.sv-page, .sv-scope) .btn-light { color: var(--sv-ink) !important; background-color: #f8f9fa !important; border-color: #dee2e6 !important; }
+:is(.sv-page, .sv-scope) .btn-light:hover { background-color: #e9ecef !important; }
+:is(.sv-page, .sv-scope) .btn-outline-dark { color: var(--sv-ink) !important; background-color: transparent !important; border-color: var(--sv-ink) !important; }
+:is(.sv-page, .sv-scope) .btn-outline-dark:hover,
+:is(.sv-page, .sv-scope) .btn-check:checked + .btn-outline-dark,
+:is(.sv-page, .sv-scope) .btn-outline-dark.active { color: #fff !important; background-color: var(--sv-ink) !important; }
+:is(.sv-page, .sv-scope) .btn-danger { color: #fff !important; background-color: #dc3545 !important; border-color: #dc3545 !important; }
+:is(.sv-page, .sv-scope) .btn-link, :is(.sv-page, .sv-scope) .sv-link-btn { color: var(--sv-accent) !important; background-color: transparent !important; border-color: transparent !important; }
+:is(.sv-page, .sv-scope) .btn-icon { color: var(--sv-muted) !important; background-color: transparent !important; border-color: transparent !important; }
+:is(.sv-page, .sv-scope) .btn-icon:hover:not(:disabled) { color: var(--sv-accent) !important; background-color: var(--sv-accent-soft) !important; }
+:is(.sv-page, .sv-scope) .btn.text-danger { color: #dc3545 !important; }
+:is(.sv-page, .sv-scope) .btn.text-muted { color: var(--sv-muted) !important; }
+:is(.sv-page, .sv-scope) .sv-version-btn, :is(.sv-page, .sv-scope) .sv-chip-toggle { color: var(--sv-ink-2) !important; background-color: #fff !important; border-color: var(--sv-line) !important; }
+:is(.sv-page, .sv-scope) .sv-chip-toggle:hover, :is(.sv-page, .sv-scope) .sv-version-btn:hover { color: var(--sv-ink) !important; border-color: var(--sv-ink) !important; }
+:is(.sv-page, .sv-scope) .sv-add-btn { color: var(--sv-accent) !important; background-color: #fff !important; border: 1.5px dashed var(--sv-line-strong) !important; }
+:is(.sv-page, .sv-scope) .sv-add-btn:hover, :is(.sv-page, .sv-scope) .sv-add-btn.show { background-color: var(--sv-accent-soft) !important; border-color: var(--sv-accent) !important; }
 /* «Nueva encuesta» siempre visible, aunque un estilo o un script del portal oculte botones. */
 #surveyListPage .sv-header-row > .btn-accent {
     display: inline-flex !important; align-items: center; gap: .35rem; visibility: visible !important; opacity: 1 !important;
