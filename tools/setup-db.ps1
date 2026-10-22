@@ -16,7 +16,8 @@
   que nunca se pueda usar contra la base del portal.
 
   -Schema IC crea las tablas en ese esquema en lugar de "enc" (debe coincidir con
-  Surveys:Schema en el Web.config).
+  Surveys:Schema en el Web.config). -SinLlavesForaneas las crea sin FOREIGN KEY
+  (igual que tools\esquema-sql.ps1 -SinLlavesForaneas).
 #>
 param(
     [string]$Server = '(localdb)\MSSQLLocalDB',
@@ -24,7 +25,8 @@ param(
     [switch]$NoSamples,
     [switch]$NoOrgTables,
     [switch]$Recreate,
-    [string]$Schema = 'enc'
+    [string]$Schema = 'enc',
+    [switch]$SinLlavesForaneas
 )
 $ErrorActionPreference = 'Stop'
 if ($Schema -notmatch '^[A-Za-z_][A-Za-z0-9_]{0,127}$') { throw "Nombre de esquema no válido: '$Schema'." }
@@ -47,6 +49,7 @@ if ($isLocalDb) {
 function Invoke-Batches([string]$connectionString, [string]$file) {
     $text = [IO.File]::ReadAllText($file, [Text.Encoding]::UTF8)
     if ($Schema -ne 'enc') { $text = [regex]::Replace($text, '\benc\b', $Schema) }   # igual que tools\esquema-sql.ps1
+    if ($SinLlavesForaneas) { $text = [regex]::Replace($text, '\s+CONSTRAINT\s+FK_\w+\s+REFERENCES\s+[\w\[\].]+\s*\(\w+\)(\s+ON\s+DELETE\s+CASCADE)?', '') }
     $batches = [regex]::Split($text, '^\s*GO\s*$', [Text.RegularExpressions.RegexOptions]::Multiline -bor [Text.RegularExpressions.RegexOptions]::IgnoreCase)
     $conn = New-Object System.Data.SqlClient.SqlConnection $connectionString
     $conn.add_InfoMessage({ param($s, $e) Write-Host "    $($e.Message)" -ForegroundColor DarkGray })

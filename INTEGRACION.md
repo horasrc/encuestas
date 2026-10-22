@@ -151,6 +151,12 @@ portal ya tiene un esquema donde sí puedes crear tablas, las del módulo pueden
    generan con `tools\esquema-sql.ps1 -Esquema NOMBRE`). Ejecuta `schema.sql` y `org-schema.sql` como arriba;
    terminan con `Esquema IC: 12 tablas del módulo.` Antes de crear nada revisan que ninguna tabla del esquema se
    llame igual que las del módulo (`Survey`, `Question`, `OrgUser`…); si alguna choca, se detienen sin cambios.
+   - Si falla con *"The REFERENCES permission was denied on the object 'Survey'"* (puedes crear tablas pero no
+     llaves foráneas): borra la tabla que quedó a medias (`DROP TABLE IC.Survey;`, solo si es la única del
+     módulo que se creó) y usa los scripts de **`Database\esquema-IC-sin-FK\`** (`tools\esquema-sql.ps1 -Esquema IC
+     -SinLlavesForaneas`). Son iguales pero sin `FOREIGN KEY`: el módulo funciona igual, porque guarda y borra en
+     orden dentro de transacciones; solo se pierde que la base impida datos inconsistentes si alguien edita las
+     tablas a mano. La alternativa es pedir `GRANT REFERENCES ON SCHEMA::IC TO [tu usuario]` y usar los normales.
 3. En el `Web.config`: `<add key="Surveys:Schema" value="IC" />`.
 4. Los permisos de la cuenta del sitio van sobre ese esquema: `GRANT SELECT, INSERT, UPDATE, DELETE ON SCHEMA::IC TO [...]`
    (si la cuenta ya puede leer y escribir en `IC`, no hace falta).
