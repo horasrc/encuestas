@@ -175,8 +175,17 @@ body.sv-respondent-body {
 .sv-back:hover { color: var(--sv-accent); }
 
 /* Dentro del layout del portal, sus estilos de títulos (color, tamaño, visibilidad) no deben ocultar el del módulo. */
-.sv-page .sv-page-header h1 { display: block; visibility: visible; color: var(--sv-ink); font-size: 1.5rem; line-height: 1.2; }
-.sv-page .sv-page-header p { font-size: .875rem; }
+.sv-page .sv-page-header h1 { display: block; visibility: visible; color: var(--sv-ink); font-size: 1.5rem; line-height: 1.2; text-align: left; }
+.sv-page .sv-page-header p { font-size: .875rem; text-align: left; }
+/* Botones principales: los estilos generales del portal (button, .btn) no deben despintarlos. */
+.sv-page .btn-accent, .sv-page .btn-accent:focus { color: #fff !important; background-color: var(--sv-accent) !important; border: 1px solid var(--sv-accent) !important; background-image: none !important; }
+.sv-page .btn-accent:hover, .sv-page .btn-accent:active { background-color: var(--sv-accent-hover) !important; border-color: var(--sv-accent-hover) !important; }
+/* «Nueva encuesta» siempre visible, aunque un estilo o un script del portal oculte botones. */
+#surveyListPage .sv-header-row > .btn-accent {
+    display: inline-flex !important; align-items: center; gap: .35rem; visibility: visible !important; opacity: 1 !important;
+    position: static !important; width: auto !important; height: auto !important; padding: .375rem .9rem; border-radius: .375rem;
+    font-size: 1rem; line-height: 1.5; white-space: nowrap;
+}
 
 .sv-header-row {
     display: flex;
