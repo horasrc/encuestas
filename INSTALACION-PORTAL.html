@@ -114,7 +114,8 @@
   <h2><span class="n">4</span> Crear las tablas (SSMS, base del portal)</h2>
   <ul class="check">
     <li>Seleccionar la <strong>base del portal</strong> en la barra de herramientas.</li>
-    <li>Abrir y ejecutar (F5) <code>Database\schema.sql</code>. Debe terminar con <code>Esquema enc: 12 tablas.</code></li>
+    <li>Abrir y ejecutar (F5) <code>Database\schema.sql</code>. Debe terminar con <code>Esquema enc: 12 tablas del módulo.</code></li>
+    <li>Si sale <em>«Cannot find the user 'dbo'»</em> (no se permite crear el esquema <code>enc</code>): usar los scripts de <code>Database\esquema-IC\</code> y poner en el <code>Web.config</code> <code>&lt;add key="Surveys:Schema" value="IC" /&gt;</code> (detalle en INTEGRACION.md, paso 4).</li>
     <li>Abrir y ejecutar (F5) <code>Database\org-schema.sql</code>.</li>
     <li>Dar permisos a la cuenta del sitio:</li>
   </ul>

@@ -995,10 +995,13 @@ ORDER BY r.SurveyResponseId, a.QuestionResponseId;";
             return conn;
         }
 
-        /// <summary>Crea un comando con parámetros en pares nombre/valor; null se envía como DBNull.</summary>
+        /// <summary>
+        /// Crea un comando con parámetros en pares nombre/valor; null se envía como DBNull.
+        /// Las consultas usan el prefijo "enc."; SurveySchema lo cambia por Surveys:Schema.
+        /// </summary>
         private static SqlCommand Command(SqlConnection conn, SqlTransaction tx, string sql, params object[] parameters)
         {
-            var cmd = new SqlCommand(sql, conn, tx);
+            var cmd = new SqlCommand(SurveySchema.Apply(sql), conn, tx);
             for (var i = 0; i + 1 < parameters.Length; i += 2)
             {
                 cmd.Parameters.AddWithValue((string)parameters[i], parameters[i + 1] ?? DBNull.Value);

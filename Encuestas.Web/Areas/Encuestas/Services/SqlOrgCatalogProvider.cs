@@ -62,7 +62,7 @@ SELECT UserId, Login, Name, Email, RoleId, BranchId FROM enc.OrgUser WHERE IsAct
 
             var c = new OrgCatalogs();
             using (var conn = new SqlConnection(_connectionString))
-            using (var cmd = new SqlCommand(sql, conn))
+            using (var cmd = new SqlCommand(SurveySchema.Apply(sql), conn))
             {
                 conn.Open();
                 using (var r = cmd.ExecuteReader())

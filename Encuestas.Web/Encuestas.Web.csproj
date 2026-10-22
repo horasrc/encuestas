@@ -118,6 +118,7 @@
     <Compile Include="Areas\Encuestas\Services\SqlOrgCatalogProvider.cs" />
     <Compile Include="Areas\Encuestas\Services\SqlSurveyRepository.cs" />
     <Compile Include="Areas\Encuestas\Services\SurveyLogic.cs" />
+    <Compile Include="Areas\Encuestas\Services\SurveySchema.cs" />
     <Compile Include="Areas\Encuestas\Services\SurveyService.cs" />
     <Compile Include="Areas\Encuestas\Services\SurveyVersionCloner.cs" />
     <Compile Include="Controllers\HomeController.cs" />

@@ -168,6 +168,16 @@ class ServiceTest
         Check("Bitácora: sin usuario => 'sistema'", anonymousService.GetHistory(s4.Id).Single().UserName == "sistema");
         Check("Bitácora: separada por encuesta", audited.GetHistory(s4.Id).Count == 1 && audited.GetHistory(s3.Id).Count == 4);
 
+        // 15. Esquema configurable (Surveys:Schema)
+        Check("Esquema: vacío = enc", SurveySchema.Validate("  ") == "enc");
+        Check("Esquema: IC aceptado", SurveySchema.Validate("IC") == "IC");
+        var rejected = false;
+        try { SurveySchema.Validate("IC]; DROP TABLE x;--"); } catch (System.Configuration.ConfigurationErrorsException) { rejected = true; }
+        Check("Esquema: nombre con caracteres raros rechazado", rejected);
+        Check("Esquema: cambia solo el prefijo enc.", SurveySchema.Apply("SELECT e.encuesta FROM enc.Survey s JOIN enc.SurveyVersion v ON 1=1", "IC")
+            == "SELECT e.encuesta FROM [IC].Survey s JOIN [IC].SurveyVersion v ON 1=1");
+        Check("Esquema: con enc no cambia nada", SurveySchema.Apply("FROM enc.Survey", "enc") == "FROM enc.Survey");
+
         CascadeTests(catalogs);
         IdentifierTests(catalogs);
         CitasIcsTests();

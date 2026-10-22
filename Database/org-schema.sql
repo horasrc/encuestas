@@ -25,6 +25,14 @@ BEGIN
 END
 GO
 
+/* En un esquema compartido con el portal, ningún objeto debe llamarse igual que estas tablas. */
+IF EXISTS (SELECT 1 FROM sys.objects WHERE schema_id = SCHEMA_ID('enc') AND name IN (N'OrgRole', N'OrgSegment', N'OrgRegion', N'OrgBranch'))
+BEGIN
+    RAISERROR(N'El esquema enc ya tiene un objeto OrgRole, OrgSegment, OrgRegion u OrgBranch. No se ejecutó nada.', 16, 1);
+    SET NOEXEC ON;
+END
+GO
+
 IF SCHEMA_ID('enc') IS NULL EXEC('CREATE SCHEMA enc AUTHORIZATION dbo');
 GO
 

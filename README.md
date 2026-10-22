@@ -74,7 +74,7 @@ JavaScript (como "Registro de citas / visitas"): `CitaOutlook.descargar(formData
 ## Pruebas
     powershell -ExecutionPolicy Bypass -File tests\run-tests.ps1
 
-Compila con el `csc` de .NET Framework y ejecuta 60 pruebas: 50 de `SurveyService` / `SurveyLogic` sobre el repositorio en memoria
+Compila con el `csc` de .NET Framework y ejecuta 65 pruebas: 55 de `SurveyService` / `SurveyLogic` sobre el repositorio en memoria
 (incluye desplegables en cascada e identificador) y 10 del archivo `.ics` de Citas (`CalendarioIcs`).
 
 Integración (sitio corriendo contra LocalDB; **modifica datos**, usa una base de pruebas):
@@ -103,6 +103,8 @@ Cómo guarda `Services/SqlSurveyRepository.cs`:
 - Catálogos de segmentación: `SqlOrgCatalogProvider` (`enc.Org*`, tablas o vistas sobre el portal; en caché
   `Surveys:CatalogCacheMinutes`). La plantilla por sucursal se calcula contando colaboradores activos.
 - Cadena de conexión: la indicada en `Surveys:ConnectionStringName` (por defecto `SurveysDb`).
+- Esquema: `Surveys:Schema` (por defecto `enc`). Las consultas usan `enc.` y `SurveySchema` lo cambia; los scripts
+  para otro esquema se generan con `tools\esquema-sql.ps1 -Esquema IC` (ya incluidos en `Database\esquema-IC`).
 
 ## Seguridad y validación
 - **El módulo no controla el acceso**: quién entra, quién administra y quién responde lo decide la seguridad del

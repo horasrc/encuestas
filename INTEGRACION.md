@@ -127,7 +127,7 @@ Recomendado (lo usa el proyecto de ejemplo en `Global.asax.cs` y `App_Start\Rout
 1. Conéctate al servidor y, en el selector de bases de la barra de herramientas, **elige la base del portal**
    (o empieza cada script con `USE NombreDeLaBaseDelPortal;`).
 2. **Archivo → Abrir → Archivo** → `Database\schema.sql` → **Ejecutar** (F5).
-   Termina con el mensaje `Esquema enc: 12 tablas.`
+   Termina con el mensaje `Esquema enc: 12 tablas del módulo.`
 3. Catálogos de la organización:
    - Si el portal **ya tiene** empleados/sucursales: crea las vistas `enc.Org*` (ver más abajo) y **no**
      ejecutes `org-schema.sql`.
@@ -138,6 +138,22 @@ Recomendado (lo usa el proyecto de ejemplo en `Global.asax.cs` y `App_Start\Rout
 **No ejecutes** `seed.sql` ni `org-seed.sql` en el portal: son datos de ejemplo para desarrollo.
 Los scripts solo crean objetos en el esquema `enc`: no modifican ni leen ninguna tabla del portal. Si se
 ejecutan dos veces, se detienen con un mensaje ("ya existen…") sin hacer cambios.
+
+### Si no te permiten crear el esquema `enc`: usar uno que ya existe (ej. `IC`)
+Crear un esquema exige ser `db_owner` (error *"Cannot find the user 'dbo'"* al ejecutar `schema.sql`). Si el
+portal ya tiene un esquema donde sí puedes crear tablas, las del módulo pueden ir ahí:
+1. Comprueba el permiso en ese esquema (ambos deben dar `1`):
+   ```sql
+   SELECT HAS_PERMS_BY_NAME('IC', 'SCHEMA', 'ALTER') AS alter_esquema,
+          HAS_PERMS_BY_NAME(DB_NAME(), 'DATABASE', 'CREATE TABLE') AS crear_tablas;
+   ```
+2. Usa los scripts de **`Database\esquema-IC\`** (son los mismos con `IC` en lugar de `enc`; para otro esquema se
+   generan con `tools\esquema-sql.ps1 -Esquema NOMBRE`). Ejecuta `schema.sql` y `org-schema.sql` como arriba;
+   terminan con `Esquema IC: 12 tablas del módulo.` Antes de crear nada revisan que ninguna tabla del esquema se
+   llame igual que las del módulo (`Survey`, `Question`, `OrgUser`…); si alguna choca, se detienen sin cambios.
+3. En el `Web.config`: `<add key="Surveys:Schema" value="IC" />`.
+4. Los permisos de la cuenta del sitio van sobre ese esquema: `GRANT SELECT, INSERT, UPDATE, DELETE ON SCHEMA::IC TO [...]`
+   (si la cuenta ya puede leer y escribir en `IC`, no hace falta).
 
 ### Opción B: con el script de PowerShell
 Desde el equipo de desarrollo, con permisos para crear tablas en la base del portal:

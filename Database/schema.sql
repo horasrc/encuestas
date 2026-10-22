@@ -22,6 +22,20 @@ BEGIN
 END
 GO
 
+/* Si el esquema ya tiene otras tablas (uno compartido con el portal), ninguna debe llamarse igual que las del módulo. */
+DECLARE @choque NVARCHAR(400) = (
+    SELECT STUFF((SELECT N', ' + o.name FROM sys.objects o
+                  WHERE o.schema_id = SCHEMA_ID('enc') AND o.name IN (N'Survey', N'SurveyVersion', N'SurveyAudienceRule', N'QuestionType',
+                        N'Question', N'QuestionOption', N'DependentLevel', N'DependentOption', N'ConditionalRule', N'SurveyResponse',
+                        N'QuestionResponse', N'SurveyAuditLog', N'TR_Question_Immutable')
+                  FOR XML PATH('')), 1, 2, N''));
+IF @choque IS NOT NULL
+BEGIN
+    RAISERROR(N'El esquema enc ya tiene objetos con el mismo nombre que el módulo: %s. No se ejecutó nada.', 16, 1, @choque);
+    SET NOEXEC ON;
+END
+GO
+
 IF SCHEMA_ID('enc') IS NULL EXEC('CREATE SCHEMA enc AUTHORIZATION dbo');
 GO
 
@@ -226,6 +240,8 @@ GO
 
 SET NOEXEC OFF;
 GO
-DECLARE @n INT = (SELECT COUNT(*) FROM sys.tables WHERE schema_id = SCHEMA_ID('enc'));
-PRINT N'Esquema enc: ' + CAST(@n AS NVARCHAR(10)) + N' tablas.';
+DECLARE @n INT = (SELECT COUNT(*) FROM sys.tables WHERE schema_id = SCHEMA_ID('enc') AND name IN (N'Survey', N'SurveyVersion',
+    N'SurveyAudienceRule', N'QuestionType', N'Question', N'QuestionOption', N'DependentLevel', N'DependentOption', N'ConditionalRule',
+    N'SurveyResponse', N'QuestionResponse', N'SurveyAuditLog'));
+PRINT N'Esquema enc: ' + CAST(@n AS NVARCHAR(10)) + N' tablas del módulo.';
 GO
