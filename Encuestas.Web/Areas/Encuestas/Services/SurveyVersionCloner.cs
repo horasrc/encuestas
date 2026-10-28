@@ -63,6 +63,8 @@ namespace ModuloEncuestas.Services
                     OtherLabel = q.OtherLabel,
                     ParentQuestionId = q.ParentQuestionId,
                     Identifier = q.Identifier,
+                    Outlook = q.Outlook,
+                    OutlookSubject = q.OutlookSubject,
                     Validation = CloneValidation(q.Validation),
                     Options = q.Options.Select(o => new OptionDto { Id = newId(o.Id), Text = o.Text, ParentId = o.ParentId }).ToList()
                 };

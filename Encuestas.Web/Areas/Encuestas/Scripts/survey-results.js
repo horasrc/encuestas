@@ -276,32 +276,7 @@ var SurveyResults = (function ($) {
     // Exportar CSV (una fila por respuesta, una columna por pregunta)
     // ---------------------------------------------------------------------
 
-    function answerToText(q, a) {
-        if (!a) return '';
-        var optionText = function (id) {
-            if (id === OTHER) return (q.otherLabel || 'Otro') + ': ' + (a.otherText || '');
-            var list = q.type === 'dependent' ? q.dependent.options : q.options;
-            var o = $.grep(list, function (x) { return x.id === id; })[0];
-            return o ? o.text : id;
-        };
-        switch (q.type) {
-            case 'text': return a.text;
-            case 'scale':
-            case 'number': return String(a.number);
-            case 'date': return a.date;
-            case 'matrix':
-                return $.map(q.matrix.rows, function (r) {
-                    var cols = (a.matrix || {})[r.id];
-                    if (!cols) return null;
-                    return r.text + ': ' + $.map(cols, function (c) {
-                        var col = $.grep(q.matrix.columns, function (x) { return x.id === c; })[0];
-                        return col ? col.text : c;
-                    }).join('/');
-                }).join(' | ');
-            default:
-                return $.map(a.optionIds || [], optionText).join('; ');
-        }
-    }
+    var answerToText = SurveyLogic.answerText;
 
     function exportCsv() {
         if (!current.data) return;

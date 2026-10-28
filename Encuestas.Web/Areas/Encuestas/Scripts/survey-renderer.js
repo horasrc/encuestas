@@ -159,7 +159,18 @@ var SurveyRenderer = (function ($) {
     }
 
     function renderDate(q, name) {
-        return '<input type="date" class="form-control sv-date" name="' + esc(name) + '">';
+        var html = '<input type="date" class="form-control sv-date" name="' + esc(name) + '">';
+        if (!q.outlook) return html;
+        // Cita para Outlook: se descarga al enviar si la casilla queda marcada. La hora no se guarda.
+        return html +
+            '<div class="sv-outlook-box mt-2">' +
+            '  <div class="form-check"><input class="form-check-input sv-outlook-check" type="checkbox" id="' + esc(name) + '_ol" checked>' +
+            '  <label class="form-check-label" for="' + esc(name) + '_ol"><i class="bi bi-calendar-plus me-1"></i>Agregar a mi calendario de Outlook al enviar</label></div>' +
+            '  <div class="sv-outlook-time-row">' +
+            '    <label class="small text-muted" for="' + esc(name) + '_t">Hora de la cita (opcional)</label>' +
+            '    <input type="time" class="form-control form-control-sm sv-outlook-time" id="' + esc(name) + '_t">' +
+            '  </div>' +
+            '</div>';
     }
 
     function renderMatrix(q, name) {
@@ -303,6 +314,11 @@ var SurveyRenderer = (function ($) {
             });
         }
 
+        // Cita para Outlook: la hora solo aplica si se va a agregar al calendario.
+        $q.on('change', '.sv-outlook-check', function () {
+            $q.find('.sv-outlook-time-row').toggleClass('d-none', !this.checked);
+        });
+
         // Dependiente (múltiple): al marcar se despliegan los hijos; al desmarcar se limpian.
         $q.on('change', '.sv-dep-check', function () {
             var $node = $(this).closest('.sv-dep-node');
@@ -415,6 +431,7 @@ var SurveyRenderer = (function ($) {
                 break;
             case 'date':
                 $q.find('.sv-date').val(a.date || '');
+                $q.find('.sv-outlook-time').val('');
                 break;
             case 'matrix':
                 $q.find('tr[data-row-id]').each(function () {
@@ -526,6 +543,7 @@ var SurveyRenderer = (function ($) {
             '  <div class="sv-thanks-icon"><i class="bi bi-check2-circle"></i></div>' +
             '  <h2 class="h4">' + esc(settings.thankYouMessage || '¡Gracias por tu respuesta!') + '</h2>' +
             '  <p class="text-muted">Tu opinión nos ayuda a mejorar.</p>' +
+            '  <div class="sv-outlook-result"></div>' +
             (config.preview ? '<button type="button" class="btn btn-outline-dark sv-restart"><i class="bi bi-arrow-counterclockwise me-1"></i>Volver a empezar</button>' : '') +
             '</div>' +
             '</div>');
@@ -655,6 +673,58 @@ var SurveyRenderer = (function ($) {
             return null;
         }
 
+        // ---- Fechas con cita para Outlook ----
+
+        /**
+         * Citas a generar con lo enviado: preguntas de fecha con la opción activa, respondidas y con la
+         * casilla marcada. Asunto: el configurado (o el texto de la pregunta) + el identificador si hay;
+         * notas: nombre de la encuesta y las demás respuestas.
+         */
+        function outlookCitas(payload) {
+            var key = SurveyLogic.identifierQuestion(questions);
+            var keyValue = key && payload[key.id] ? $.trim(payload[key.id].text) : '';
+            var citas = [];
+            $.each(questions, function (_, q) {
+                var a = payload[q.id];
+                if (!q.outlook || q.type !== 'date' || !a || !a.date) return;
+                var $c = $cards[q.id];
+                if (!$c.find('.sv-outlook-check').prop('checked')) return;
+                var notas = ['Encuesta: ' + config.name];
+                $.each(questions, function (_, x) {
+                    var text = x.id === q.id ? '' : $.trim(SurveyLogic.answerText(x, payload[x.id]) || '');
+                    if (text) notas.push((x.text || 'Pregunta') + ': ' + text);
+                });
+                citas.push({
+                    fecha: a.date,
+                    hora: $c.find('.sv-outlook-time').val() || '',
+                    asunto: $.trim(q.outlookSubject || '') || q.text || 'Cita',
+                    notas: notas
+                });
+                if (keyValue) citas[citas.length - 1].asunto += ' - ' + keyValue;
+            });
+            return citas;
+        }
+
+        /** Descarga las citas y explica el resultado en la pantalla de agradecimiento. */
+        function sendToOutlook(citas) {
+            var $box = $page.find('.sv-outlook-result').empty();
+            $.each(citas, function (i, c) {
+                var html;
+                if (config.preview || !window.SurveyOutlook) {
+                    html = '<i class="bi bi-info-circle me-1"></i>En la vista previa no se descarga la cita «' + esc(c.asunto) + '» para Outlook.';
+                } else if (SurveyOutlook.descargar(c)) {
+                    html = '<i class="bi bi-calendar-check me-1"></i>Se descargó la cita «' + esc(c.asunto) + '». Ábrela y en Outlook da <strong>Guardar y cerrar</strong>. ' +
+                        '<button type="button" class="btn btn-sm btn-link sv-outlook-again" data-cita="' + i + '">Descargar de nuevo</button>';
+                } else {
+                    html = '<i class="bi bi-exclamation-circle me-1"></i>No se generó la cita «' + esc(c.asunto) + '» porque la fecha' + (c.hora ? ' y hora ya pasaron.' : ' ya pasó.');
+                }
+                $box.append('<p class="small sv-outlook-msg">' + html + '</p>');
+            });
+            $box.off('click').on('click', '.sv-outlook-again', function () {
+                SurveyOutlook.descargar(citas[Number($(this).attr('data-cita'))]);
+            });
+        }
+
         $page.on('submit', 'form', function (e) {
             e.preventDefault();
             var result = refresh();
@@ -677,10 +747,12 @@ var SurveyRenderer = (function ($) {
             }
 
             var $btn = $(this).find('[type=submit]').prop('disabled', true);
+            var citas = outlookCitas(payload);
             var done = config.onSubmit ? config.onSubmit(payload) : $.Deferred().resolve().promise();
             $.when(done).done(function () {
                 $page.find('form, .sv-respond-header .sv-progress').addClass('d-none');
                 $page.find('.sv-thanks').removeClass('d-none');
+                sendToOutlook(citas);
                 window.scrollTo(0, 0);
             }).always(function () { $btn.prop('disabled', false); });
         });

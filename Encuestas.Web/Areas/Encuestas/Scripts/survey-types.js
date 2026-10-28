@@ -96,6 +96,7 @@ var SurveyTypes = (function ($) {
         if (!types[type].randomize) q.randomizeOptions = false;
         if (type !== 'dropdown') delete q.parentQuestionId;   // cascada: solo desplegables
         if (type !== 'text') delete q.identifier;            // identificador: solo texto
+        if (type !== 'date') { delete q.outlook; delete q.outlookSubject; } // cita para Outlook: solo fecha
 
         if (type === 'text') {
             q.validation = { textMode: 'long', minLength: null, maxLength: 500 };

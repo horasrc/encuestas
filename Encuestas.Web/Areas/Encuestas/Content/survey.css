@@ -467,6 +467,10 @@ body.sv-readonly .sv-edit-only { display: none !important; }
     .sv-opt-row .sv-opt-parent { flex: 1 1 100%; order: 3; margin-left: 22px; }
 }
 .sv-respond .sv-dropdown:disabled { background-color: var(--bs-secondary-bg, #e9ecef); }
+/* Fecha con cita para Outlook: casilla + hora opcional. */
+.sv-outlook-time-row { display: flex; align-items: center; gap: .5rem; margin-top: .35rem; padding-left: 1.5em; }
+.sv-outlook-time-row .sv-outlook-time { width: auto; min-width: 8rem; }
+.sv-outlook-result { max-width: 34rem; margin: 0 auto 1rem; }
 
 .sv-switches {
     display: flex;

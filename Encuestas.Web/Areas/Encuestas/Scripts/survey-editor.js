@@ -31,7 +31,7 @@ var SurveyEditor = (function ($) {
     };
 
     /** Configuración propia del tipo que se perdería al cambiar de tipo. */
-    var TYPE_KEYS = ['options', 'matrix', 'dependent', 'validation', 'rules', 'allowOther', 'otherLabel', 'randomizeOptions', 'parentQuestionId', 'identifier'];
+    var TYPE_KEYS = ['options', 'matrix', 'dependent', 'validation', 'rules', 'allowOther', 'otherLabel', 'randomizeOptions', 'parentQuestionId', 'identifier', 'outlook', 'outlookSubject'];
 
     function typeSnapshot(q) {
         var snap = {};
@@ -173,7 +173,8 @@ var SurveyEditor = (function ($) {
                 body = dependentSection(q);
                 break;
             case 'date':
-                body = '<div class="sv-hint"><i class="bi bi-calendar-event"></i> Se mostrará un selector de fecha.</div>';
+                body = '<div class="sv-hint"><i class="bi bi-calendar-event"></i> Se mostrará un selector de fecha.</div>' +
+                    outlookSection(q);
                 break;
             case 'number':
                 body = '<div class="sv-hint"><i class="bi bi-123"></i> Solo se aceptan valores numéricos. Define el rango en «Validaciones».</div>';
@@ -232,6 +233,24 @@ var SurveyEditor = (function ($) {
             (q.identifier && !(Store.version().settings || {}).allowMultipleResponses
                 ? '<div class="alert alert-warning small py-2 mt-2 mb-0"><i class="bi bi-exclamation-triangle me-1"></i>Para que una persona capture varios clientes, ' +
                   'en la pestaña <strong>Configuración</strong> elige <strong>Múltiples respuestas</strong>.</div>'
+                : '') +
+            '</div>';
+    }
+
+    // ---- Fecha: enviar la cita a Outlook ----
+
+    function outlookSection(q) {
+        return '<div class="sv-outlook mt-3">' +
+            switchControl('edOutlook', 'outlook', !!q.outlook, 'Ofrecer enviar la cita a Outlook', true) +
+            '<div class="form-text">Junto a la fecha aparece la casilla <strong>Agregar a mi calendario de Outlook</strong> y una hora opcional. ' +
+            'Al enviar, se descarga la cita (.ics); al abrirla, Outlook la muestra llena y se guarda con «Guardar y cerrar». ' +
+            'Solo se genera si la fecha es hoy o futura. La hora no se guarda en las respuestas.</div>' +
+            (q.outlook
+                ? '<label class="form-label mt-2" for="edOutlookSubject">Asunto de la cita</label>' +
+                  '<input type="text" id="edOutlookSubject" class="form-control form-control-sm" data-field="outlookSubject" maxlength="200" value="' +
+                  esc(q.outlookSubject || '') + '" placeholder="' + esc(q.text || 'Texto de la pregunta') + '">' +
+                  '<div class="form-text">Si lo dejas vacío se usa el texto de la pregunta. Al asunto se le agrega el valor del identificador ' +
+                  '(ej. número de cliente) si la encuesta tiene uno; en las notas van las demás respuestas.</div>'
                 : '') +
             '</div>';
     }

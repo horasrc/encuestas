@@ -106,6 +106,14 @@ namespace ModuloEncuestas.Models.Dto
         /// </summary>
         public bool Identifier { get; set; }
 
+        /// <summary>
+        /// Pregunta de fecha: al enviar, quien responde puede descargar la cita (.ics) para Outlook.
+        /// </summary>
+        public bool Outlook { get; set; }
+
+        /// <summary>Asunto de la cita en Outlook; vacío = texto de la pregunta.</summary>
+        public string OutlookSubject { get; set; }
+
         public QuestionValidationDto Validation { get; set; }
         public List<OptionDto> Options { get; set; }
         public MatrixDto Matrix { get; set; }

@@ -246,6 +246,34 @@ var SurveyLogic = (function ($) {
         return $.grep(sorted(questions), function (q) { return q.identifier && q.type === 'text'; })[0] || null;
     }
 
+    /** Respuesta como texto legible (CSV de resultados, notas de la cita de Outlook). */
+    function answerText(q, a) {
+        if (!a) return '';
+        var optionText = function (id) {
+            if (id === '__other__') return (q.otherLabel || 'Otro') + ': ' + (a.otherText || '');
+            var list = q.type === 'dependent' ? q.dependent.options : q.options;
+            var o = $.grep(list || [], function (x) { return x.id === id; })[0];
+            return o ? o.text : id;
+        };
+        switch (q.type) {
+            case 'text': return a.text;
+            case 'scale':
+            case 'number': return String(a.number);
+            case 'date': return a.date;
+            case 'matrix':
+                return $.map(q.matrix.rows, function (r) {
+                    var cols = (a.matrix || {})[r.id];
+                    if (!cols) return null;
+                    return r.text + ': ' + $.map(cols, function (c) {
+                        var col = $.grep(q.matrix.columns, function (x) { return x.id === c; })[0];
+                        return col ? col.text : c;
+                    }).join('/');
+                }).join(' | ');
+            default:
+                return $.map(a.optionIds || [], optionText).join('; ');
+        }
+    }
+
     /** Problemas de lógica para mostrar antes de publicar. */
     function validate(questions) {
         var errors = [];
@@ -296,6 +324,7 @@ var SurveyLogic = (function ($) {
         cascadeParentCandidates: cascadeParentCandidates,
         cascadeOptions: cascadeOptions,
         identifierQuestion: identifierQuestion,
+        answerText: answerText,
         validate: validate,
         sorted: sorted
     };

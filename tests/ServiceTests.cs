@@ -285,6 +285,11 @@ class ServiceTest
 
         var dto = SurveyVersionCloner.Clone(v2, 3);
         Check("Identificador: se conserva al crear versión", dto.Questions.Count(q => q.Identifier) == 1);
+
+        var fecha = new QuestionDto { Id = "f", Order = 9, Type = "date", Text = "Próxima visita", Outlook = true, OutlookSubject = "Visita" };
+        var conFecha = new SurveyVersionDto { Id = "vf", Questions = new List<QuestionDto> { fecha } };
+        var fc = SurveyVersionCloner.Clone(conFecha, 2).Questions.Single();
+        Check("Outlook: la opción y el asunto se conservan al crear versión", fc.Outlook && fc.OutlookSubject == "Visita");
     }
 
     // Citas -> archivo .ics para Outlook (Areas/Citas/Services/CalendarioIcs.cs)

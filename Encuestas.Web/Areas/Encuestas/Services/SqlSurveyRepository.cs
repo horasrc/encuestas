@@ -859,6 +859,10 @@ ORDER BY r.SurveyResponseId, a.QuestionResponseId;";
             public Dictionary<string, string> OptionParents { get; set; }
 
             public bool? Identifier { get; set; }
+
+            /// <summary>Pregunta de fecha: ofrece la cita para Outlook.</summary>
+            public bool? Outlook { get; set; }
+            public string OutlookSubject { get; set; }
         }
 
         private static string SerializeSettings(QuestionDto q)
@@ -874,7 +878,9 @@ ORDER BY r.SurveyResponseId, a.QuestionResponseId;";
                     ? (q.Options ?? new List<OptionDto>()).Where(o => !string.IsNullOrEmpty(o.ParentId) && o.Id != null)
                         .GroupBy(o => o.Id).ToDictionary(g => g.Key, g => g.First().ParentId)
                     : null,
-                Identifier = q.Identifier ? (bool?)true : null
+                Identifier = q.Identifier ? (bool?)true : null,
+                Outlook = q.Outlook ? (bool?)true : null,
+                OutlookSubject = q.Outlook && !string.IsNullOrWhiteSpace(q.OutlookSubject) ? q.OutlookSubject.Trim() : null
             });
         }
 
@@ -887,6 +893,8 @@ ORDER BY r.SurveyResponseId, a.QuestionResponseId;";
             if (q.Type == "dependent") EnsureDependent(q).Multiple = settings.DependentMultiple ?? true;
             q.ParentQuestionId = settings.ParentQuestion;
             q.Identifier = settings.Identifier ?? false;
+            q.Outlook = settings.Outlook ?? false;
+            q.OutlookSubject = settings.OutlookSubject;
             return settings.OptionParents;
         }
 

@@ -151,6 +151,7 @@
     <Content Include="Areas\Encuestas\Scripts\survey-logic.js" />
     <Content Include="Areas\Encuestas\Scripts\survey-preview.js" />
     <Content Include="Areas\Encuestas\Scripts\survey-renderer.js" />
+    <Content Include="Areas\Encuestas\Scripts\survey-outlook.js" />
     <Content Include="Areas\Encuestas\Scripts\survey-respond.js" />
     <Content Include="Areas\Encuestas\Scripts\survey-results.js" />
     <Content Include="Areas\Encuestas\Scripts\survey-settings.js" />
