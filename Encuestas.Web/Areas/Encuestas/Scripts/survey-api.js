@@ -19,6 +19,7 @@ var SurveyApi = (function ($) {
     var cfg = $.extend(true, {
         surveyId: 's1',
         useMock: true,
+        segment: '',      // segmento del portal (vista parcial de Radar); viaja en X-Survey-Segment
         urls: {
             index: '/Encuestas',
             constructor: '/Encuestas/Constructor/__ID__',
@@ -33,7 +34,7 @@ var SurveyApi = (function ($) {
             duplicate: '/Encuestas/Api/Duplicate',
             remove: '/Encuestas/Api/Delete',
             survey: '/Encuestas/Api/Survey',
-            catalogs: '/Encuestas/Api/Catalogs',
+            pending: '/Encuestas/Api/Pending',
             results: '/Encuestas/Api/Results',
             saveDraft: '/Encuestas/Api/SaveDraft',
             publish: '/Encuestas/Api/Publish',
@@ -49,22 +50,22 @@ var SurveyApi = (function ($) {
     // =====================================================================
     var server = {
         list: function () {
-            return $.getJSON(cfg.endpoints.list);
+            return get(cfg.endpoints.list);
         },
         createSurvey: function (name, description) {
             return post(cfg.endpoints.create, { name: name, description: description });
         },
         getSurvey: function (surveyId) {
-            return $.getJSON(cfg.endpoints.survey + '/' + encodeURIComponent(surveyId));
+            return get(cfg.endpoints.survey + '/' + encodeURIComponent(surveyId));
         },
         getPublished: function (surveyId) {
-            return $.getJSON(cfg.endpoints.published + '/' + encodeURIComponent(surveyId));
+            return get(cfg.endpoints.published + '/' + encodeURIComponent(surveyId));
         },
         getHistory: function (surveyId) {
-            return $.getJSON(cfg.endpoints.history + '/' + encodeURIComponent(surveyId));
+            return get(cfg.endpoints.history + '/' + encodeURIComponent(surveyId));
         },
         getEligibility: function (surveyId) {
-            return $.getJSON(cfg.endpoints.eligibility + '/' + encodeURIComponent(surveyId));
+            return get(cfg.endpoints.eligibility + '/' + encodeURIComponent(surveyId));
         },
         duplicateSurvey: function (surveyId) {
             return post(cfg.endpoints.duplicate, { surveyId: surveyId });
@@ -72,11 +73,12 @@ var SurveyApi = (function ($) {
         deleteSurvey: function (surveyId) {
             return post(cfg.endpoints.remove, { surveyId: surveyId });
         },
-        getCatalogs: function () {
-            return $.getJSON(cfg.endpoints.catalogs);
+        /** Encuestas publicadas del segmento que el usuario puede responder ahora. */
+        pending: function () {
+            return get(cfg.endpoints.pending);
         },
         getResults: function (surveyId, versionId) {
-            return $.getJSON(cfg.endpoints.results + '/' + encodeURIComponent(versionId), { surveyId: surveyId });
+            return get(cfg.endpoints.results + '/' + encodeURIComponent(versionId), { surveyId: surveyId });
         },
         saveDraft: function (surveyId, name, version) {
             return post(cfg.endpoints.saveDraft, { surveyId: surveyId, name: name, version: version });
@@ -105,6 +107,20 @@ var SurveyApi = (function ($) {
     }
 
     /**
+     * Encabezados de cada llamada: el segmento del portal (codificado para admitir acentos).
+     * Se ponen por llamada y no con $.ajaxSetup para no afectar las llamadas del portal.
+     */
+    function headers(extra) {
+        var h = $.extend({}, extra);
+        if (cfg.segment) h['X-Survey-Segment'] = encodeURIComponent(cfg.segment);
+        return h;
+    }
+
+    function get(url, data) {
+        return $.ajax({ url: url, data: data, dataType: 'json', cache: false, headers: headers() });
+    }
+
+    /**
      * POST JSON con el token en el encabezado RequestVerificationToken.
      * Los errores 400/401/403 del servidor vienen como ApiResult y se resuelven igual.
      */
@@ -115,12 +131,14 @@ var SurveyApi = (function ($) {
             type: 'POST',
             contentType: 'application/json; charset=utf-8',
             dataType: 'json',
-            headers: { RequestVerificationToken: antiForgeryToken() },
+            headers: headers({ RequestVerificationToken: antiForgeryToken() }),
             data: JSON.stringify(body)
         })
             .done(function (r) { d.resolve(r); })
             .fail(function (xhr) {
-                if (xhr.responseJSON && xhr.responseJSON.ok === false) d.resolve(xhr.responseJSON);
+                var r = xhr.responseJSON;
+                if (r && r.ok === false) d.resolve(r);
+                else if (r && r.message) d.resolve({ ok: false, message: r.message, errors: [] }); // 403 del alcance del portal
                 else d.resolve({ ok: false, message: 'No fue posible comunicarse con el servidor (' + xhr.status + ').', errors: [] });
             });
         return d.promise();
@@ -188,20 +206,19 @@ var SurveyApi = (function ($) {
         return d;
     }
 
-    /** Estimación de audiencia: OR dentro de cada dimensión, AND entre dimensiones (igual que SurveyService.EstimateAudience). */
-    function audience(seg, catalogs) {
-        var c = catalogs || (window.SurveyMock ? SurveyMock.catalogs : { branches: [] });
-        seg = seg || {};
-        var all = seg.mode !== 'segmented';
-        var has = function (list, value) { return !list || !list.length || $.inArray(value, list) >= 0; };
-        var total = 0;
-        $.each(c.branches, function (_, b) {
-            if (!all && !(has(seg.regions, b.regionId) && has(seg.segments, b.segmentId) && has(seg.branches, b.id))) return;
-            $.each(b.headcount, function (role, n) {
-                if (all || has(seg.roles, role)) total += n;
-            });
+    /** Segmentos del portal para una encuesta nueva (igual que SegmentationDto.For). */
+    function segmentationFor(segment) {
+        return segment ? { mode: 'segmented', segments: [segment] } : { mode: 'all', segments: [] };
+    }
+
+    /** ¿La encuesta está en el segmento actual? (igual que SurveyService.InScope). Sin segmentos = en todos. */
+    function inScope(s) {
+        if (!cfg.segment) return true;
+        var segments = [];
+        $.each(s.versions, function (_, v) {
+            if (v.segmentation && v.segmentation.mode === 'segmented') segments = segments.concat(v.segmentation.segments || []);
         });
-        return total + (all ? 0 : (seg.users || []).length);
+        return !segments.length || $.grep(segments, function (x) { return String(x).toLowerCase() === cfg.segment.toLowerCase(); }).length > 0;
     }
 
     /** Fila del listado (misma regla que SurveyService.GetSurveyList). */
@@ -241,7 +258,19 @@ var SurveyApi = (function ($) {
         },
         list: function () {
             var rows = [];
-            $.each(loadDb().surveys, function (_, s) { rows.push(summarize(s)); });
+            $.each(loadDb().surveys, function (_, s) { if (inScope(s)) rows.push(summarize(s)); });
+            return later(rows);
+        },
+        /** Publicadas del segmento, vigentes y sin respuesta en este navegador (igual que SurveyService.GetPending). */
+        pending: function () {
+            var rows = [], today = U.todayIso();
+            $.each(loadDb().surveys, function (_, s) {
+                var v = $.grep(s.versions, function (x) { return x.status === 'Published'; })[0];
+                if (!v || !inScope(s)) return;
+                if ((v.settings.startDate && today < v.settings.startDate) || (v.settings.endDate && today > v.settings.endDate)) return;
+                if (!v.settings.allowMultipleResponses && $.inArray(v.id, db.respondedHere || []) >= 0) return;
+                rows.push(summarize(s));
+            });
             return later(rows);
         },
         createSurvey: function (name, description) {
@@ -259,7 +288,7 @@ var SurveyApi = (function ($) {
                     id: U.newId('v'), number: 1, status: 'Draft', responseCount: 0,
                     createdAt: new Date().toISOString().substring(0, 19), publishedAt: null,
                     settings: { startDate: today, endDate: end.toISOString().substring(0, 10), allowMultipleResponses: false, anonymous: false, requireAuth: true, welcomeMessage: '', thankYouMessage: '¡Gracias por tu respuesta!' },
-                    segmentation: { mode: 'all', roles: [], segments: [], regions: [], branches: [], users: [] },
+                    segmentation: segmentationFor(cfg.segment),
                     questions: []
                 }]
             };
@@ -282,6 +311,7 @@ var SurveyApi = (function ($) {
             var n = 1;
             while (db.surveys['s' + n]) n += 1;
             var copy = { id: 's' + n, name: 'Copia de ' + source.name, description: source.description, versions: [U.cloneVersion(from, 1)] };
+            if (cfg.segment) copy.versions[0].segmentation = segmentationFor(cfg.segment);
             db.surveys[copy.id] = copy;
             db.responses[copy.versions[0].id] = [];
             audit(copy.id, 1, 'duplicated', 'Creó la encuesta como copia de «' + source.name + '» (versión ' + from.number + ').');
@@ -328,15 +358,12 @@ var SurveyApi = (function ($) {
                 versions: published ? [{ id: published.id, number: published.number, status: published.status, settings: published.settings, questions: published.questions }] : []
             });
         },
-        getCatalogs: function () {
-            return later(SurveyMock.catalogs);
-        },
         getResults: function (surveyId, versionId) {
             var f = find(surveyId, versionId);
             if (!f.version) return $.Deferred().reject({ status: 404 }).promise();
             return later({
                 versionId: versionId,
-                audience: audience(f.version.segmentation),
+                audience: 0, // tamaño del tramo de control: solo lo conoce el portal
                 startDate: f.version.settings.startDate,
                 endDate: f.version.settings.endDate,
                 responses: db.responses[versionId] || []
@@ -351,6 +378,7 @@ var SurveyApi = (function ($) {
                 // Regla de versionado: no sobrescribir una versión con respuestas.
                 if (draftOf(f.survey)) return fail('La versión ' + f.version.number + ' tiene respuestas. Ya existe un borrador; edítalo en su lugar.');
                 var nv = U.cloneVersion(version, nextNumber(f.survey));
+                nv.segmentation = U.clone(f.version.segmentation); // el segmento no lo cambia el navegador
                 f.survey.versions.push(nv);
                 db.responses[nv.id] = [];
                 audit(surveyId, nv.number, 'newVersion', 'Guardó cambios sobre la versión ' + f.version.number + ' (con respuestas); se creó la versión ' + nv.number + '.');
@@ -359,7 +387,6 @@ var SurveyApi = (function ($) {
             }
 
             f.version.settings = U.clone(version.settings);
-            f.version.segmentation = U.clone(version.segmentation);
             f.version.questions = U.clone(version.questions);
             audit(surveyId, f.version.number, 'saved', 'Guardó la versión ' + f.version.number + ' (' + f.version.questions.length + ' preguntas).');
             persist();
@@ -503,7 +530,7 @@ var SurveyApi = (function ($) {
     // =====================================================================
     // Validación previa a publicar (misma regla que SurveyService.ValidateForPublish)
     // =====================================================================
-    function validateForPublish(version, catalogs) {
+    function validateForPublish(version) {
         var errors = [];
         var questions = SurveyLogic.sorted(version.questions || []);
         if (!questions.length) errors.push('La encuesta no tiene preguntas.');
@@ -526,9 +553,6 @@ var SurveyApi = (function ($) {
 
         var s = version.settings || {};
         if (s.startDate && s.endDate && s.endDate < s.startDate) errors.push('Configuración: la fecha de cierre es anterior a la fecha de inicio.');
-        if (version.segmentation && version.segmentation.mode === 'segmented' && audience(version.segmentation, catalogs) === 0) {
-            errors.push('Segmentación: la audiencia seleccionada no tiene colaboradores.');
-        }
         return errors;
     }
 
@@ -551,7 +575,7 @@ var SurveyApi = (function ($) {
         getHistory: impl.getHistory,
         duplicateSurvey: impl.duplicateSurvey,
         deleteSurvey: impl.deleteSurvey,
-        getCatalogs: impl.getCatalogs,
+        pending: impl.pending,
         getResults: impl.getResults,
         saveDraft: impl.saveDraft,
         publish: impl.publish,
@@ -560,7 +584,6 @@ var SurveyApi = (function ($) {
         submit: impl.submit,
         lastResponse: impl.lastResponse,
         resetDemo: mock.reset,
-        validateForPublish: validateForPublish,
-        estimateAudience: audience
+        validateForPublish: validateForPublish
     };
 })(jQuery);

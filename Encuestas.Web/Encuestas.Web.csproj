@@ -96,6 +96,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="App_Start\RouteConfig.cs" />
+    <Compile Include="Controllers\RadarPruebaController.cs" />
     <Compile Include="Areas\Citas\CitasAreaRegistration.cs" />
     <Compile Include="Areas\Citas\Controllers\CitasController.cs" />
     <Compile Include="Areas\Citas\Models\CitaModel.cs" />
@@ -106,6 +107,7 @@
     <Compile Include="Areas\Encuestas\EncuestasAreaRegistration.cs" />
     <Compile Include="Areas\Encuestas\Infrastructure\AssetUrlExtensions.cs" />
     <Compile Include="Areas\Encuestas\Infrastructure\JsonNetResult.cs" />
+    <Compile Include="Areas\Encuestas\Infrastructure\SurveyAccess.cs" />
     <Compile Include="Areas\Encuestas\Infrastructure\SurveyUser.cs" />
     <Compile Include="Areas\Encuestas\Infrastructure\ValidateJsonAntiForgeryTokenAttribute.cs" />
     <Compile Include="Areas\Encuestas\Models\Dto\SurveyDtos.cs" />
@@ -115,7 +117,6 @@
     <Compile Include="Areas\Encuestas\Models\ViewModels\SurveyPageViewModel.cs" />
     <Compile Include="Areas\Encuestas\Services\InMemorySurveyRepository.cs" />
     <Compile Include="Areas\Encuestas\Services\ISurveyRepository.cs" />
-    <Compile Include="Areas\Encuestas\Services\SqlOrgCatalogProvider.cs" />
     <Compile Include="Areas\Encuestas\Services\SqlSurveyRepository.cs" />
     <Compile Include="Areas\Encuestas\Services\SurveyLogic.cs" />
     <Compile Include="Areas\Encuestas\Services\SurveySchema.cs" />
@@ -152,6 +153,7 @@
     <Content Include="Areas\Encuestas\Scripts\survey-preview.js" />
     <Content Include="Areas\Encuestas\Scripts\survey-renderer.js" />
     <Content Include="Areas\Encuestas\Scripts\survey-outlook.js" />
+    <Content Include="Areas\Encuestas\Scripts\survey-pending.js" />
     <Content Include="Areas\Encuestas\Scripts\survey-respond.js" />
     <Content Include="Areas\Encuestas\Scripts\survey-results.js" />
     <Content Include="Areas\Encuestas\Scripts\survey-settings.js" />
@@ -173,7 +175,10 @@
     <Content Include="Areas\Encuestas\Views\Encuestas\Constructor.cshtml" />
     <Content Include="Areas\Encuestas\Views\Encuestas\Index.cshtml" />
     <Content Include="Areas\Encuestas\Views\Encuestas\Responder.cshtml" />
+    <Content Include="Areas\Encuestas\Views\Encuestas\_Encuestas.cshtml" />
+    <Content Include="Areas\Encuestas\Views\Encuestas\Pendientes.cshtml" />
     <Content Include="Areas\Encuestas\Views\Shared\_LayoutEncuestas.cshtml" />
+    <Content Include="Areas\Encuestas\Views\Shared\_LayoutEmbed.cshtml" />
     <Content Include="Areas\Encuestas\Views\Web.config" />
     <Content Include="Areas\Encuestas\Web.config" />
     <Content Include="demo.html" />
@@ -181,6 +186,7 @@
     <Content Include="demo-responder.html" />
     <Content Include="Global.asax" />
     <Content Include="Views\Shared\_LayoutPortalPrueba.cshtml" />
+    <Content Include="Views\RadarPrueba\Index.cshtml" />
     <Content Include="Views\Web.config" />
     <Content Include="Web.config" />
     <Content Include="Web.Release.config">

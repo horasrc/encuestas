@@ -1,9 +1,10 @@
-﻿<!-- ================= 10. PUBLICACIÓN  +  11. SEGMENTACIÓN ================= -->
+﻿<!-- ================= 10. PUBLICACIÓN ================= -->
+<!-- Quién responde y qué resultados ve cada quien lo decide el portal (tramo de control, SurveyAccess). -->
 <div class="tab-pane fade" id="tabSettings" role="tabpanel" aria-labelledby="tabSettingsBtn" tabindex="0">
     <fieldset id="settingsFieldset" class="row g-3">
 
         <!-- Publicación -->
-        <div class="col-12 col-xl-6">
+        <div class="col-12 col-xl-8">
             <div class="card sv-card h-100">
                 <div class="card-header sv-card-header"><span><i class="bi bi-send me-1"></i> Publicación</span></div>
                 <div class="card-body">
@@ -60,33 +61,5 @@
             </div>
         </div>
 
-        <!-- Segmentación -->
-        <div class="col-12 col-xl-6">
-            <div class="card sv-card h-100">
-                <div class="card-header sv-card-header"><span><i class="bi bi-people me-1"></i> Segmentación · ¿quién puede responder?</span></div>
-                <div class="card-body">
-                    <div class="btn-group w-100 mb-3" role="group" aria-label="Audiencia">
-                        <input type="radio" class="btn-check" name="segMode" id="segAll" value="all" autocomplete="off">
-                        <label class="btn btn-outline-dark" for="segAll"><i class="bi bi-globe2 me-1"></i> Todos los colaboradores</label>
-                        <input type="radio" class="btn-check" name="segMode" id="segSegmented" value="segmented" autocomplete="off">
-                        <label class="btn btn-outline-dark" for="segSegmented"><i class="bi bi-funnel me-1"></i> Audiencia segmentada</label>
-                    </div>
-
-                    <div id="segmentationPanel">
-                        <p class="small text-muted mb-2">Dentro de cada grupo se suma (O); entre grupos se combina (Y). Los usuarios específicos siempre se incluyen.</p>
-                        <div class="accordion sv-accordion" id="segAccordion">
-                            <!-- Los elementos del acordeón se generan en survey-settings.js a partir de los catálogos -->
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer sv-audience">
-                    <div>
-                        <div class="small text-muted">Audiencia estimada</div>
-                        <div><strong id="audienceEstimate" class="fs-4">0</strong> <span class="text-muted">colaboradores</span></div>
-                    </div>
-                    <div id="segSummary" class="sv-seg-summary"></div>
-                </div>
-            </div>
-        </div>
     </fieldset>
 </div>

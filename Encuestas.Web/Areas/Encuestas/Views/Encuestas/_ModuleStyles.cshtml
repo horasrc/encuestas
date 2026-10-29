@@ -1,7 +1,7 @@
-@* Estilos del módulo cuando se usa el layout del PORTAL (Surveys:Layout).
-   Con el layout propio no hace nada: ese layout ya los carga en el <head>.
+﻿@* Estilos del módulo cuando se usa el layout del PORTAL (Surveys:Layout).
+   Con el layout propio o el del marco (embed) no hace nada: esos layouts ya los cargan en el <head>.
    Se emite al inicio del contenido para que no se vea la página sin estilos. *@
-@if (!string.IsNullOrWhiteSpace(System.Configuration.ConfigurationManager.AppSettings["Surveys:Layout"]))
+@if (ViewBag.Layout == null && !string.IsNullOrWhiteSpace(System.Configuration.ConfigurationManager.AppSettings["Surveys:Layout"]))
 {
     <link href="@Url.Versioned("~/Areas/Encuestas/Content/lib/bootstrap-icons-1.11.3/bootstrap-icons.min.css")" rel="stylesheet" />
     <link href="@Url.Versioned("~/Areas/Encuestas/Content/survey.css")" rel="stylesheet" />

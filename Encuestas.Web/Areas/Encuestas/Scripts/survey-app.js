@@ -73,9 +73,8 @@
     function openPublish() {
         var version = Store.version();
         if (!version || version.status !== 'Draft') return;
-        var errors = Api.validateForPublish(version, Store.state.catalogs);
+        var errors = Api.validateForPublish(version);
         var s = version.settings || {};
-        var sg = version.segmentation || {};
         var published = $.grep(Store.versions(), function (v) { return v.status === 'Published'; })[0];
         var rules = 0, required = 0;
         $.each(version.questions, function (_, q) { rules += (q.rules || []).length; if (q.required) required += 1; });
@@ -90,7 +89,6 @@
             summaryItem('bi-ui-checks', 'Preguntas', version.questions.length + ' (' + required + ' obligatorias)') +
             summaryItem('bi-signpost-split', 'Reglas condicionales', rules) +
             summaryItem('bi-calendar-range', 'Vigencia', U.formatDate(s.startDate) + ' – ' + U.formatDate(s.endDate)) +
-            summaryItem('bi-people', 'Audiencia estimada', Api.estimateAudience(sg, Store.state.catalogs).toLocaleString('es-MX') + ' colaboradores') +
             summaryItem('bi-person-check', 'Respuestas por usuario', s.allowMultipleResponses ? 'Múltiples' : 'Una') +
             summaryItem('bi-incognito', 'Anónima', s.anonymous ? 'Sí' : 'No') +
             '</div>' +
@@ -238,12 +236,6 @@
         SurveyResults.init();
         bindHeader();
 
-        Api.getCatalogs().done(function (catalogs) {
-            Store.state.catalogs = catalogs;
-            loadSurvey();
-        }).fail(function () {
-            U.toast('No se pudieron cargar los catálogos de segmentación.', 'danger');
-            loadSurvey();
-        });
+        loadSurvey();
     });
 })(jQuery);

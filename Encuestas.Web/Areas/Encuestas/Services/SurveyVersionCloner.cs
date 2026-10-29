@@ -139,17 +139,13 @@ namespace ModuloEncuestas.Services
             };
         }
 
-        private static SegmentationDto CloneSegmentation(SegmentationDto s)
+        public static SegmentationDto CloneSegmentation(SegmentationDto s)
         {
             if (s == null) return new SegmentationDto();
             return new SegmentationDto
             {
                 Mode = s.Mode,
-                Roles = new List<string>(s.Roles ?? new List<string>()),
-                Segments = new List<string>(s.Segments ?? new List<string>()),
-                Regions = new List<string>(s.Regions ?? new List<string>()),
-                Branches = new List<string>(s.Branches ?? new List<string>()),
-                Users = new List<string>(s.Users ?? new List<string>())
+                Segments = new List<string>(s.Segments ?? new List<string>())
             };
         }
 

@@ -1,19 +1,30 @@
 ﻿@model SurveyPageViewModel
 @* Configuración que el servidor entrega al JavaScript (ver survey-api.js).
-   El token antifalsificación lo lee survey-api.js y lo envía en cada POST. *@
+   El token antifalsificación lo lee survey-api.js y lo envía en cada POST.
+   Las URL de las páginas conservan el segmento y el modo marco (embed) al navegar. *@
+@{
+    var embed = Model.Embedded ? (bool?)true : null;
+    var segmento = string.IsNullOrEmpty(Model.Segment) ? null : Model.Segment;
+}
 @Html.AntiForgeryToken()
 <script>
     window.SURVEY_CONFIG = {
         surveyId: @Html.Raw(HttpUtility.JavaScriptStringEncode(Model.SurveyId ?? "", true)),
         useMock: @(Model.UseMockData ? "true" : "false"),
         currentUser: @Html.Raw(HttpUtility.JavaScriptStringEncode(Model.CurrentUser ?? "", true)),
+        segment: @Html.Raw(HttpUtility.JavaScriptStringEncode(Model.Segment ?? "", true)),
+        embedded: @(Model.Embedded ? "true" : "false"),
+        canAdminister: @(Model.CanAdminister ? "true" : "false"),
+        @* Con segmento la URL lleva "?segmento=...&embed=True": se escribe como texto JS, no como HTML. *@
         urls: {
-            index: '@Url.Action("Index", "Encuestas", new { area = "Encuestas" })',
-            constructor: '@Url.Action("Constructor", "Encuestas", new { area = "Encuestas", id = "__ID__" })',
-            respond: '@Url.Action("Responder", "Encuestas", new { area = "Encuestas", id = "__ID__" })'
+            index: @Html.Raw(HttpUtility.JavaScriptStringEncode(Url.Action("Index", "Encuestas", new { area = "Encuestas", segmento, embed }), true)),
+            pending: @Html.Raw(HttpUtility.JavaScriptStringEncode(Url.Action("Pendientes", "Encuestas", new { area = "Encuestas", segmento, embed }), true)),
+            constructor: @Html.Raw(HttpUtility.JavaScriptStringEncode(Url.Action("Constructor", "Encuestas", new { area = "Encuestas", id = "__ID__", segmento, embed }), true)),
+            respond: @Html.Raw(HttpUtility.JavaScriptStringEncode(Url.Action("Responder", "Encuestas", new { area = "Encuestas", id = "__ID__", segmento, embed }), true))
         },
         endpoints: {
             list: '@Url.Action("List", "SurveyApi", new { area = "Encuestas" })',
+            pending: '@Url.Action("Pending", "SurveyApi", new { area = "Encuestas" })',
             create: '@Url.Action("Create", "SurveyApi", new { area = "Encuestas" })',
             survey: '@Url.Action("Survey", "SurveyApi", new { area = "Encuestas" })',
             history: '@Url.Action("History", "SurveyApi", new { area = "Encuestas" })',
@@ -21,7 +32,6 @@
             eligibility: '@Url.Action("Eligibility", "SurveyApi", new { area = "Encuestas" })',
             duplicate: '@Url.Action("Duplicate", "SurveyApi", new { area = "Encuestas" })',
             remove: '@Url.Action("Delete", "SurveyApi", new { area = "Encuestas" })',
-            catalogs: '@Url.Action("Catalogs", "SurveyApi", new { area = "Encuestas" })',
             results: '@Url.Action("Results", "SurveyApi", new { area = "Encuestas" })',
             saveDraft: '@Url.Action("SaveDraft", "SurveyApi", new { area = "Encuestas" })',
             publish: '@Url.Action("Publish", "SurveyApi", new { area = "Encuestas" })',

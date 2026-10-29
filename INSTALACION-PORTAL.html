@@ -85,29 +85,27 @@
   <p class="nota">Dentro de <code>&lt;appSettings&gt;</code>:</p>
 <pre>&lt;add key="Surveys:UseMockData" value="false" /&gt;
 &lt;add key="Surveys:Repository" value="Sql" /&gt;
-&lt;add key="Surveys:CatalogProvider" value="Sql" /&gt;
-&lt;add key="Surveys:ConnectionStringName" value="NombreDeLaCadenaDelPortal" /&gt;
-&lt;add key="Surveys:Layout" value="~/Views/Shared/_Layout.cshtml" /&gt;</pre>
+&lt;add key="Surveys:ConnectionStringName" value="NombreDeLaCadenaDelPortal" /&gt;</pre>
   <ul class="check">
     <li><strong>ConnectionStringName:</strong> el <code>name</code> de la cadena que ya existe en <code>&lt;connectionStrings&gt;</code>.</li>
-    <li><strong>Layout:</strong> el layout del portal debe tener <code>@RenderSection("scripts", required: false)</code> antes de <code>&lt;/body&gt;</code>.</li>
+    <li>Si el portal envía <code>X-Frame-Options</code>, debe ser <code>SAMEORIGIN</code> (la vista parcial usa un marco del mismo sitio).</li>
   </ul>
 </section>
 
 <section>
-  <h2><span class="n">3b</span> Seguridad: la pone el portal</h2>
-  <p class="nota">El módulo no restringe a nadie. El portal decide quién entra a cada ruta:</p>
-  <table>
-    <tr><th style="width:50%">Administrar (solo administradores)</th><th>Responder (colaboradores)</th></tr>
-    <tr><td><code>/Encuestas</code>, <code>/Encuestas/Constructor/{id}</code> y <code>/Encuestas/Api/</code> List, Survey, History, Catalogs, Results, Create, Duplicate, Delete, SaveDraft, Publish, CreateVersion, ChangeStatus</td>
-        <td><code>/Encuestas/Responder/{id}</code> y <code>/Encuestas/Api/</code> Published, Eligibility, Submit, LastResponse</td></tr>
-  </table>
+  <h2><span class="n">3b</span> Tramo de control: lo indica el portal</h2>
+  <p class="nota">El módulo no tiene administración de usuarios. En <code>Application_Start</code> del <code>Global.asax.cs</code>:</p>
+<pre>ModuloEncuestas.Infrastructure.SurveyAccess.Resolver = http =&gt; new SurveyScope
+{
+    CanAdminister = /* ¿administra encuestas? */,
+    Segments      = /* segmentos del usuario (null = todos) */,
+    Team          = /* usuarios de su tramo de control (null = todos) */
+};</pre>
   <ul class="check">
-    <li>Aplicar la regla del portal (ejemplo de filtro listo en <code>INTEGRACION.md</code>, paso 3). Al bloquear, responder <strong>403</strong>, no redirigir.</li>
-    <li>Si el portal no usa <code>User.Identity.Name</code>, indicar el usuario en <code>Global.asax.cs</code>:</li>
+    <li>Quien no administra ve <strong>Encuestas por responder</strong>; la administración le responde 403.</li>
+    <li>Cada encuesta queda en el segmento donde se creó; en Resultados cada jefe ve solo a su tramo.</li>
+    <li>Si el portal no usa <code>User.Identity.Name</code>: <code>SurveyUser.Resolver = http =&gt; (string)http.Session["Usuario"];</code></li>
   </ul>
-<pre>ModuloEncuestas.Infrastructure.SurveyUser.Resolver =
-    http =&gt; http.Session == null ? null : (string)http.Session["Usuario"];</pre>
 </section>
 
 <section>
@@ -116,24 +114,28 @@
     <li>Seleccionar la <strong>base del portal</strong> en la barra de herramientas.</li>
     <li>Abrir y ejecutar (F5) <code>Database\schema.sql</code>. Debe terminar con <code>Esquema enc: 12 tablas del módulo.</code></li>
     <li>Si sale <em>«Cannot find the user 'dbo'»</em> (no se permite crear el esquema <code>enc</code>): usar los scripts de <code>Database\esquema-IC\</code> y poner en el <code>Web.config</code> <code>&lt;add key="Surveys:Schema" value="IC" /&gt;</code> (detalle en INTEGRACION.md, paso 4).</li>
-    <li>Abrir y ejecutar (F5) <code>Database\org-schema.sql</code>.</li>
     <li>Dar permisos a la cuenta del sitio:</li>
   </ul>
 <pre>GRANT SELECT, INSERT, UPDATE, DELETE ON SCHEMA::enc TO [TUDOMINIO\cuenta-del-sitio];</pre>
-  <div class="ojo"><strong>No ejecutar</strong> <code>seed.sql</code> ni <code>org-seed.sql</code> (son datos de ejemplo). Los scripts solo crean el esquema <code>enc</code>; no tocan tablas del portal.</div>
+  <div class="ojo"><strong>No ejecutar</strong> <code>seed.sql</code> (son datos de ejemplo). Ya no hay tablas <code>Org*</code>. Los scripts solo crean el esquema <code>enc</code>; no tocan tablas del portal.</div>
 </section>
 
 <section>
-  <h2><span class="n">5</span> Enlace en el menú del portal</h2>
-<pre>&lt;a href="@Url.Action("Index", "Encuestas", new { area = "Encuestas" })"&gt;Encuestas&lt;/a&gt;</pre>
+  <h2><span class="n">5</span> Vista parcial en <code>RadarController</code></h2>
+<pre>public PartialViewResult Encuestas(string segmento)
+{
+    return PartialView(ModuloEncuestas.Controllers.EncuestasController.VistaParcial,
+        new ModuloEncuestas.Models.ViewModels.SurveyEmbedViewModel { Segmento = segmento });
+}</pre>
+  <p class="nota">Se llama desde el menú de Radar igual que los demás módulos. Funciona con cualquier forma de cargar la vista parcial.</p>
 </section>
 
 <section>
   <h2><span class="n">6</span> Compilar y probar</h2>
   <ul class="check">
-    <li>Usuario administrador abre <code>/Encuestas</code> → aparece el listado.</li>
-    <li>Crear una encuesta, <strong>Publicar</strong>, abrir <code>/Encuestas/Responder/{id}</code> y responder.</li>
-    <li>Usuario <strong>no</strong> administrador: el portal le bloquea <code>/Encuestas</code>, pero la página para responder sí abre.</li>
+    <li>Administrador abre Encuestas en un segmento → listado; crear una encuesta y <strong>Publicar</strong>.</li>
+    <li>Colaborador del mismo segmento → la ve en <strong>Encuestas por responder</strong> y la responde; uno de otro segmento no la ve.</li>
+    <li>El jefe, en Resultados, ve solo las respuestas de su tramo.</li>
     <li>En SQL: <code>SELECT * FROM enc.SurveyAuditLog</code> muestra quién hizo cada acción (si dice <code>sistema</code>, revisar <code>SurveyUser.Resolver</code>).</li>
   </ul>
 </section>
@@ -150,18 +152,13 @@
   <h2>Si algo falla</h2>
   <table>
     <tr><th style="width:45%">Mensaje</th><th>Solución</th></tr>
-    <tr><td>"La sección scripts se definió pero no se representó"</td><td>Agregar <code>@RenderSection("scripts", required: false)</code> al layout del portal.</td></tr>
+    <tr><td>La vista parcial sale en blanco</td><td><code>X-Frame-Options</code> del portal en <code>DENY</code>: cambiar a <code>SAMEORIGIN</code>.</td></tr>
     <tr><td>Error de versión de <code>System.Web.Mvc</code></td><td>Paso 2: igualar versiones en <code>Areas\Encuestas\Views\Web.config</code>.</td></tr>
     <tr><td>No conecta a la base</td><td>Revisar que <code>Surveys:ConnectionStringName</code> sea igual al nombre de la cadena del portal.</td></tr>
     <tr><td>"La página expiró por seguridad" al guardar</td><td>Desactivar la autenticación anónima en IIS.</td></tr>
-    <tr><td>403 con un usuario que debería administrar</td><td>Revisar la regla de seguridad del portal (paso 3b).</td></tr>
+    <tr><td>403 o "No tienes acceso" con un usuario que debería entrar</td><td>Revisar <code>CanAdminister</code> y <code>Segments</code> en <code>SurveyAccess.Resolver</code> (paso 3b).</td></tr>
     <tr><td>"Debes iniciar sesión para responder", o la bitácora dice <code>sistema</code></td><td>El módulo no recibe el usuario: configurar <code>SurveyUser.Resolver</code> (paso 3b).</td></tr>
   </table>
-</section>
-
-<section>
-  <h2>Después: conectar empleados y sucursales</h2>
-  <p class="nota">Mientras las tablas <code>enc.Org*</code> estén vacías, el módulo funciona pero la segmentación solo permite "Todos los colaboradores". Para usar los datos del portal: llenar los <code>TODO</code> de <code>Database\org-vistas-plantilla.sql</code> con los nombres de las tablas de empleados y sucursales y ejecutarlo en SSMS.</p>
 </section>
 
 <footer>Módulo de Encuestas · Área MVC <code>Areas\Encuestas</code> · Tablas en el esquema <code>enc</code></footer>

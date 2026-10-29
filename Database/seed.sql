@@ -22,7 +22,7 @@ INSERT INTO enc.SurveyVersion (SurveyId, VersionNumber, Status, StartDate, EndDa
     RequiresAuthentication, WelcomeMessage, ThankYouMessage, AudienceMode, CreatedBy)
 VALUES (@SurveyId, 1, 1, CAST(GETDATE() AS DATE), DATEADD(DAY, 30, CAST(GETDATE() AS DATE)), 0, 1, 1,
     N'Queremos conocer tu experiencia con el material de la campaña. Te tomará menos de 5 minutos.',
-    N'¡Gracias por tu respuesta!', 1, N'seed');
+    N'¡Gracias por tu respuesta!', 0, N'seed');
 SET @V = SCOPE_IDENTITY();
 
 /* 1. Opción única */
@@ -108,9 +108,7 @@ INSERT INTO enc.QuestionOption (QuestionId, Role, ClientKey, Text, SortOrder) VA
  (@Q, 3, 'q7c1', N'Muy insatisfecho', 1), (@Q, 3, 'q7c2', N'Insatisfecho', 2), (@Q, 3, 'q7c3', N'Neutral', 3),
  (@Q, 3, 'q7c4', N'Satisfecho', 4), (@Q, 3, 'q7c5', N'Muy satisfecho', 5);
 
-/* Segmentación: ejecutivos y gerentes de Banca Personal y Premier */
-INSERT INTO enc.SurveyAudienceRule (SurveyVersionId, Dimension, Value) VALUES
- (@V, 'Role', 'ejecutivos'), (@V, 'Role', 'gerentes'), (@V, 'Segment', 'bp'), (@V, 'Segment', 'premier');
+/* Sin segmento del portal: la encuesta de ejemplo aparece en todos los segmentos. */
 
 COMMIT TRANSACTION;
 

@@ -23,21 +23,17 @@ Requiere permisos de administrador en el servidor y en SQL Server (normalmente l
 
        powershell -ExecutionPolicy Bypass -File tools\setup-db.ps1 -Server "SQLPROD01\PORTAL" -Database PortalEncuestas -NoSamples
 
-Crea el esquema `enc` con las tablas de encuestas (`schema.sql`) y de catálogos (`org-schema.sql`),
-**sin datos de ejemplo**. Alternativa: ejecutar esos dos scripts en SQL Server Management Studio.
-
-Catálogos de la organización: las tablas `OrgRole`, `OrgSegment`, `OrgRegion`, `OrgBranch` y `OrgUser`
-deben llenarse desde RH / Active Directory (o reemplazarse por **vistas** con los mismos nombres y
-columnas sobre las tablas que ya tengan). `OrgUser.Login` debe ser `DOMINIO\usuario`.
+Crea el esquema `enc` con las tablas de encuestas (`schema.sql`), **sin datos de ejemplo**.
+Alternativa: ejecutar ese script en SQL Server Management Studio. No hay tablas de empleados ni de
+sucursales: quién administra y el tramo de control los indica el portal (INTEGRACION.md, paso 3).
 
 ## 2. Generar el paquete
 En el equipo de desarrollo:
 
     powershell -ExecutionPolicy Bypass -File tools\publish.ps1 -SqlServer "SQLPROD01\PORTAL"
 
-- El módulo **no restringe** quién administra: cualquier usuario que entre al sitio puede crear, editar,
-  publicar y ver resultados. Como sitio independiente, limita el acceso a `/Encuestas` y
-  `/Encuestas/Constructor` con la configuración de IIS o del sitio (ver INTEGRACION.md, paso 3).
+- El módulo **no tiene administración de usuarios**: sin `SurveyAccess.Resolver` (lo asigna el portal),
+  cualquier usuario que entre al sitio puede crear, editar, publicar y ver resultados (ver INTEGRACION.md, paso 3).
 - Resultado: `publish\Encuestas.Web` (~3 MB). El script verifica que no quede `debug`, LocalDB ni datos de prueba.
 
 ## 3. IIS
@@ -89,5 +85,6 @@ el resto de la base.
 | Pide usuario y contraseña en cada página | El sitio no está en la zona "Intranet local" del navegador; agregarlo por directiva de grupo. |
 | "La página expiró por seguridad" al guardar | Autenticación anónima habilitada en IIS (paso 3.4). |
 | Error 500 al abrir el listado | Sin conexión o sin permisos en SQL Server (paso 4). Ver el Visor de eventos → Aplicación (origen ASP.NET). |
-| La segmentación no muestra roles ni sucursales | Las tablas `Org*` están vacías (paso 1). |
+| Un usuario no ve la encuesta o recibe 403 | Su segmento o su permiso de administrar no vienen en `SurveyAccess.Resolver` del portal. |
+| La vista parcial de Radar sale en blanco | El portal envía `X-Frame-Options: DENY`; debe ser `SAMEORIGIN`. |
 | Los acentos se ven mal | Se editó una vista `.cshtml` y se guardó sin UTF-8; guardarla como "UTF-8 con firma". |

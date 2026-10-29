@@ -15,6 +15,13 @@
 </head>
 <body class="sv-respondent-body">
     @* demo:body *@
+    @if (Model.Embedded)
+    {
+        @* Dentro del portal: regreso a la lista (pendientes, o el listado si administra). *@
+        <div class="container sv-respond-container pt-3">
+            <a class="btn btn-sm btn-light border" href="@Url.Action(Model.CanAdminister ? "Index" : "Pendientes", "Encuestas", new { area = "Encuestas", segmento = Model.Segment, embed = true })"><i class="bi bi-arrow-left me-1"></i>Volver</a>
+        </div>
+    }
     <div id="surveyRoot" class="container sv-respond-container" aria-live="polite">
         <div class="text-center py-5"><div class="spinner-border text-secondary" role="status"><span class="visually-hidden">Cargando…</span></div></div>
     </div>

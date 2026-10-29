@@ -1,8 +1,7 @@
-@{
-    // Layout: el del portal si se indica en Web.config (Surveys:Layout), si no el propio del módulo.
-    // Ver INTEGRACION.md, paso 5.
+﻿@{
+    // Layout: dentro del marco del portal (embed=1) el mínimo del módulo; si no, el del portal
+    // si se indica en Web.config (Surveys:Layout), si no el propio del módulo. Ver INTEGRACION.md.
     var portalLayout = System.Configuration.ConfigurationManager.AppSettings["Surveys:Layout"];
-    Layout = string.IsNullOrWhiteSpace(portalLayout)
-        ? "~/Areas/Encuestas/Views/Shared/_LayoutEncuestas.cshtml"
-        : portalLayout;
+    Layout = ViewContext.ViewBag.Layout as string
+        ?? (string.IsNullOrWhiteSpace(portalLayout) ? "~/Areas/Encuestas/Views/Shared/_LayoutEncuestas.cshtml" : portalLayout);
 }

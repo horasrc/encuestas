@@ -6,8 +6,8 @@
 
       powershell -ExecutionPolicy Bypass -File tools\esquema-sql.ps1 -Esquema IC
 
-  Resultado: Database\esquema-IC\ con schema.sql, org-schema.sql, org-vistas-plantilla.sql y
-  los upgrade-*.sql (en UTF-8 con BOM para que SSMS respete los acentos).
+  Resultado: Database\esquema-IC\ con schema.sql y los upgrade-*.sql (en UTF-8 con BOM para
+  que SSMS respete los acentos). Ya no hay tablas Org*: quién responde lo decide el portal.
   En el Web.config del portal: <add key="Surveys:Schema" value="IC" />
 
   -SinLlavesForaneas: quita las llaves foráneas (FOREIGN KEY) entre las tablas del módulo.
@@ -32,7 +32,7 @@ New-Item -ItemType Directory -Force $out | Out-Null
 $utf8Bom = New-Object Text.UTF8Encoding($true)
 
 # upgrade-003 mueve tablas antiguas de dbo a enc y los seed son datos de ejemplo: no aplican.
-$files = @('schema.sql', 'org-schema.sql', 'org-vistas-plantilla.sql') +
+$files = @('schema.sql') +
     (Get-ChildItem $db -Filter 'upgrade-*.sql' | Where-Object Name -ne 'upgrade-003-esquema-enc.sql' | Sort-Object Name | ForEach-Object Name)
 
 foreach ($f in $files) {

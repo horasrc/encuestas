@@ -18,8 +18,7 @@ var SurveyStore = (function ($) {
         survey: null,
         versionId: null,
         selectedId: null,
-        dirty: false,
-        catalogs: null
+        dirty: false
     };
 
     // ---------------------------------------------------------------------
@@ -230,14 +229,13 @@ var SurveyStore = (function ($) {
     }
 
     // ---------------------------------------------------------------------
-    // Configuración (publicación y segmentación)
+    // Configuración de publicación (los segmentos los asigna el servidor)
     // ---------------------------------------------------------------------
 
     function updateSettings(mutator) {
         var v = version();
         v.settings = v.settings || {};
-        v.segmentation = v.segmentation || { mode: 'all', roles: [], segments: [], regions: [], branches: [], users: [] };
-        mutator(v.settings, v.segmentation);
+        mutator(v.settings);
         setDirty(true);
         emit('settings:changed');
     }

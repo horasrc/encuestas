@@ -11,17 +11,23 @@ namespace ModuloEncuestas.Services
     /// El JavaScript replica algunas de estas validaciones para dar retroalimentación
     /// inmediata, pero ESTE servicio es la fuente de verdad.
     /// </summary>
-    /// <summary>Opciones configurables del servicio (se leen de Web.config en SurveyServiceFactory).</summary>
+    /// <summary>
+    /// Contexto de la petición. Lo arma el controlador con lo que indica el portal
+    /// (Infrastructure.SurveyAccess): el módulo no tiene administración de usuarios propia.
+    /// </summary>
     public class SurveyServiceOptions
     {
-        /// <summary>
-        /// Rechaza respuestas de usuarios fuera de la segmentación. Requiere que
-        /// IOrgCatalogProvider devuelva los usuarios con su Login de red.
-        /// </summary>
-        public bool EnforceAudience { get; set; }
-
         /// <summary>Usuario que hace la operación (para la bitácora). Null = "sistema".</summary>
         public string UserName { get; set; }
+
+        /// <summary>Segmento del portal en que se trabaja. Null = no se trabaja por segmento.</summary>
+        public string Segment { get; set; }
+
+        /// <summary>Segmentos permitidos a la persona (si no se indicó Segment). Null = todos.</summary>
+        public IList<string> AllowedSegments { get; set; }
+
+        /// <summary>Usuarios del tramo de control: resultados solo con sus respuestas. Null = todas.</summary>
+        public IList<string> Team { get; set; }
     }
 
     public class SurveyService
@@ -48,33 +54,75 @@ namespace ModuloEncuestas.Services
 
         public SurveyDto GetSurvey(string surveyId)
         {
-            return _repository.GetSurvey(surveyId);
+            return Load(surveyId);
         }
 
-        /// <summary>Listado para la pantalla /Encuestas.</summary>
+        /// <summary>
+        /// ¿La encuesta está en el alcance de la petición? Con segmento: debe pertenecer a él.
+        /// Sin segmento pero con segmentos permitidos: debe pertenecer a alguno (o no tener segmento).
+        /// Las encuestas sin segmento (creadas antes, o fuera de un segmento) aparecen en todos.
+        /// </summary>
+        public bool InScope(SurveyDto survey)
+        {
+            if (survey == null) return false;
+            var segments = survey.Versions.Where(v => v.Segmentation != null && v.Segmentation.Mode == "segmented")
+                .SelectMany(v => v.Segmentation.Segments ?? new List<string>()).ToList();
+            if (segments.Count == 0) return true;
+            if (_options.Segment != null) return segments.Any(s => string.Equals(s, _options.Segment, StringComparison.OrdinalIgnoreCase));
+            return _options.AllowedSegments == null
+                || segments.Any(s => _options.AllowedSegments.Any(a => string.Equals(a, s, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        /// <summary>La encuesta, o null si no existe o está fuera del alcance (se trata igual que inexistente).</summary>
+        private SurveyDto Load(string surveyId)
+        {
+            var survey = _repository.GetSurvey(surveyId);
+            return InScope(survey) ? survey : null;
+        }
+
+        /// <summary>Listado para la pantalla /Encuestas (solo las del segmento).</summary>
         public List<SurveySummaryDto> GetSurveyList()
         {
-            return _repository.GetSurveys().Select(s =>
+            return _repository.GetSurveys().Where(InScope).Select(Summary).ToList();
+        }
+
+        /// <summary>
+        /// Para quien responde: encuestas publicadas del segmento que puede contestar ahora
+        /// (vigentes y sin respuesta suya, salvo que admitan varias).
+        /// </summary>
+        public List<SurveySummaryDto> GetPending(string userName)
+        {
+            var result = new List<SurveySummaryDto>();
+            foreach (var s in _repository.GetSurveys().Where(InScope))
             {
-                var current = s.Versions.FirstOrDefault(v => v.Status == SurveyStatuses.Published)
-                    ?? s.Versions.FirstOrDefault(v => v.Status == SurveyStatuses.Draft)
-                    ?? s.Versions.OrderByDescending(v => v.Number).FirstOrDefault();
-                var draft = s.Versions.FirstOrDefault(v => v.Status == SurveyStatuses.Draft);
-                return new SurveySummaryDto
-                {
-                    Id = s.Id,
-                    Name = s.Name,
-                    Description = s.Description,
-                    Status = current == null ? SurveyStatuses.Draft : current.Status,
-                    CurrentVersion = current == null ? 0 : current.Number,
-                    DraftVersion = draft != null && draft != current ? (int?)draft.Number : null,
-                    ResponseCount = current == null ? 0 : current.ResponseCount,
-                    TotalResponses = s.Versions.Sum(v => v.ResponseCount),
-                    VersionCount = s.Versions.Count,
-                    StartDate = current == null ? null : current.Settings.StartDate,
-                    EndDate = current == null ? null : current.Settings.EndDate
-                };
-            }).ToList();
+                var published = s.Versions.FirstOrDefault(v => v.Status == SurveyStatuses.Published);
+                string userHash;
+                if (published == null || CheckEligibility(published, userName, out userHash) != null) continue;
+                result.Add(Summary(s));
+            }
+            return result;
+        }
+
+        private static SurveySummaryDto Summary(SurveyDto s)
+        {
+            var current = s.Versions.FirstOrDefault(v => v.Status == SurveyStatuses.Published)
+                ?? s.Versions.FirstOrDefault(v => v.Status == SurveyStatuses.Draft)
+                ?? s.Versions.OrderByDescending(v => v.Number).FirstOrDefault();
+            var draft = s.Versions.FirstOrDefault(v => v.Status == SurveyStatuses.Draft);
+            return new SurveySummaryDto
+            {
+                Id = s.Id,
+                Name = s.Name,
+                Description = s.Description,
+                Status = current == null ? SurveyStatuses.Draft : current.Status,
+                CurrentVersion = current == null ? 0 : current.Number,
+                DraftVersion = draft != null && draft != current ? (int?)draft.Number : null,
+                ResponseCount = current == null ? 0 : current.ResponseCount,
+                TotalResponses = s.Versions.Sum(v => v.ResponseCount),
+                VersionCount = s.Versions.Count,
+                StartDate = current == null ? null : current.Settings.StartDate,
+                EndDate = current == null ? null : current.Settings.EndDate
+            };
         }
 
         /// <summary>
@@ -83,7 +131,7 @@ namespace ModuloEncuestas.Services
         /// </summary>
         public SurveyDto GetPublished(string surveyId)
         {
-            var survey = _repository.GetSurvey(surveyId);
+            var survey = Load(surveyId);
             if (survey == null) return null;
             var published = survey.Versions.FirstOrDefault(v => v.Status == SurveyStatuses.Published);
             var result = new SurveyDto { Id = survey.Id, Name = survey.Name };
@@ -116,6 +164,8 @@ namespace ModuloEncuestas.Services
                 Number = 1,
                 Status = SurveyStatuses.Draft,
                 CreatedAt = DateTime.Now,
+                // Pertenece al segmento del portal en que se creó (sin segmento = aparece en todos).
+                Segmentation = SegmentationDto.For(_options.Segment),
                 Settings = new PublishSettingsDto
                 {
                     StartDate = DateTime.Today.ToString("yyyy-MM-dd"),
@@ -137,7 +187,7 @@ namespace ModuloEncuestas.Services
         /// </summary>
         public ApiResult<SurveyDto> DuplicateSurvey(string surveyId)
         {
-            var source = _repository.GetSurvey(surveyId);
+            var source = Load(surveyId);
             if (source == null) return ApiResult<SurveyDto>.Fail("La encuesta no existe.", null);
             var from = source.Versions.FirstOrDefault(v => v.Status == SurveyStatuses.Draft)
                 ?? source.Versions.FirstOrDefault(v => v.Status == SurveyStatuses.Published)
@@ -147,6 +197,7 @@ namespace ModuloEncuestas.Services
             var name = "Copia de " + source.Name;
             var copy = new SurveyDto { Name = name.Length > 200 ? name.Substring(0, 200) : name, Description = source.Description };
             copy.Versions.Add(SurveyVersionCloner.Clone(from, 1));
+            if (_options.Segment != null) copy.Versions[0].Segmentation = SegmentationDto.For(_options.Segment); // la copia queda en el segmento actual
             _repository.SaveSurvey(copy);
             Audit(copy.Id, 1, "duplicated", "Creó la encuesta como copia de «" + source.Name + "» (versión " + from.Number + ").");
             return ApiResult<SurveyDto>.Success(copy, "Encuesta duplicada como borrador.");
@@ -155,7 +206,7 @@ namespace ModuloEncuestas.Services
         /// <summary>Elimina (baja lógica) una encuesta sin respuestas. Con respuestas, se debe archivar.</summary>
         public ApiResult<string> DeleteSurvey(string surveyId)
         {
-            var survey = _repository.GetSurvey(surveyId);
+            var survey = Load(surveyId);
             if (survey == null) return ApiResult<string>.Fail("La encuesta no existe.", null);
             if (survey.Versions.Any(v => v.ResponseCount > 0))
                 return ApiResult<string>.Fail("La encuesta tiene respuestas y no puede eliminarse. Ciérrala o archívala para conservar el histórico.", null);
@@ -163,11 +214,6 @@ namespace ModuloEncuestas.Services
             _repository.DeleteSurvey(survey.Id);
             Audit(survey.Id, null, "deleted", "Eliminó la encuesta «" + survey.Name + "».");
             return ApiResult<string>.Success(survey.Id, "Encuesta eliminada.");
-        }
-
-        public OrgCatalogs GetCatalogs()
-        {
-            return _repository.GetCatalogs();
         }
 
         /// <summary>
@@ -186,7 +232,7 @@ namespace ModuloEncuestas.Services
 
         public ApiResult<SurveyDto> SaveDraft(SaveDraftRequest request)
         {
-            var survey = _repository.GetSurvey(request.SurveyId);
+            var survey = Load(request.SurveyId);
             if (survey == null) return ApiResult<SurveyDto>.Fail("La encuesta no existe.", null);
             if (request.Version == null) return ApiResult<SurveyDto>.Fail("No se recibió la versión a guardar.", null);
 
@@ -207,6 +253,7 @@ namespace ModuloEncuestas.Services
                 }
 
                 var newVersion = SurveyVersionCloner.Clone(request.Version, NextNumber(survey));
+                newVersion.Segmentation = SurveyVersionCloner.CloneSegmentation(existing.Segmentation); // el segmento no lo cambia el navegador
                 survey.Versions.Add(newVersion);
                 _repository.SaveSurvey(survey);
                 Audit(survey.Id, newVersion.Number, "newVersion",
@@ -215,9 +262,9 @@ namespace ModuloEncuestas.Services
                     string.Format("La versión {0} tiene respuestas; los cambios se guardaron como versión {1} (borrador).", existing.Number, newVersion.Number));
             }
 
-            // Se reemplaza el contenido pero se respetan los campos controlados por el servidor.
+            // Se reemplaza el contenido pero se respetan los campos controlados por el servidor
+            // (estado, respuestas y segmentos del portal).
             existing.Settings = request.Version.Settings ?? new PublishSettingsDto();
-            existing.Segmentation = request.Version.Segmentation ?? new SegmentationDto();
             existing.Questions = Normalize(request.Version.Questions);
 
             _repository.SaveSurvey(survey);
@@ -232,7 +279,7 @@ namespace ModuloEncuestas.Services
 
         public ApiResult<SurveyDto> Publish(VersionActionRequest request)
         {
-            var survey = _repository.GetSurvey(request.SurveyId);
+            var survey = Load(request.SurveyId);
             if (survey == null) return ApiResult<SurveyDto>.Fail("La encuesta no existe.", null);
 
             var version = survey.Versions.FirstOrDefault(v => v.Id == request.VersionId);
@@ -335,7 +382,7 @@ namespace ModuloEncuestas.Services
 
         public ApiResult<SurveyDto> CreateVersion(VersionActionRequest request)
         {
-            var survey = _repository.GetSurvey(request.SurveyId);
+            var survey = Load(request.SurveyId);
             if (survey == null) return ApiResult<SurveyDto>.Fail("La encuesta no existe.", null);
 
             var existingDraft = survey.Versions.FirstOrDefault(v => v.Status == SurveyStatuses.Draft);
@@ -354,7 +401,7 @@ namespace ModuloEncuestas.Services
 
         public ApiResult<SurveyDto> ChangeStatus(VersionActionRequest request)
         {
-            var survey = _repository.GetSurvey(request.SurveyId);
+            var survey = Load(request.SurveyId);
             if (survey == null) return ApiResult<SurveyDto>.Fail("La encuesta no existe.", null);
             var version = survey.Versions.FirstOrDefault(v => v.Id == request.VersionId);
             if (version == null) return ApiResult<SurveyDto>.Fail("La versión no existe.", null);
@@ -382,14 +429,14 @@ namespace ModuloEncuestas.Services
         /// </summary>
         public EligibilityDto GetEligibility(string surveyId, string userName)
         {
-            var survey = _repository.GetSurvey(surveyId);
+            var survey = Load(surveyId);
             var version = survey == null ? null : survey.Versions.FirstOrDefault(v => v.Status == SurveyStatuses.Published);
             if (version == null) return EligibilityDto.Denied("unavailable", "Esta encuesta no está abierta en este momento.");
             string userHash;
             return CheckEligibility(version, userName, out userHash) ?? new EligibilityDto { CanRespond = true, VersionId = version.Id };
         }
 
-        /// <summary>Reglas para responder: publicada, vigente, autenticación, una respuesta y audiencia.</summary>
+        /// <summary>Reglas para responder: publicada, vigente, autenticación y una respuesta por persona.</summary>
         private EligibilityDto CheckEligibility(SurveyVersionDto version, string userName, out string userHash)
         {
             userHash = string.IsNullOrEmpty(userName) ? null : Hash(userName);
@@ -409,15 +456,13 @@ namespace ModuloEncuestas.Services
             if (!version.Settings.AllowMultipleResponses && userHash != null && _repository.HasUserResponded(version.Id, userHash))
                 return EligibilityDto.Denied("alreadyResponded", "Tu respuesta ya quedó registrada. ¡Gracias por participar!");
 
-            if (_options.EnforceAudience && !IsInAudience(version.Segmentation, userName))
-                return EligibilityDto.Denied("notInAudience", "Esta encuesta no está dirigida a tu perfil.");
-
+            // El segmento ya se validó al cargar la encuesta (Load / InScope): fuera de él, "no existe".
             return null;
         }
 
         public ApiResult<string> Submit(SubmitResponseDto request, string userName)
         {
-            var survey = _repository.GetSurvey(request.SurveyId);
+            var survey = Load(request.SurveyId);
             var version = survey == null ? null : survey.Versions.FirstOrDefault(v => v.Id == request.VersionId);
             if (version == null) return ApiResult<string>.Fail("La encuesta no existe.", null);
 
@@ -448,7 +493,7 @@ namespace ModuloEncuestas.Services
         /// </summary>
         public LastResponseDto GetLastResponse(string surveyId, string value, string userName)
         {
-            var survey = _repository.GetSurvey(surveyId);
+            var survey = Load(surveyId);
             var version = survey == null ? null : survey.Versions.FirstOrDefault(v => v.Status == SurveyStatuses.Published);
             if (version == null) return new LastResponseDto { Message = "Esta encuesta no está abierta en este momento." };
 
@@ -567,74 +612,34 @@ namespace ModuloEncuestas.Services
 
         public ResultsDto GetResults(string surveyId, string versionId)
         {
-            var survey = _repository.GetSurvey(surveyId);
+            var survey = Load(surveyId);
             var version = survey == null ? null : survey.Versions.FirstOrDefault(v => v.Id == versionId);
             if (version == null) return null;
+
+            // Tramo de control: solo las respuestas de su gente. Se compara por hash (SurveyResponse
+            // no guarda el usuario), así funciona también en encuestas anónimas.
+            var responses = _repository.GetResponses(version.Id).AsEnumerable();
+            if (_options.Team != null)
+            {
+                var team = new HashSet<string>(_options.Team.Where(u => !string.IsNullOrWhiteSpace(u)).Select(u => Hash(u.Trim())));
+                responses = responses.Where(r => r.UserHash != null && team.Contains(r.UserHash.Trim()));
+            }
 
             return new ResultsDto
             {
                 VersionId = version.Id,
-                Audience = EstimateAudience(version.Segmentation),
+                Audience = _options.Team == null ? 0 : _options.Team.Count,
                 StartDate = version.Settings.StartDate,
                 EndDate = version.Settings.EndDate,
-                Responses = _repository.GetResponses(version.Id).ToList()
+                Responses = responses.ToList()
             };
-        }
-
-        /// <summary>
-        /// Estimación de audiencia con la misma semántica que el front-end:
-        /// OR dentro de cada dimensión, AND entre dimensiones + usuarios específicos.
-        /// </summary>
-        public int EstimateAudience(SegmentationDto seg)
-        {
-            var catalogs = _repository.GetCatalogs();
-            seg = seg ?? new SegmentationDto();
-            var all = seg.Mode != "segmented";
-
-            var total = 0;
-            foreach (var b in catalogs.Branches)
-            {
-                if (!all && seg.Regions.Count > 0 && !seg.Regions.Contains(b.RegionId)) continue;
-                if (!all && seg.Segments.Count > 0 && !seg.Segments.Contains(b.SegmentId)) continue;
-                if (!all && seg.Branches.Count > 0 && !seg.Branches.Contains(b.Id)) continue;
-                foreach (var hc in b.Headcount)
-                {
-                    if (!all && seg.Roles.Count > 0 && !seg.Roles.Contains(hc.Key)) continue;
-                    total += hc.Value;
-                }
-            }
-            if (!all) total += seg.Users.Count;
-            return total;
-        }
-
-        /// <summary>
-        /// ¿El usuario pertenece a la audiencia? Misma semántica que EstimateAudience:
-        /// los usuarios específicos siempre entran; si no, debe cumplir cada dimensión
-        /// con filtros (rol, segmento, región, sucursal).
-        /// </summary>
-        public bool IsInAudience(SegmentationDto seg, string userName)
-        {
-            if (seg == null || seg.Mode != "segmented") return true;
-            if (string.IsNullOrEmpty(userName)) return false;
-
-            var catalogs = _repository.GetCatalogs();
-            var user = catalogs.Users.FirstOrDefault(u =>
-                string.Equals(u.Login, userName, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(u.Email, userName, StringComparison.OrdinalIgnoreCase));
-            if (user == null) return false;
-            if (seg.Users.Contains(user.Id)) return true;
-
-            var branch = catalogs.Branches.FirstOrDefault(b => b.Id == user.BranchId);
-            return (seg.Roles.Count == 0 || seg.Roles.Contains(user.RoleId))
-                && (seg.Branches.Count == 0 || seg.Branches.Contains(user.BranchId))
-                && (seg.Regions.Count == 0 || (branch != null && seg.Regions.Contains(branch.RegionId)))
-                && (seg.Segments.Count == 0 || (branch != null && seg.Segments.Contains(branch.SegmentId)));
         }
 
         /// <summary>Historial de la encuesta para el panel de versiones.</summary>
         public IList<AuditEntryDto> GetHistory(string surveyId)
         {
-            return _repository.GetAudit(surveyId, 100);
+            var survey = Load(surveyId);
+            return survey == null ? new List<AuditEntryDto>() : _repository.GetAudit(survey.Id, 100);
         }
 
         // -----------------------------------------------------------------

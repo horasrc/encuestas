@@ -1,0 +1,31 @@
+﻿@model ModuloEncuestas.Models.ViewModels.SurveyEmbedViewModel
+@*
+    VISTA PARCIAL PARA EL PORTAL (ej. RadarController):
+
+        public PartialViewResult Encuestas(string segmento)
+        {
+            return PartialView(ModuloEncuestas.Controllers.EncuestasController.VistaParcial,
+                new ModuloEncuestas.Models.ViewModels.SurveyEmbedViewModel { Segmento = segmento });
+        }
+
+    Muestra el módulo en un marco (iframe) del mismo sitio. Así funciona sin importar cómo el portal
+    inserta la vista parcial ni si ejecuta sus <script>, y los estilos del portal no le afectan.
+    Qué ve cada quien (administrar, segmentos, tramo de control) lo decide SurveyAccess.Resolver.
+    No lleva scripts: el marco se ajusta al alto de la pantalla desde adentro (_LayoutEmbed.cshtml).
+*@
+@{
+    var vista = (Model.Vista ?? "").Trim().ToLowerInvariant();
+    string src;
+    if (vista == "responder" && !string.IsNullOrWhiteSpace(Model.EncuestaId))
+    {
+        src = Url.Action("Responder", "Encuestas", new { area = "Encuestas", id = Model.EncuestaId, segmento = Model.Segmento, embed = true });
+    }
+    else
+    {
+        src = Url.Action(vista == "responder" ? "Pendientes" : "Index", "Encuestas", new { area = "Encuestas", segmento = Model.Segmento, embed = true });
+    }
+}
+<div class="sv-embed-frame-wrap" style="width:100%;">
+    <iframe src="@src" title="Encuestas" class="sv-embed-frame"
+            style="display:block;width:100%;height:calc(100vh - 140px);min-height:480px;border:0;background:transparent;"></iframe>
+</div>

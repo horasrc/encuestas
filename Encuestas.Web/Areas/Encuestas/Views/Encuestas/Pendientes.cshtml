@@ -1,0 +1,22 @@
+﻿@model SurveyPageViewModel
+@{
+    ViewBag.Title = "Encuestas por responder";
+}
+@* Encuestas publicadas del segmento que la persona puede responder ahora (Scripts/survey-pending.js). *@
+@Html.Partial("_ModuleStyles")
+<div class="sv-page" id="pendingPage">
+    <header class="sv-page-header pb-3">
+        <h1 class="h4 fw-bold mb-1">Encuestas por responder</h1>
+        <p class="text-muted small mb-0">Estas encuestas están abiertas para ti. Elige una para contestarla.</p>
+    </header>
+    <div id="pendingList" class="row g-3" aria-live="polite">
+        <div class="col-12 text-center py-5"><div class="spinner-border text-secondary" role="status"><span class="visually-hidden">Cargando…</span></div></div>
+    </div>
+</div>
+
+@section scripts {
+    @Html.Partial("_ModuleScripts")
+    @Html.Partial("_SurveyConfig", Model)
+    @Html.Partial("_SurveyScripts")
+    <script src="@Url.Versioned("~/Areas/Encuestas/Scripts/survey-pending.js")"></script>
+}

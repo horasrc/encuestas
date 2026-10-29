@@ -100,7 +100,9 @@ Check 'Resultados: "Otro" con texto' (($a.q2.optionIds -contains '__other__') -a
 Check 'Resultados: matriz' ($a.q7.matrix.q7r2 -contains 'q7c5') ($a.q7 | ConvertTo-Json -Compress)
 Check 'Resultados: dependiente' (@($a.q5.optionIds).Count -eq 3) ($a.q5 | ConvertTo-Json -Compress)
 Check 'Resultados: pregunta oculta descartada' (-not $a.q6) 'q6 guardada'
-Check 'Resultados: audiencia real (gerentes+ejecutivos BP/Premier)' ($res.audience -gt 100) "audiencia=$($res.audience)"
+Check 'Resultados: sin tramo de control del portal, audiencia 0' ($res.audience -eq 0) "audiencia=$($res.audience)"
+$cat = Req GET "$base/Encuestas/Api/Catalogs" $null @{ 'X-Requested-With' = 'XMLHttpRequest' }
+Check 'Ya no existe la API de catálogos (segmentación propia)' ($cat.code -eq 404) "HTTP $($cat.code)"
 
 # 6. Versionado: la publicada con respuestas no se sobrescribe
 $cur = Api GET '/Encuestas/Api/Survey/1'

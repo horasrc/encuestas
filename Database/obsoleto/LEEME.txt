@@ -1,0 +1,8 @@
+Scripts de la segmentación anterior (tablas Org*: puestos, segmentos, regiones, sucursales y usuarios).
+
+Ya NO se usan: el módulo no tiene administración de usuarios. Quién administra, en qué segmento
+trabaja cada quien y su tramo de control los decide el portal con
+ModuloEncuestas.Infrastructure.SurveyAccess.Resolver (ver INTEGRACION.md).
+
+Si ya creaste las tablas Org* (por ejemplo IC.OrgRole, IC.OrgSegment, IC.OrgRegion, IC.OrgBranch,
+IC.OrgUser y sus vistas), el módulo ya no las lee. Puedes dejarlas o borrarlas cuando quieras.

@@ -7,7 +7,7 @@
       powershell -ExecutionPolicy Bypass -File tests\run-tests.ps1
 
   Cubre: versionado, publicación, lógica condicional en servidor, validaciones,
-  una respuesta por usuario, audiencia, elegibilidad, duplicar y eliminar,
+  una respuesta por usuario, segmento y tramo de control, elegibilidad, duplicar y eliminar,
   y el archivo .ics de Citas para Outlook.
   Sale con código 1 si alguna prueba falla.
 #>
@@ -25,7 +25,11 @@ $sources = @(Join-Path $PSScriptRoot 'ServiceTests.cs') +
     (Get-ChildItem (Join-Path $root 'Encuestas.Web\Areas\Encuestas\Services') -Filter *.cs).FullName +
     (Join-Path $root 'Encuestas.Web\Areas\Citas\Services\CalendarioIcs.cs')
 
-& $csc /nologo /warn:4 "/out:$exe" /r:System.Core.dll /r:System.Data.dll /r:System.Configuration.dll /r:System.Web.Extensions.dll $sources
+# Newtonsoft.Json (DTO: [JsonIgnore]); se copia junto al .exe para que cargue al ejecutar.
+$json = Join-Path $root 'packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll'
+Copy-Item $json $out -Force
+
+& $csc /nologo /warn:4 "/out:$exe" /r:System.Core.dll /r:System.Data.dll /r:System.Configuration.dll /r:System.Web.Extensions.dll "/r:$json" $sources
 if ($LASTEXITCODE -ne 0) { Write-Host 'Error de compilación.' -ForegroundColor Red; exit 1 }
 
 $output = & $exe

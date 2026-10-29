@@ -1,4 +1,7 @@
-﻿using System.Web.Mvc;
+﻿using System;
+using System.Collections.Generic;
+using System.Web;
+using System.Web.Mvc;
 using ModuloEncuestas.Infrastructure;
 using ModuloEncuestas.Models.Dto;
 using ModuloEncuestas.Services;
@@ -9,16 +12,18 @@ namespace ModuloEncuestas.Controllers
     /// API JSON que consume Scripts/survey/survey-api.js cuando
     /// Surveys:UseMockData = false. Rutas: /Encuestas/Api/{accion}/{id}.
     ///
-    /// El acceso lo controla el portal (el módulo no restringe por usuario ni rol).
-    /// Para que solo ciertas personas administren, el portal debe proteger /Encuestas,
-    /// /Encuestas/Constructor y estas rutas de administración; /Encuestas/Responder,
-    /// Published, Eligibility, Submit y LastResponse son para quien responde.
+    /// El módulo no tiene administración de usuarios: aplica lo que el portal indica en
+    /// Infrastructure.SurveyAccess (tramo de control):
+    ///   - Acciones de administración: 403 si SurveyScope.CanAdminister es false.
+    ///   - Segmento (encabezado X-Survey-Segment): solo encuestas de ese segmento; las
+    ///     nuevas quedan en él. 403 si el segmento no está en SurveyScope.Segments.
+    ///   - Results: solo respuestas de SurveyScope.Team.
+    /// Sin SurveyAccess.Resolver no se restringe nada.
     ///
     /// Administración:
     ///   GET  /Encuestas/Api/List                       -> SurveySummaryDto[]
     ///   GET  /Encuestas/Api/Survey/{surveyId}          -> SurveyDto (todas las versiones)
     ///   GET  /Encuestas/Api/History/{surveyId}         -> AuditEntryDto[] (bitácora, últimas 100)
-    ///   GET  /Encuestas/Api/Catalogs                   -> OrgCatalogs
     ///   GET  /Encuestas/Api/Results/{versionId}?surveyId=  -> ResultsDto
     ///   POST /Encuestas/Api/Create                     -> ApiResult&lt;SurveyDto&gt;
     ///   POST /Encuestas/Api/Duplicate   { surveyId }   -> ApiResult&lt;SurveyDto&gt;
@@ -28,6 +33,7 @@ namespace ModuloEncuestas.Controllers
     ///   POST /Encuestas/Api/CreateVersion              -> ApiResult&lt;SurveyDto&gt;
     ///   POST /Encuestas/Api/ChangeStatus               -> ApiResult&lt;SurveyDto&gt;
     /// Quien responde:
+    ///   GET  /Encuestas/Api/Pending                    -> SurveySummaryDto[] (publicadas del segmento que puede responder)
     ///   GET  /Encuestas/Api/Published/{surveyId}       -> SurveyDto (solo la versión publicada)
     ///   GET  /Encuestas/Api/Eligibility/{surveyId}     -> EligibilityDto (¿puede responder ahora?)
     ///   POST /Encuestas/Api/Submit                     -> ApiResult&lt;string&gt;
@@ -38,12 +44,50 @@ namespace ModuloEncuestas.Controllers
     [ValidateJsonAntiForgeryToken]
     public class SurveyApiController : Controller
     {
+        /// <summary>Acciones que solo puede usar quien administra (SurveyScope.CanAdminister).</summary>
+        private static readonly HashSet<string> AdminActions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "List", "Survey", "History", "Results", "Create", "Duplicate", "Delete", "SaveDraft", "Publish", "CreateVersion", "ChangeStatus"
+        };
+
         private SurveyService _service;
 
-        /// <summary>Se crea por petición con el usuario actual (lo usa la bitácora).</summary>
+        /// <summary>Se crea por petición con el usuario, el segmento y el tramo de control que indica el portal.</summary>
         private SurveyService Service
         {
-            get { return _service ?? (_service = SurveyServiceFactory.Create(CurrentUserName())); }
+            get
+            {
+                if (_service != null) return _service;
+                var scope = SurveyAccess.Current(HttpContext);
+                return _service = SurveyServiceFactory.Create(new SurveyServiceOptions
+                {
+                    UserName = CurrentUserName(),
+                    Segment = SurveyAccess.CurrentSegment(HttpContext),
+                    AllowedSegments = scope.Segments,
+                    Team = scope.Team
+                });
+            }
+        }
+
+        /// <summary>Aplica el alcance del portal antes de cada acción (respuesta JSON 403 si no le corresponde).</summary>
+        protected override void OnActionExecuting(ActionExecutingContext filterContext)
+        {
+            base.OnActionExecuting(filterContext);
+            if (filterContext.Result != null) return;
+            var action = filterContext.ActionDescriptor.ActionName;
+            if (AdminActions.Contains(action) && !SurveyAccess.Current(HttpContext).CanAdminister)
+            {
+                filterContext.Result = new JsonNetResult(new { message = "No tienes permiso para administrar encuestas." }, 403);
+                return;
+            }
+            try
+            {
+                SurveyAccess.CurrentSegment(HttpContext);
+            }
+            catch (HttpException ex)
+            {
+                filterContext.Result = new JsonNetResult(new { message = ex.Message }, ex.GetHttpCode());
+            }
         }
 
         // -----------------------------------------------------------------
@@ -67,12 +111,6 @@ namespace ModuloEncuestas.Controllers
         public ActionResult History(string id)
         {
             return new JsonNetResult(Service.GetHistory(id));
-        }
-
-        [HttpGet]
-        public ActionResult Catalogs()
-        {
-            return new JsonNetResult(Service.GetCatalogs());
         }
 
         [HttpGet]
@@ -127,6 +165,12 @@ namespace ModuloEncuestas.Controllers
         // -----------------------------------------------------------------
         // Colaborador que responde
         // -----------------------------------------------------------------
+
+        [HttpGet]
+        public ActionResult Pending()
+        {
+            return new JsonNetResult(Service.GetPending(CurrentUserName()));
+        }
 
         [HttpGet]
         public ActionResult Published(string id)

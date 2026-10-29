@@ -2,7 +2,7 @@
  * survey-respond.js
  * Página que ve el colaborador (Views/Encuestas/Responder.cshtml).
  *   1. Pregunta al servidor si el usuario puede responder (vigencia,
- *      autenticación, una respuesta por usuario, audiencia).
+ *      autenticación, una respuesta por usuario; el segmento lo valida el portal).
  *   2. Si puede, carga la versión PUBLICADA y la muestra.
  *   3. Envía con SurveyApi.submit (el servidor vuelve a validar todo).
  *   Si la encuesta tiene pregunta identificador, "Buscar" precarga la última
@@ -20,7 +20,7 @@
         ended: { icon: 'bi-calendar-x', title: 'La encuesta ya cerró' },
         authRequired: { icon: 'bi-person-lock', title: 'Inicia sesión para responder' },
         alreadyResponded: { icon: 'bi-check2-circle', title: 'Ya respondiste esta encuesta' },
-        notInAudience: { icon: 'bi-people', title: 'Encuesta no disponible para tu perfil' }
+        notInSegment: { icon: 'bi-people', title: 'Encuesta no disponible para tu perfil' }
     };
 
     function message(icon, title, text) {

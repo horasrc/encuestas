@@ -11,6 +11,7 @@ namespace ModuloEncuestas.Services
     /// </summary>
     public interface ISurveyRepository
     {
+        /// <summary>Encuestas con sus versiones (sin preguntas) y los segmentos de cada versión.</summary>
         IList<SurveyDto> GetSurveys();
         SurveyDto GetSurvey(string surveyId);
 
@@ -20,6 +21,7 @@ namespace ModuloEncuestas.Services
         /// <summary>Baja lógica (IsDeleted). El servicio solo la permite si no hay respuestas.</summary>
         void DeleteSurvey(string surveyId);
 
+        /// <summary>Respuestas enviadas de la versión, cada una con su UserHash (para filtrar por tramo).</summary>
         IList<ResponseRecordDto> GetResponses(string versionId);
 
         /// <summary>Guarda la respuesta e incrementa ResponseCount de la versión (de forma atómica).</summary>
@@ -33,65 +35,10 @@ namespace ModuloEncuestas.Services
         /// </summary>
         ResponseRecordDto FindLatestResponse(string surveyId, IList<string> questionIds, string value, out string versionId);
 
-        /// <summary>Catálogos organizacionales para segmentación (roles, segmentos, regiones, sucursales, usuarios).</summary>
-        OrgCatalogs GetCatalogs();
-
         /// <summary>Registra una acción en la bitácora (SurveyAuditLog).</summary>
         void AddAudit(AuditEntryDto entry);
 
         /// <summary>Últimas entradas de la bitácora de una encuesta, de la más reciente a la más antigua.</summary>
         IList<AuditEntryDto> GetAudit(string surveyId, int max);
-    }
-
-    /// <summary>
-    /// Origen de los catálogos de segmentación. Separado del repositorio de encuestas
-    /// porque normalmente vienen de otro sistema (RH, Active Directory, data warehouse).
-    /// </summary>
-    public interface IOrgCatalogProvider
-    {
-        OrgCatalogs GetCatalogs();
-    }
-
-    /// <summary>Catálogos para la segmentación. Normalmente provienen del directorio de RH / AD.</summary>
-    public class OrgCatalogs
-    {
-        public List<CatalogItem> Roles { get; set; }
-        public List<CatalogItem> Segments { get; set; }
-        public List<CatalogItem> Regions { get; set; }
-        public List<BranchItem> Branches { get; set; }
-        public List<UserItem> Users { get; set; }
-
-        public OrgCatalogs()
-        {
-            Roles = new List<CatalogItem>();
-            Segments = new List<CatalogItem>();
-            Regions = new List<CatalogItem>();
-            Branches = new List<BranchItem>();
-            Users = new List<UserItem>();
-        }
-    }
-
-    public class CatalogItem
-    {
-        public string Id { get; set; }
-        public string Name { get; set; }
-    }
-
-    public class BranchItem : CatalogItem
-    {
-        public string RegionId { get; set; }
-        public string SegmentId { get; set; }
-
-        /// <summary>Plantilla por rol (roleId -> personas). Sirve para estimar la audiencia.</summary>
-        public Dictionary<string, int> Headcount { get; set; }
-    }
-
-    public class UserItem : CatalogItem
-    {
-        /// <summary>Usuario de red (ej. "DOMINIO\\usuario"); se compara con User.Identity.Name al validar la audiencia.</summary>
-        public string Login { get; set; }
-        public string Email { get; set; }
-        public string RoleId { get; set; }
-        public string BranchId { get; set; }
     }
 }

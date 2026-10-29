@@ -9,7 +9,6 @@
  *     Ejemplos incluidos: opción única, selección múltiple con "Otro",
  *     texto libre con límite, pregunta condicional, multiselección
  *     dependiente (Banca > Producto > Recurso) y matriz.
- *   - catalogs: roles, segmentos, regiones, sucursales y usuarios.
  *   - generateResponses(): respuestas simuladas (deterministas).
  * ========================================================================= */
 var SurveyMock = (function ($) {
@@ -151,14 +150,7 @@ var SurveyMock = (function ($) {
                 welcomeMessage: 'Queremos conocer tu experiencia con el material de la campaña. Te tomará menos de 5 minutos.',
                 thankYouMessage: '¡Gracias por tu respuesta!'
             },
-            segmentation: {
-                mode: 'segmented',
-                roles: ['ejecutivos', 'gerentes'],
-                segments: ['bp', 'premier'],
-                regions: [],
-                branches: [],
-                users: []
-            },
+            segmentation: { mode: 'all', segments: [] },
             questions: questions
         };
     }
@@ -188,70 +180,6 @@ var SurveyMock = (function ($) {
             versions: [v1, buildVersion2(v1)]
         };
     }
-
-    // ---------------------------------------------------------------------
-    // Catálogos organizacionales (segmentación)
-    // ---------------------------------------------------------------------
-
-    function branch(id, name, regionId, segmentId, ej, ge, sub, as) {
-        return {
-            id: id, name: name, regionId: regionId, segmentId: segmentId,
-            headcount: { ejecutivos: ej, gerentes: ge, subdirectores: sub, asesores: as }
-        };
-    }
-
-    var catalogs = {
-        roles: [
-            { id: 'ejecutivos', name: 'Ejecutivos' },
-            { id: 'gerentes', name: 'Gerentes' },
-            { id: 'subdirectores', name: 'Subdirectores' },
-            { id: 'asesores', name: 'Asesores digitales' }
-        ],
-        segments: [
-            { id: 'bp', name: 'Banca Personal' },
-            { id: 'premier', name: 'Premier' },
-            { id: 'rbb', name: 'RBB Digital' },
-            { id: 'pyme', name: 'PyME' }
-        ],
-        regions: [
-            { id: 'norte', name: 'Norte' },
-            { id: 'centro', name: 'Centro' },
-            { id: 'metro', name: 'Metropolitana' },
-            { id: 'occidente', name: 'Occidente' },
-            { id: 'sur', name: 'Sur' }
-        ],
-        branches: [
-            branch('b01', 'Monterrey Centro', 'norte', 'bp', 24, 3, 1, 4),
-            branch('b02', 'San Pedro', 'norte', 'premier', 16, 2, 1, 2),
-            branch('b03', 'Chihuahua', 'norte', 'bp', 18, 2, 0, 3),
-            branch('b04', 'Reforma', 'metro', 'premier', 22, 3, 1, 4),
-            branch('b05', 'Polanco', 'metro', 'premier', 20, 3, 1, 3),
-            branch('b06', 'Insurgentes', 'metro', 'bp', 26, 3, 1, 5),
-            branch('b07', 'Querétaro', 'centro', 'bp', 17, 2, 0, 3),
-            branch('b08', 'Puebla', 'centro', 'rbb', 12, 2, 0, 8),
-            branch('b09', 'Guadalajara Chapultepec', 'occidente', 'bp', 25, 3, 1, 4),
-            branch('b10', 'Zapopan', 'occidente', 'premier', 15, 2, 1, 2),
-            branch('b11', 'Mérida', 'sur', 'bp', 14, 2, 0, 3),
-            branch('b12', 'Cancún', 'sur', 'pyme', 10, 2, 0, 2),
-            branch('b13', 'Centro Digital CDMX', 'metro', 'rbb', 6, 2, 1, 20),
-            branch('b14', 'León', 'centro', 'pyme', 11, 2, 0, 2)
-        ],
-        // Personas ficticias para el selector de "Usuarios específicos".
-        users: [
-            { id: 'u01', name: 'Ana Torres', email: 'ana.torres@empresa.com', roleId: 'gerentes', branchId: 'b04' },
-            { id: 'u02', name: 'Luis Ramírez', email: 'luis.ramirez@empresa.com', roleId: 'ejecutivos', branchId: 'b01' },
-            { id: 'u03', name: 'María Fernández', email: 'maria.fernandez@empresa.com', roleId: 'subdirectores', branchId: 'b06' },
-            { id: 'u04', name: 'Jorge Castillo', email: 'jorge.castillo@empresa.com', roleId: 'ejecutivos', branchId: 'b09' },
-            { id: 'u05', name: 'Paola Mendoza', email: 'paola.mendoza@empresa.com', roleId: 'asesores', branchId: 'b13' },
-            { id: 'u06', name: 'Ricardo Vega', email: 'ricardo.vega@empresa.com', roleId: 'gerentes', branchId: 'b07' },
-            { id: 'u07', name: 'Sofía Herrera', email: 'sofia.herrera@empresa.com', roleId: 'ejecutivos', branchId: 'b05' },
-            { id: 'u08', name: 'Daniel Ortiz', email: 'daniel.ortiz@empresa.com', roleId: 'ejecutivos', branchId: 'b11' },
-            { id: 'u09', name: 'Valeria Núñez', email: 'valeria.nunez@empresa.com', roleId: 'gerentes', branchId: 'b10' },
-            { id: 'u10', name: 'Héctor Salinas', email: 'hector.salinas@empresa.com', roleId: 'subdirectores', branchId: 'b02' },
-            { id: 'u11', name: 'Carla Rojas', email: 'carla.rojas@empresa.com', roleId: 'asesores', branchId: 'b08' },
-            { id: 'u12', name: 'Miguel Ángel Prieto', email: 'miguel.prieto@empresa.com', roleId: 'ejecutivos', branchId: 'b14' }
-        ]
-    };
 
     // ---------------------------------------------------------------------
     // Respuestas simuladas
@@ -385,7 +313,6 @@ var SurveyMock = (function ($) {
 
     return {
         buildSurvey: buildSurvey,
-        catalogs: catalogs,
         generateResponses: generateResponses
     };
 })(jQuery);

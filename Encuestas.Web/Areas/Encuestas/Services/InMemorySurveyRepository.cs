@@ -18,17 +18,10 @@ namespace ModuloEncuestas.Services
         private static readonly HashSet<string> Respondents = new HashSet<string>();
         private static int _lastSurveyId;
 
-        private readonly IOrgCatalogProvider _catalogs;
-
         static InMemorySurveyRepository()
         {
             var seed = BuildSeedSurvey();
             Surveys[seed.Id] = seed;
-        }
-
-        public InMemorySurveyRepository(IOrgCatalogProvider catalogs)
-        {
-            _catalogs = catalogs;
         }
 
         public IList<SurveyDto> GetSurveys()
@@ -95,6 +88,7 @@ namespace ModuloEncuestas.Services
             lock (Sync)
             {
                 if (!Responses.ContainsKey(versionId)) Responses[versionId] = new List<ResponseRecordDto>();
+                response.UserHash = userHash;
                 Responses[versionId].Add(response);
                 if (userHash != null) Respondents.Add(versionId + "|" + userHash);
 
@@ -138,11 +132,6 @@ namespace ModuloEncuestas.Services
                 }
                 return best;
             }
-        }
-
-        public OrgCatalogs GetCatalogs()
-        {
-            return _catalogs.GetCatalogs();
         }
 
         // -----------------------------------------------------------------
@@ -191,65 +180,22 @@ namespace ModuloEncuestas.Services
     }
 
     /// <summary>
-    /// Catálogos de ejemplo. Reemplazar por un proveedor que lea el directorio
-    /// de RH / Active Directory (implementando IOrgCatalogProvider).
-    /// </summary>
-    public class DemoOrgCatalogProvider : IOrgCatalogProvider
-    {
-        private static readonly OrgCatalogs Catalogs = Build();
-
-        public OrgCatalogs GetCatalogs()
-        {
-            return Catalogs;
-        }
-
-        private static OrgCatalogs Build()
-        {
-            var c = new OrgCatalogs();
-            c.Roles.Add(new CatalogItem { Id = "ejecutivos", Name = "Ejecutivos" });
-            c.Roles.Add(new CatalogItem { Id = "gerentes", Name = "Gerentes" });
-            c.Segments.Add(new CatalogItem { Id = "bp", Name = "Banca Personal" });
-            c.Segments.Add(new CatalogItem { Id = "premier", Name = "Premier" });
-            c.Regions.Add(new CatalogItem { Id = "norte", Name = "Norte" });
-            c.Regions.Add(new CatalogItem { Id = "centro", Name = "Centro" });
-            c.Branches.Add(new BranchItem
-            {
-                Id = "b01", Name = "Sucursal Monterrey Centro", RegionId = "norte", SegmentId = "bp",
-                Headcount = new Dictionary<string, int> { { "ejecutivos", 18 }, { "gerentes", 2 } }
-            });
-            c.Branches.Add(new BranchItem
-            {
-                Id = "b02", Name = "Sucursal Reforma", RegionId = "centro", SegmentId = "premier",
-                Headcount = new Dictionary<string, int> { { "ejecutivos", 12 }, { "gerentes", 2 } }
-            });
-            return c;
-        }
-    }
-
-    /// <summary>
     /// Composición mínima (el proyecto no usa contenedor de DI).
     /// Web.config -&gt; appSettings "Surveys:Repository": "Sql" o "InMemory".
     /// </summary>
     public static class SurveyServiceFactory
     {
-        /// <param name="userName">Usuario de la petición (Infrastructure.SurveyUser), para la bitácora.</param>
-        public static SurveyService Create(string userName = null)
+        /// <param name="options">Usuario, segmento y tramo de control de la petición (ver Infrastructure.SurveyAccess).</param>
+        public static SurveyService Create(SurveyServiceOptions options = null)
         {
+            options = options ?? new SurveyServiceOptions();
             var settings = System.Configuration.ConfigurationManager.AppSettings;
-            var catalogs = CreateCatalogProvider(settings);
-            bool enforce;
-            var options = new SurveyServiceOptions
-            {
-                EnforceAudience = bool.TryParse(settings["Surveys:EnforceAudience"], out enforce) && enforce,
-                UserName = userName
-            };
-
             if (string.Equals(settings["Surveys:Repository"], "Sql", StringComparison.OrdinalIgnoreCase))
             {
                 var cs = System.Configuration.ConfigurationManager.ConnectionStrings[ConnectionStringName(settings)];
-                return new SurveyService(new SqlSurveyRepository(cs == null ? null : cs.ConnectionString, catalogs, userName), options);
+                return new SurveyService(new SqlSurveyRepository(cs == null ? null : cs.ConnectionString, options.UserName), options);
             }
-            return new SurveyService(new InMemorySurveyRepository(catalogs), options);
+            return new SurveyService(new InMemorySurveyRepository(), options);
         }
 
         /// <summary>
@@ -260,18 +206,6 @@ namespace ModuloEncuestas.Services
         {
             var name = settings["Surveys:ConnectionStringName"];
             return string.IsNullOrWhiteSpace(name) ? "SurveysDb" : name;
-        }
-
-        /// <summary>Surveys:CatalogProvider = "Sql" (tablas Org*) o "Demo" (catálogos de ejemplo).</summary>
-        private static IOrgCatalogProvider CreateCatalogProvider(System.Collections.Specialized.NameValueCollection settings)
-        {
-            if (!string.Equals(settings["Surveys:CatalogProvider"], "Sql", StringComparison.OrdinalIgnoreCase))
-                return new DemoOrgCatalogProvider();
-
-            int minutes;
-            if (!int.TryParse(settings["Surveys:CatalogCacheMinutes"], out minutes) || minutes < 0) minutes = 10;
-            var cs = System.Configuration.ConfigurationManager.ConnectionStrings[ConnectionStringName(settings)];
-            return new SqlOrgCatalogProvider(cs == null ? null : cs.ConnectionString, TimeSpan.FromMinutes(minutes));
         }
     }
 }

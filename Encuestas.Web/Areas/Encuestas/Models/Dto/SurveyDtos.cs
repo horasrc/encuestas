@@ -61,24 +61,39 @@ namespace ModuloEncuestas.Models.Dto
         public string ThankYouMessage { get; set; }
     }
 
+    /// <summary>
+    /// Segmentos del portal a los que pertenece la encuesta (ej. el "segmento" de RadarController).
+    /// Los asigna el servidor al crearla, según el segmento en que se trabaja; no se edita en pantalla.
+    /// Sin segmentos = la encuesta aparece en cualquier segmento.
+    /// </summary>
     public class SegmentationDto
     {
         /// <summary>all | segmented</summary>
         public string Mode { get; set; }
-        public List<string> Roles { get; set; }
         public List<string> Segments { get; set; }
-        public List<string> Regions { get; set; }
-        public List<string> Branches { get; set; }
-        public List<string> Users { get; set; }
 
         public SegmentationDto()
         {
             Mode = "all";
-            Roles = new List<string>();
             Segments = new List<string>();
-            Regions = new List<string>();
-            Branches = new List<string>();
-            Users = new List<string>();
+        }
+
+        public static SegmentationDto For(string segment)
+        {
+            var s = new SegmentationDto();
+            if (!string.IsNullOrWhiteSpace(segment))
+            {
+                s.Mode = "segmented";
+                s.Segments.Add(segment.Trim());
+            }
+            return s;
+        }
+
+        /// <summary>¿La encuesta aparece en ese segmento? Null = no se trabaja por segmento.</summary>
+        public bool Includes(string segment)
+        {
+            if (segment == null || Mode != "segmented" || Segments == null || Segments.Count == 0) return true;
+            return Segments.Exists(s => string.Equals(s, segment, StringComparison.OrdinalIgnoreCase));
         }
     }
 
@@ -242,6 +257,10 @@ namespace ModuloEncuestas.Models.Dto
         public string Id { get; set; }
         public string SubmittedAt { get; set; }
         public Dictionary<string, AnswerDto> Answers { get; set; }
+
+        /// <summary>SHA-256 de quien respondió (SurveyResponse.UserHash). Solo para filtrar por tramo; no se envía al navegador.</summary>
+        [Newtonsoft.Json.JsonIgnore]
+        public string UserHash { get; set; }
     }
 
     /// <summary>Búsqueda por identificador. Va en el cuerpo de un POST para que el valor no quede en las bitácoras de IIS.</summary>
@@ -273,6 +292,8 @@ namespace ModuloEncuestas.Models.Dto
     public class ResultsDto
     {
         public string VersionId { get; set; }
+
+        /// <summary>Personas del tramo de control (0 = el portal no lo indica).</summary>
         public int Audience { get; set; }
         public string StartDate { get; set; }
         public string EndDate { get; set; }
@@ -300,7 +321,7 @@ namespace ModuloEncuestas.Models.Dto
     {
         public bool CanRespond { get; set; }
 
-        /// <summary>unavailable | notStarted | ended | authRequired | alreadyResponded | notInAudience</summary>
+        /// <summary>unavailable | notStarted | ended | authRequired | alreadyResponded | notInSegment</summary>
         public string Code { get; set; }
         public string Reason { get; set; }
         public string VersionId { get; set; }

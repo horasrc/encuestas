@@ -1,0 +1,45 @@
+﻿@* Layout de las páginas del módulo dentro del marco de la vista parcial del portal (_Encuestas.cshtml).
+   Sin menú propio: el menú es el del portal. Carga sus propias copias de Bootstrap y jQuery: dentro del
+   marco no le afectan los estilos ni los scripts del portal. *@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewBag.Title</title>
+    <link href="@Url.Versioned("~/Areas/Encuestas/Content/lib/bootstrap-5.2.3/css/bootstrap.min.css")" rel="stylesheet" />
+    <link href="@Url.Versioned("~/Areas/Encuestas/Content/lib/bootstrap-icons-1.11.3/bootstrap-icons.min.css")" rel="stylesheet" />
+    <link href="@Url.Versioned("~/Areas/Encuestas/Content/survey.css")" rel="stylesheet" />
+</head>
+<body class="sv-body sv-embedded">
+    <main class="sv-embed-main">
+        @RenderBody()
+    </main>
+
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
+
+    <script src="@Url.Versioned("~/Areas/Encuestas/Content/lib/jquery-3.7.1/jquery.min.js")"></script>
+    <script src="@Url.Versioned("~/Areas/Encuestas/Content/lib/bootstrap-5.2.3/js/bootstrap.bundle.min.js")"></script>
+    <script>
+        // El marco ocupa el resto de la pantalla del portal (la página del módulo tiene su propio scroll).
+        (function () {
+            var frame;
+            try { frame = window.frameElement; } catch (e) { frame = null; }
+            if (!frame) return; // abierta fuera del marco: página normal
+            function fit() {
+                try {
+                    var top = Math.max(frame.getBoundingClientRect().top, 0);
+                    frame.style.height = Math.max(480, window.parent.innerHeight - top - 12) + 'px';
+                } catch (e) { /* el portal cerró el marco */ }
+            }
+            fit();
+            window.addEventListener('load', fit);
+            window.parent.addEventListener('resize', fit);
+            window.addEventListener('unload', function () {
+                try { window.parent.removeEventListener('resize', fit); } catch (e) { /* sin acceso */ }
+            });
+        })();
+    </script>
+    @RenderSection("scripts", required: false)
+</body>
+</html>

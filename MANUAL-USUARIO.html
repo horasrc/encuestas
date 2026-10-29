@@ -145,11 +145,17 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 3px solid var(--ink); 
     <div class="table-wrap"><table>
       <thead><tr><th>Perfil</th><th>Qué hace</th><th>Dónde</th></tr></thead>
       <tbody>
-        <tr><td>Administrador</td><td>Crea encuestas, agrega preguntas, define a quién van dirigidas, publica y consulta resultados.</td><td>Menú <span class="ui">Encuestas</span></td></tr>
-        <tr><td>Colaborador</td><td>Responde las encuestas que le comparten.</td><td>El enlace de la encuesta</td></tr>
+        <tr><td>Administrador</td><td>Crea encuestas, agrega preguntas, publica y consulta los resultados de su equipo.</td><td>Menú <span class="ui">Encuestas</span> del segmento en Radar</td></tr>
+        <tr><td>Colaborador</td><td>Responde las encuestas de su segmento.</td><td>Menú <span class="ui">Encuestas</span> → <span class="ui">Encuestas por responder</span></td></tr>
       </tbody>
     </table></div>
-    <p>Quién puede administrar lo define la seguridad del portal. Si al abrir el menú aparece un mensaje de acceso denegado, solicita el permiso al área responsable del portal.</p>
+    <p>Todo lo decide el portal según quién inició sesión, igual que en los demás módulos de Radar:</p>
+    <ul>
+      <li><b>Quién administra.</b> Quien no administra, al entrar a <span class="ui">Encuestas</span> ve directamente sus encuestas por responder.</li>
+      <li><b>En qué segmento.</b> Cada encuesta pertenece al segmento en el que se creó y solo aparece ahí.</li>
+      <li><b>Qué resultados ve cada jefe.</b> Solo las respuestas de su tramo de control.</li>
+    </ul>
+    <p>Si no ves una encuesta o te aparece «No tienes acceso», solicita el permiso al área responsable del portal.</p>
   </section>
 
   <section id="listado">
@@ -302,14 +308,8 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 3px solid var(--ink); 
         <tr><td>Mensaje inicial y final</td><td>Texto que se ve al abrir la encuesta y al terminar de enviarla.</td></tr>
       </tbody>
     </table></div>
-    <h3>Segmentación · ¿quién puede responder?</h3>
-    <p><span class="ui">Todos los colaboradores</span> o <span class="ui">Audiencia segmentada</span>. En la segmentada se eligen roles, segmentos, regiones, sucursales y usuarios específicos:</p>
-    <ul>
-      <li>Dentro de cada grupo se suma (O): «Ejecutivos <b>o</b> Gerentes».</li>
-      <li>Entre grupos se combina (Y): «Ejecutivos <b>y</b> de la región Norte».</li>
-      <li>Los usuarios específicos siempre se incluyen.</li>
-    </ul>
-    <p><b>Audiencia estimada</b> muestra cuántos colaboradores cumplen los filtros. Si es 0, no se puede publicar.</p>
+    <h3>¿Quién la responde?</h3>
+    <p>No se configura aquí. La encuesta queda en el <b>segmento</b> de Radar en el que la creaste, y la responden las personas que el portal tiene en ese segmento. Les aparece en <span class="ui">Encuestas por responder</span>.</p>
   </section>
 
   <section id="publicar">
@@ -317,8 +317,8 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 3px solid var(--ink); 
     <p>La pestaña <span class="ui">Vista previa</span> muestra la encuesta como la verá el colaborador, en <b>Desktop</b>, <b>Tablet</b> o <b>Móvil</b>. Incluye los cambios sin guardar y permite probar la lógica y las cascadas; las respuestas no se guardan. <span class="ui">Reiniciar</span> la vuelve a empezar.</p>
     <ol class="steps">
       <li><div>Presiona <span class="ui">Guardar borrador</span>.</div></li>
-      <li><div>Presiona <span class="ui primary">Publicar encuesta</span> y confirma. Si algo falta, el módulo lista los errores (pregunta sin texto, menos de 2 opciones, regla que apunta a una pregunta eliminada, cascada desordenada, fechas, audiencia vacía…). Corrígelos y vuelve a publicar.</div></li>
-      <li><div>Comparte el enlace: en el menú del constructor, <span class="ui">Abrir página de respuesta</span> abre la página que verá el colaborador. Copia esa dirección y envíala.</div></li>
+      <li><div>Presiona <span class="ui primary">Publicar encuesta</span> y confirma. Si algo falta, el módulo lista los errores (pregunta sin texto, menos de 2 opciones, regla que apunta a una pregunta eliminada, cascada desordenada, fechas…). Corrígelos y vuelve a publicar.</div></li>
+      <li><div>Listo: a los colaboradores del segmento les aparece en <span class="ui">Encuestas por responder</span> mientras esté vigente. <span class="ui">Abrir página de respuesta</span>, en el menú del constructor, muestra cómo la verán.</div></li>
     </ol>
     <p>Al publicar una versión nueva, la versión publicada anterior pasa a <b>Archivada</b> con sus resultados.</p>
     <h3>Cerrar o archivar</h3>
@@ -338,7 +338,12 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 3px solid var(--ink); 
 
   <section id="resultados">
     <h2><span class="n">11</span>Resultados <span class="who admin">Administrador</span></h2>
-    <p>En la pestaña <span class="ui">Resultados</span> elige la <b>Versión</b> a consultar. Arriba aparecen los indicadores: total de respuestas, tasa de respuesta (contra la audiencia estimada), respuestas pendientes, y fechas de inicio y de cierre con los días que faltan.</p>
+    <p>En la pestaña <span class="ui">Resultados</span> elige la <b>Versión</b> a consultar. Solo se cuentan las respuestas de las personas de tu <b>tramo de control</b>, según el portal. Arriba aparecen los indicadores:</p>
+    <ul>
+      <li>respuestas de tu equipo;</li>
+      <li>tasa de respuesta y respuestas pendientes, contra el número de personas de tu tramo;</li>
+      <li>fechas de inicio y de cierre, con los días que faltan.</li>
+    </ul>
     <ul>
       <li><b>Por pregunta:</b> conteos y porcentajes por opción; promedio y distribución en escalas y números; tabla en matrices; fecha más antigua y más reciente en fechas.</li>
       <li><b>Texto libre:</b> lista de respuestas con buscador.</li>
@@ -350,7 +355,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 3px solid var(--ink); 
   <section id="responder">
     <h2><span class="n">12</span>Responder una encuesta <span class="who colab">Colaborador</span></h2>
     <ol class="steps">
-      <li><div>Abre el enlace que te compartieron.</div></li>
+      <li><div>En Radar entra a <span class="ui">Encuestas</span> de tu segmento: aparecen tus <span class="ui">Encuestas por responder</span>. Elige una y presiona <span class="ui primary">Responder</span>. Al terminar, <span class="ui">Volver</span> regresa a la lista.</div></li>
       <li><div>Contesta las preguntas. Las marcadas con <b style="color:var(--accent)">*</b> son obligatorias. Arriba ves cuántas llevas respondidas.</div></li>
       <li><div>Algunas preguntas aparecen o desaparecen según tus respuestas, y algunas listas cambian sus opciones según lo que elegiste antes.</div></li>
       <li><div>Presiona <span class="ui primary">Enviar respuestas</span>. Si falta algo, la pregunta se marca en rojo con el motivo.</div></li>
@@ -367,12 +372,11 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 3px solid var(--ink); 
     <div class="table-wrap"><table>
       <thead><tr><th>Mensaje</th><th>Motivo</th></tr></thead>
       <tbody>
-        <tr><td>Encuesta no disponible</td><td>No está publicada o se cerró.</td></tr>
+        <tr><td>Encuesta no disponible</td><td>No está publicada, se cerró o es de otro segmento.</td></tr>
         <tr><td>La encuesta aún no inicia</td><td>Todavía no llega su fecha de inicio.</td></tr>
         <tr><td>La encuesta ya cerró</td><td>Pasó su fecha de cierre.</td></tr>
         <tr><td>Inicia sesión para responder</td><td>El portal no te identificó.</td></tr>
         <tr><td>Ya respondiste esta encuesta</td><td>Solo admite una respuesta por persona.</td></tr>
-        <tr><td>Encuesta no disponible para tu perfil</td><td>La encuesta está dirigida a otro grupo.</td></tr>
       </tbody>
     </table></div>
   </section>

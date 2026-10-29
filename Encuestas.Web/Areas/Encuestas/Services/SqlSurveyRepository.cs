@@ -37,27 +37,21 @@ namespace ModuloEncuestas.Services
         private static readonly object TypeLock = new object();
         private static Dictionary<string, int> _questionTypeIds;
 
-        private static readonly Dictionary<string, string> AudienceDimensions = new Dictionary<string, string>
-        {
-            { "Role", "roles" }, { "Segment", "segments" }, { "Region", "regions" }, { "Branch", "branches" }, { "User", "users" }
-        };
+        /// <summary>
+        /// Segmentos del portal: filas de SurveyAudienceRule con esta dimensión. Las filas de la
+        /// segmentación anterior (Role, Region, Branch, User) ya no se usan y se ignoran.
+        /// </summary>
+        private const string SegmentDimension = "Segment";
 
         private readonly string _connectionString;
-        private readonly IOrgCatalogProvider _catalogs;
         private readonly string _userName;
 
         /// <param name="userName">Usuario de la petición (SurveyUser), para CreatedBy/UpdatedBy.</param>
-        public SqlSurveyRepository(string connectionString, IOrgCatalogProvider catalogs, string userName = null)
+        public SqlSurveyRepository(string connectionString, string userName = null)
         {
             if (string.IsNullOrWhiteSpace(connectionString)) throw new ArgumentException("Falta la cadena de conexión 'SurveysDb'.");
             _connectionString = connectionString;
-            _catalogs = catalogs;
             _userName = userName;
-        }
-
-        public OrgCatalogs GetCatalogs()
-        {
-            return _catalogs.GetCatalogs();
         }
 
         // =================================================================
@@ -72,9 +66,13 @@ SELECT SurveyId, Name, Description FROM enc.Survey WHERE IsDeleted = 0 ORDER BY 
 SELECT v.SurveyId, v.SurveyVersionId, v.VersionNumber, v.Status, v.StartDate, v.EndDate, v.AllowMultipleResponses,
        v.IsAnonymous, v.RequiresAuthentication, v.WelcomeMessage, v.ThankYouMessage, v.ResponseCount, v.CreatedAt, v.PublishedAt, v.AudienceMode
 FROM enc.SurveyVersion v JOIN enc.Survey s ON s.SurveyId = v.SurveyId
-WHERE s.IsDeleted = 0 ORDER BY v.SurveyId, v.VersionNumber;";
+WHERE s.IsDeleted = 0 ORDER BY v.SurveyId, v.VersionNumber;
+SELECT a.SurveyVersionId, a.Value
+FROM enc.SurveyAudienceRule a JOIN enc.SurveyVersion v ON v.SurveyVersionId = a.SurveyVersionId JOIN enc.Survey s ON s.SurveyId = v.SurveyId
+WHERE s.IsDeleted = 0 AND a.Dimension = 'Segment' ORDER BY a.AudienceRuleId;";
 
             var surveys = new Dictionary<int, SurveyDto>();
+            var versions = new Dictionary<int, SurveyVersionDto>();
             var ordered = new List<SurveyDto>();
             using (var conn = Open())
             using (var cmd = Command(conn, null, sql))
@@ -90,7 +88,16 @@ WHERE s.IsDeleted = 0 ORDER BY v.SurveyId, v.VersionNumber;";
                 while (r.Read())
                 {
                     SurveyDto s;
-                    if (surveys.TryGetValue(r.GetInt32(0), out s)) s.Versions.Add(ReadVersionHeader(r, 1));
+                    if (!surveys.TryGetValue(r.GetInt32(0), out s)) continue;
+                    var v = ReadVersionHeader(r, 1);
+                    versions[r.GetInt32(1)] = v;
+                    s.Versions.Add(v);
+                }
+                r.NextResult();
+                while (r.Read())
+                {
+                    SurveyVersionDto v;
+                    if (versions.TryGetValue(r.GetInt32(0), out v)) v.Segmentation.Segments.Add(r.GetString(1));
                 }
             }
             return ordered;
@@ -135,9 +142,9 @@ JOIN enc.Question q ON q.QuestionId = r.QuestionId
 LEFT JOIN enc.Question tq ON tq.QuestionId = r.TargetQuestionId
 " + versionFilter + @" ORDER BY r.QuestionId, r.SortOrder;
 
-SELECT a.SurveyVersionId, a.Dimension, a.Value
+SELECT a.SurveyVersionId, a.Value
 FROM enc.SurveyAudienceRule a JOIN enc.SurveyVersion v ON v.SurveyVersionId = a.SurveyVersionId
-WHERE v.SurveyId = @SurveyId ORDER BY a.AudienceRuleId;";
+WHERE v.SurveyId = @SurveyId AND a.Dimension = 'Segment' ORDER BY a.AudienceRuleId;";
 
             var versions = new Dictionary<int, SurveyVersionDto>();
             var questions = new Dictionary<int, QuestionDto>();
@@ -229,14 +236,12 @@ WHERE v.SurveyId = @SurveyId ORDER BY a.AudienceRuleId;";
                     });
                 }
 
-                // Segmentación
+                // Segmentos del portal
                 r.NextResult();
                 while (r.Read())
                 {
                     SurveyVersionDto v;
-                    string list;
-                    if (!versions.TryGetValue(r.GetInt32(0), out v) || !AudienceDimensions.TryGetValue(r.GetString(1), out list)) continue;
-                    AudienceList(v.Segmentation, list).Add(r.GetString(2));
+                    if (versions.TryGetValue(r.GetInt32(0), out v)) v.Segmentation.Segments.Add(r.GetString(1));
                 }
             }
             return survey;
@@ -500,17 +505,14 @@ VALUES (@Q, @Op, @Value, @Action, @Target, @Sort);",
                 }
             }
 
-            // 4) Segmentación (sin filas = todos los colaboradores).
+            // 4) Segmentos del portal (sin filas = la encuesta aparece en cualquier segmento).
             var seg = v.Segmentation ?? new SegmentationDto();
             if (seg.Mode == "segmented")
             {
-                foreach (var dim in AudienceDimensions)
+                foreach (var value in (seg.Segments ?? new List<string>()).Distinct(StringComparer.OrdinalIgnoreCase))
                 {
-                    foreach (var value in AudienceList(seg, dim.Value).Distinct())
-                    {
-                        Command(conn, tx, "INSERT INTO enc.SurveyAudienceRule (SurveyVersionId, Dimension, Value) VALUES (@V, @D, @Value);",
-                            "@V", versionId, "@D", dim.Key, "@Value", value).ExecuteNonQuery();
-                    }
+                    Command(conn, tx, "INSERT INTO enc.SurveyAudienceRule (SurveyVersionId, Dimension, Value) VALUES (@V, @D, @Value);",
+                        "@V", versionId, "@D", SegmentDimension, "@Value", value).ExecuteNonQuery();
                 }
             }
         }
@@ -748,7 +750,7 @@ ORDER BY r.SubmittedAt DESC, r.SurveyResponseId DESC;", parameters.ToArray()).Ex
             var result = new List<ResponseRecordDto>();
             var sql = @"
 SELECT r.SurveyResponseId, r.SubmittedAt, q.ClientKey AS QKey, t.Code, o.ClientKey AS OKey, mr.ClientKey AS RowKey,
-       d.ClientKey AS DKey, a.TextValue, a.NumberValue, a.DateValue
+       d.ClientKey AS DKey, a.TextValue, a.NumberValue, a.DateValue, r.UserHash
 FROM enc.SurveyResponse r
 LEFT JOIN enc.QuestionResponse a ON a.SurveyResponseId = r.SurveyResponseId
 LEFT JOIN enc.Question q ON q.QuestionId = a.QuestionId
@@ -773,7 +775,8 @@ ORDER BY r.SurveyResponseId, a.QuestionResponseId;";
                         {
                             Id = responseId.ToString(CultureInfo.InvariantCulture),
                             SubmittedAt = r.GetDateTime(1).ToString("s", CultureInfo.InvariantCulture),
-                            Answers = new Dictionary<string, AnswerDto>()
+                            Answers = new Dictionary<string, AnswerDto>(),
+                            UserHash = Str(r, 10)
                         };
                         result.Add(current);
                     }
@@ -910,18 +913,6 @@ ORDER BY r.SurveyResponseId, a.QuestionResponseId;";
         {
             if (q.Dependent == null) q.Dependent = new DependentDto();
             return q.Dependent;
-        }
-
-        private static List<string> AudienceList(SegmentationDto seg, string name)
-        {
-            switch (name)
-            {
-                case "roles": return seg.Roles ?? (seg.Roles = new List<string>());
-                case "segments": return seg.Segments ?? (seg.Segments = new List<string>());
-                case "regions": return seg.Regions ?? (seg.Regions = new List<string>());
-                case "branches": return seg.Branches ?? (seg.Branches = new List<string>());
-                default: return seg.Users ?? (seg.Users = new List<string>());
-            }
         }
 
         /// <summary>Lee las columnas de SurveyVersion empezando en 'offset' (SurveyVersionId).</summary>

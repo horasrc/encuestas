@@ -1,0 +1,55 @@
+﻿@* SOLO PRUEBAS: simula la página de Radar que carga los módulos como vistas parciales.
+   A propósito usa estilos agresivos (.btn blanco y transparente) como el portal real, y dos formas
+   de insertar la vista parcial: jQuery .html() (ejecuta scripts) e innerHTML (no los ejecuta). *@
+@{
+    Layout = null;
+    var usuario = Request.Cookies["rp-usuario"] == null ? "" : Request.Cookies["rp-usuario"].Value;
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Radar (prueba)</title>
+    <link href="@Url.Content("~/Areas/Encuestas/Content/lib/bootstrap-5.2.3/css/bootstrap.min.css")" rel="stylesheet" />
+    <style>
+        /* Como el portal: todos los .btn blancos sobre fondo transparente y h1 centrados. */
+        .btn { color: #fff !important; background: transparent !important; border-color: #fff !important; }
+        h1 { text-align: center; }
+        body { background: #1d2b3a; color: #fff; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark px-3" style="background:#0b1621;">
+        <span class="navbar-brand">Radar (prueba)</span>
+        <div class="d-flex flex-wrap gap-2 align-items-center small">
+            <span>Usuario simulado: <strong id="rpUsuario">@(usuario == "" ? "(Windows)" : usuario)</strong></span>
+            <a class="link-light" href="@Url.Action("ComoUsuario", new { usuario = "jefe" })">jefe</a>
+            <a class="link-light" href="@Url.Action("ComoUsuario", new { usuario = "ana" })">ana</a>
+            <a class="link-light" href="@Url.Action("ComoUsuario", new { usuario = "beto" })">beto</a>
+            <a class="link-light" href="@Url.Action("ComoUsuario", new { usuario = "" })">Windows</a>
+        </div>
+    </nav>
+    <div class="px-3 py-2 d-flex flex-wrap gap-2">
+        <button type="button" class="btn btn-sm" data-segmento="PIPB">Encuestas · PIPB</button>
+        <button type="button" class="btn btn-sm" data-segmento="Empresarial">Encuestas · Empresarial</button>
+        <button type="button" class="btn btn-sm" data-segmento="PIPB" data-vista="responder">Por responder · PIPB</button>
+        <button type="button" class="btn btn-sm" data-segmento="PIPB" data-inner="1">PIPB con innerHTML</button>
+        <button type="button" class="btn btn-sm" data-otro="1">Otro módulo</button>
+    </div>
+    <div id="contenido" class="px-3"></div>
+
+    <script src="@Url.Content("~/Areas/Encuestas/Content/lib/jquery-3.7.1/jquery.min.js")"></script>
+    <script>
+        // Como el portal: pide la vista parcial y la pone en #contenido.
+        $(document).on('click', '[data-segmento], [data-otro]', function () {
+            var $b = $(this);
+            if ($b.data('otro')) { $('#contenido').html('<h1>Mi tubería</h1><p>Otro módulo del portal.</p>'); return; }
+            $.get('@Url.Action("Encuestas")', { segmento: $b.data('segmento'), vista: $b.data('vista') || '' }).done(function (html) {
+                if ($b.data('inner')) document.getElementById('contenido').innerHTML = html;
+                else $('#contenido').html(html);
+            });
+        });
+    </script>
+</body>
+</html>

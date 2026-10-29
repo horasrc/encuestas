@@ -4,18 +4,6 @@ using System.Linq;
 using ModuloEncuestas.Models.Dto;
 using ModuloEncuestas.Services;
 
-class TestCatalogs : IOrgCatalogProvider
-{
-    public OrgCatalogs GetCatalogs()
-    {
-        var c = new DemoOrgCatalogProvider().GetCatalogs();
-        var copy = new OrgCatalogs { Roles = c.Roles, Segments = c.Segments, Regions = c.Regions, Branches = c.Branches };
-        copy.Users.Add(new UserItem { Id = "u1", Login = "DOM\\gerente", Name = "Gerente", RoleId = "gerentes", BranchId = "b01" });
-        copy.Users.Add(new UserItem { Id = "u2", Login = "DOM\\ejecutivo", Name = "Ejecutivo", RoleId = "ejecutivos", BranchId = "b01" });
-        return copy;
-    }
-}
-
 class ServiceTest
 {
     static int failures = 0;
@@ -30,8 +18,7 @@ class ServiceTest
 
     static void Main()
     {
-        var catalogs = new DemoOrgCatalogProvider();
-        var service = new SurveyService(new InMemorySurveyRepository(catalogs));
+        var service = new SurveyService(new InMemorySurveyRepository());
 
         // 1. Crear
         var created = service.CreateSurvey(new CreateSurveyRequest { Name = "Prueba lógica" });
@@ -107,11 +94,6 @@ class ServiceTest
         var published = service.GetPublished(survey.Id);
         Check("Published: solo la versión publicada, sin segmentación", published.Versions.Count == 1 && published.Versions[0].Segmentation == null);
 
-        // 10. Audiencia
-        var seg = new SegmentationDto { Mode = "segmented", Roles = { "gerentes" } };
-        Check("Audiencia: usuario desconocido fuera", !service.IsInAudience(seg, "DOM\\nadie"));
-        Check("Audiencia: modo todos", service.IsInAudience(new SegmentationDto(), "DOM\\nadie"));
-
         // 11. Elegibilidad
         var el = service.GetEligibility(survey.Id, "DOM\\repetido");
         Check("Elegibilidad: ya respondió", !el.CanRespond && el.Code == "alreadyResponded", el.Code);
@@ -121,21 +103,6 @@ class ServiceTest
         Check("Elegibilidad: requiere autenticación", !el.CanRespond && el.Code == "authRequired", el.Code);
         el = service.GetEligibility("999", "DOM\\x");
         Check("Elegibilidad: encuesta inexistente", !el.CanRespond && el.Code == "unavailable", el.Code);
-
-        // 12. Audiencia con EnforceAudience y usuario del catálogo con Login
-        var cats = new TestCatalogs();
-        var strict = new SurveyService(new InMemorySurveyRepository(cats), new SurveyServiceOptions { EnforceAudience = true });
-        var s2 = strict.CreateSurvey(new CreateSurveyRequest { Name = "Solo gerentes" }).Data;
-        var v2 = s2.Versions[0];
-        v2.Segmentation = new SegmentationDto { Mode = "segmented", Roles = { "gerentes" } };
-        v2.Questions = new List<QuestionDto> { new QuestionDto { Id = "g1", Order = 1, Type = "yesNo", Text = "¿Ok?", Options = { O("y", "Sí"), O("n", "No") } } };
-        strict.SaveDraft(new SaveDraftRequest { SurveyId = s2.Id, Version = v2 });
-        strict.Publish(new VersionActionRequest { SurveyId = s2.Id, VersionId = v2.Id });
-        Check("Audiencia: gerente puede", strict.GetEligibility(s2.Id, "DOM\\gerente").CanRespond);
-        el = strict.GetEligibility(s2.Id, "dom\\EJECUTIVO");
-        Check("Audiencia: ejecutivo fuera (login sin distinguir mayúsculas)", !el.CanRespond && el.Code == "notInAudience", el.Code);
-        var sub = strict.Submit(new SubmitResponseDto { SurveyId = s2.Id, VersionId = v2.Id, Answers = new Dictionary<string, AnswerDto> { { "g1", Opt("y") } } }, "DOM\\ejecutivo");
-        Check("Audiencia: Submit también rechaza", !sub.Ok, sub.Message);
 
         // 13. Duplicar y eliminar
         var dup = service.DuplicateSurvey(survey.Id);
@@ -151,7 +118,7 @@ class ServiceTest
         Check("Eliminar sin respuestas: ok", del.Ok && service.GetSurvey(dup.Data.Id) == null, del.Message);
 
         // 14. Bitácora de cambios
-        var audited = new SurveyService(new InMemorySurveyRepository(catalogs), new SurveyServiceOptions { UserName = "DOM\\admin" });
+        var audited = new SurveyService(new InMemorySurveyRepository(), new SurveyServiceOptions { UserName = "DOM\\admin" });
         var s3 = audited.CreateSurvey(new CreateSurveyRequest { Name = "Con bitácora" }).Data;
         var v3 = s3.Versions[0];
         v3.Questions = new List<QuestionDto> { new QuestionDto { Id = "b1", Order = 1, Type = "yesNo", Text = "¿Ok?", Options = { O("y", "Sí"), O("n", "No") } } };
@@ -163,7 +130,7 @@ class ServiceTest
         Check("Bitácora: acciones en orden (más reciente primero)", actions == "closed,published,saved,created", actions);
         Check("Bitácora: usuario registrado", history.All(h => h.UserName == "DOM\\admin"), history.First().UserName);
         Check("Bitácora: detalle legible", history.Last().Detail.Contains("Con bitácora") && history[1].Detail.StartsWith("Publicó la versión 1"), history[1].Detail);
-        var anonymousService = new SurveyService(new InMemorySurveyRepository(catalogs));
+        var anonymousService = new SurveyService(new InMemorySurveyRepository());
         var s4 = anonymousService.CreateSurvey(new CreateSurveyRequest { Name = "Sin usuario" }).Data;
         Check("Bitácora: sin usuario => 'sistema'", anonymousService.GetHistory(s4.Id).Single().UserName == "sistema");
         Check("Bitácora: separada por encuesta", audited.GetHistory(s4.Id).Count == 1 && audited.GetHistory(s3.Id).Count == 4);
@@ -178,8 +145,9 @@ class ServiceTest
             == "SELECT e.encuesta FROM [IC].Survey s JOIN [IC].SurveyVersion v ON 1=1");
         Check("Esquema: con enc no cambia nada", SurveySchema.Apply("FROM enc.Survey", "enc") == "FROM enc.Survey");
 
-        CascadeTests(catalogs);
-        IdentifierTests(catalogs);
+        CascadeTests();
+        IdentifierTests();
+        ScopeTests();
         CitasIcsTests();
 
         Console.WriteLine(failures == 0 ? "TODAS LAS PRUEBAS PASARON" : failures + " FALLAS");
@@ -188,9 +156,71 @@ class ServiceTest
     static OptionDto O(string id, string t, string parent) { return new OptionDto { Id = id, Text = t, ParentId = parent }; }
 
     // Desplegable cuyas opciones dependen de lo elegido en otro desplegable
-    static void CascadeTests(IOrgCatalogProvider catalogs)
+    // Tramo de control del portal: segmentos y equipo (SurveyAccess -> SurveyServiceOptions)
+    static void ScopeTests()
     {
-        var service = new SurveyService(new InMemorySurveyRepository(catalogs));
+        Func<string, IList<string>, IList<string>, SurveyService> svc = (segment, allowed, team) => new SurveyService(new InMemorySurveyRepository(),
+            new SurveyServiceOptions { UserName = "DOM\\jefe", Segment = segment, AllowedSegments = allowed, Team = team });
+
+        var pipb = svc("PIPB", null, null);
+        var s = pipb.CreateSurvey(new CreateSurveyRequest { Name = "Solo PIPB" }).Data;
+        Check("Segmento: la encuesta nueva queda en el segmento", s.Versions[0].Segmentation.Mode == "segmented" && s.Versions[0].Segmentation.Segments.SequenceEqual(new[] { "PIPB" }));
+        // Lo que manda el navegador es una copia (el repositorio en memoria devuelve el objeto guardado).
+        var v = new SurveyVersionDto
+        {
+            Id = s.Versions[0].Id,
+            Settings = new PublishSettingsDto { AllowMultipleResponses = true, RequireAuth = true },
+            Segmentation = new SegmentationDto(), // el navegador no puede quitar el segmento
+            Questions = new List<QuestionDto> { new QuestionDto { Id = "p1", Order = 1, Type = "yesNo", Text = "¿Ok?", Required = true, Options = { O("y", "Sí"), O("n", "No") } } }
+        };
+        pipb.SaveDraft(new SaveDraftRequest { SurveyId = s.Id, Version = v });
+        pipb.Publish(new VersionActionRequest { SurveyId = s.Id, VersionId = v.Id });
+        Check("Segmento: guardar no cambia el segmento", pipb.GetSurvey(s.Id).Versions[0].Segmentation.Segments.SequenceEqual(new[] { "PIPB" }));
+
+        var otro = svc("Empresarial", null, null);
+        Check("Segmento: no aparece en otro segmento (listado)", !otro.GetSurveyList().Any(x => x.Id == s.Id) && pipb.GetSurveyList().Any(x => x.Id == s.Id));
+        Check("Segmento: en otro segmento es 'no existe'", otro.GetSurvey(s.Id) == null && !otro.GetEligibility(s.Id, "DOM\\x").CanRespond);
+        var bad = otro.Submit(new SubmitResponseDto { SurveyId = s.Id, VersionId = v.Id, Answers = new Dictionary<string, AnswerDto> { { "p1", Opt("y") } } }, "DOM\\x");
+        Check("Segmento: Submit desde otro segmento rechazado", !bad.Ok, bad.Message);
+        Check("Segmento: sin segmento pero con segmentos permitidos", svc(null, new[] { "pipb" }, null).GetSurvey(s.Id) != null
+            && svc(null, new[] { "Empresarial" }, null).GetSurvey(s.Id) == null);
+        Check("Segmento: sin restricciones ve todo", svc(null, null, null).GetSurvey(s.Id) != null);
+
+        Check("Pendientes: aparece para quien no ha respondido", pipb.GetPending("DOM\\a").Any(x => x.Id == s.Id) && !otro.GetPending("DOM\\a").Any(x => x.Id == s.Id));
+
+        foreach (var user in new[] { "DOM\\a", "DOM\\b", "DOM\\c" })
+        {
+            var r = pipb.Submit(new SubmitResponseDto { SurveyId = s.Id, VersionId = v.Id, Answers = new Dictionary<string, AnswerDto> { { "p1", Opt("y") } } }, user);
+            Check("Tramo: respuesta de " + user, r.Ok, r.Message + string.Join(";", r.Errors));
+        }
+        var all = pipb.GetResults(s.Id, v.Id);
+        Check("Tramo: sin equipo ve todas", all.Responses.Count == 3 && all.Audience == 0, all.Responses.Count + "/" + all.Audience);
+        var mine = svc("PIPB", null, new[] { "dom\\A", " DOM\\b ", "DOM\\zz" }).GetResults(s.Id, v.Id);
+        Check("Tramo: solo las de su equipo (sin distinguir mayúsculas)", mine.Responses.Count == 2 && mine.Audience == 3, mine.Responses.Count + "/" + mine.Audience);
+        Check("Tramo: el hash no se envía al navegador", !Newtonsoft.Json.JsonConvert.SerializeObject(mine).Contains("UserHash"));
+        Check("Tramo: equipo vacío no ve respuestas", svc("PIPB", null, new string[0]).GetResults(s.Id, v.Id).Responses.Count == 0);
+
+        var single = pipb.CreateSurvey(new CreateSurveyRequest { Name = "Una vez" }).Data;
+        var sv = single.Versions[0];
+        sv.Questions = new List<QuestionDto> { new QuestionDto { Id = "u1", Order = 1, Type = "yesNo", Text = "¿Ok?", Options = { O("y", "Sí"), O("n", "No") } } };
+        pipb.SaveDraft(new SaveDraftRequest { SurveyId = single.Id, Version = sv });
+        pipb.Publish(new VersionActionRequest { SurveyId = single.Id, VersionId = sv.Id });
+        pipb.Submit(new SubmitResponseDto { SurveyId = single.Id, VersionId = sv.Id, Answers = new Dictionary<string, AnswerDto> { { "u1", Opt("y") } } }, "DOM\\a");
+        Check("Pendientes: ya respondida (una respuesta) no aparece", !pipb.GetPending("DOM\\a").Any(x => x.Id == single.Id) && pipb.GetPending("DOM\\b").Any(x => x.Id == single.Id));
+
+        var copy = otro.DuplicateSurvey(s.Id);
+        Check("Duplicar desde otro segmento: no existe", !copy.Ok);
+        copy = svc("Empresarial", null, null).DuplicateSurvey(single.Id);
+        Check("Duplicar: no encuentra la de otro segmento", !copy.Ok);
+        var dup = pipb.DuplicateSurvey(s.Id);
+        var nv = pipb.CreateVersion(new VersionActionRequest { SurveyId = s.Id, VersionId = v.Id });
+        Check("Duplicar y nueva versión conservan el segmento", dup.Ok && dup.Data.Versions[0].Segmentation.Segments.SequenceEqual(new[] { "PIPB" })
+            && nv.Data.Versions.All(x => x.Segmentation.Segments.SequenceEqual(new[] { "PIPB" })));
+    }
+
+    static void CascadeTests()
+    {
+        var service = new SurveyService(new InMemorySurveyRepository());
         var s = service.CreateSurvey(new CreateSurveyRequest { Name = "Cascada" }).Data;
         var v = s.Versions[0];
         v.Settings.AllowMultipleResponses = true;
@@ -232,9 +262,9 @@ class ServiceTest
     }
 
     // Identificador (ej. número de cliente): recupera la última captura, aunque sea de otra versión
-    static void IdentifierTests(IOrgCatalogProvider catalogs)
+    static void IdentifierTests()
     {
-        var service = new SurveyService(new InMemorySurveyRepository(catalogs));
+        var service = new SurveyService(new InMemorySurveyRepository());
         var s = service.CreateSurvey(new CreateSurveyRequest { Name = "Visitas" }).Data;
         var v = s.Versions[0];
         v.Settings.AllowMultipleResponses = true;

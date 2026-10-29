@@ -8,7 +8,9 @@
 
   En la base del PORTAL (solo crea el esquema enc y sus tablas; no toca nada del portal):
       powershell -ExecutionPolicy Bypass -File tools\setup-db.ps1 -Server "SQLPROD01\PORTAL" -Database BasePortal -NoSamples
-      (agrega -NoOrgTables si los catálogos de la organización serán vistas sobre tablas del portal)
+
+  Ya no se crean tablas Org*: quién administra, quién responde y el tramo de control los
+  decide el portal (ModuloEncuestas.Infrastructure.SurveyAccess).
 
   Si las tablas ya existen, solo aplica Database\upgrade-*.sql (todas son re-ejecutables).
 
@@ -23,7 +25,6 @@ param(
     [string]$Server = '(localdb)\MSSQLLocalDB',
     [string]$Database = 'PortalEncuestas',
     [switch]$NoSamples,
-    [switch]$NoOrgTables,
     [switch]$Recreate,
     [string]$Schema = 'enc',
     [switch]$SinLlavesForaneas
@@ -92,19 +93,16 @@ if ($Schema -eq 'enc' -and (Scalar $target "SELECT OBJECT_ID('dbo.SurveyVersion'
 }
 
 $hasSurvey = [bool](Scalar $target "SELECT OBJECT_ID('$Schema.Survey')")
-$hasOrg = [bool](Scalar $target "SELECT OBJECT_ID('$Schema.OrgUser')")
 
 $steps = @()
 if (-not $hasSurvey) { $steps += 'schema.sql'; if (-not $NoSamples) { $steps += 'seed.sql' } }
 else { $steps += (Get-ChildItem $db -Filter 'upgrade-*.sql' | Where-Object { $Schema -eq 'enc' -or $_.Name -ne 'upgrade-003-esquema-enc.sql' } | Sort-Object Name | ForEach-Object Name) }
-if (-not $hasOrg -and -not $NoOrgTables) { $steps += 'org-schema.sql'; if (-not $NoSamples) { $steps += 'org-seed.sql' } }
 
 foreach ($s in $steps) {
     Write-Host "Ejecutando $s..."
     Invoke-Batches $target (Join-Path $db $s)
 }
 if ($hasSurvey) { Write-Host 'Las tablas ya existían; solo se aplicaron actualizaciones.' }
-if ($NoOrgTables -and -not $hasOrg) { Write-Host "Sin tablas Org*: crea las vistas $Schema.Org* sobre las tablas del portal (ver INTEGRACION.md)." -ForegroundColor Yellow }
 
 Write-Host ''
 Write-Host "Listo. Tablas del módulo en $Database (esquema $Schema)." -ForegroundColor Green

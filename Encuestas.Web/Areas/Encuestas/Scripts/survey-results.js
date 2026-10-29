@@ -67,18 +67,22 @@ var SurveyResults = (function ($) {
     function renderKpis() {
         var d = current.data;
         var total = d.responses.length;
-        var rate = U.percent(total, d.audience);
-        var pending = Math.max(d.audience - total, 0);
+        // audience = personas del tramo de control que indica el portal (0 = no se conoce: sin tasa ni pendientes).
+        var team = d.audience || 0;
+        var rate = U.percent(total, team);
+        var pending = Math.max(team - total, 0);
         var daysLeft = '';
         if (d.endDate) {
             var diff = Math.ceil((new Date(d.endDate + 'T23:59:59') - new Date()) / 86400000);
             daysLeft = '<div class="small text-muted">' + (diff >= 0 ? 'Faltan ' + diff + ' días' : 'Finalizó') + '</div>';
         }
         $('#resultsKpis').html(
-            kpi('bi-people', 'Total de respuestas', total.toLocaleString('es-MX')) +
-            kpi('bi-graph-up-arrow', 'Tasa de respuesta', rate + '%',
-                '<div class="progress sv-kpi-progress" role="progressbar" aria-label="Tasa de respuesta" aria-valuenow="' + rate + '" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar" style="width:' + Math.min(rate, 100) + '%"></div></div>') +
-            kpi('bi-hourglass-split', 'Respuestas pendientes', pending.toLocaleString('es-MX'), '<div class="small text-muted">de ' + d.audience.toLocaleString('es-MX') + ' en la audiencia</div>') +
+            kpi('bi-people', team ? 'Respuestas de tu equipo' : 'Total de respuestas', total.toLocaleString('es-MX')) +
+            (team
+                ? kpi('bi-graph-up-arrow', 'Tasa de respuesta', rate + '%',
+                    '<div class="progress sv-kpi-progress" role="progressbar" aria-label="Tasa de respuesta" aria-valuenow="' + rate + '" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar" style="width:' + Math.min(rate, 100) + '%"></div></div>') +
+                  kpi('bi-hourglass-split', 'Respuestas pendientes', pending.toLocaleString('es-MX'), '<div class="small text-muted">de ' + team.toLocaleString('es-MX') + ' en tu tramo de control</div>')
+                : '') +
             kpi('bi-calendar-event', 'Fecha de inicio', esc(U.formatDate(d.startDate))) +
             kpi('bi-calendar-check', 'Fecha de cierre', esc(U.formatDate(d.endDate)), daysLeft)
         );

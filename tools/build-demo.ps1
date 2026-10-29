@@ -55,6 +55,9 @@ function Expand-Razor([string]$text) {
     $text = [regex]::Replace($text, '<a class="nav-link@\(areaActual == "Encuestas"[^\r\n]*?>', '<a class="nav-link active" aria-current="page" href="demo-index.html">')
     $text = [regex]::Replace($text, '[ \t]*<a class="nav-link@\(areaActual == "Citas"[^\r\n]*</a>\r?\n', '')
     $text = $text.Replace('@Url.Action("Index", "Encuestas", new { area = "Encuestas" })', 'demo-index.html')
+    # "Por responder" y el modo marco (embed) solo existen con el servidor y el portal.
+    $text = [regex]::Replace($text, '[ \t]*<a [^>]*@Url\.Action\("Pendientes"[\s\S]*?</a>\r?\n', '')
+    $text = [regex]::Replace($text, '[ \t]*@if \(Model\.Embedded\)\r?\n[ \t]*\{[\s\S]*?\r?\n[ \t]*\}\r?\n', '')
     return $text
 }
 
