@@ -290,6 +290,25 @@ class ServiceTest
         var conFecha = new SurveyVersionDto { Id = "vf", Questions = new List<QuestionDto> { fecha } };
         var fc = SurveyVersionCloner.Clone(conFecha, 2).Questions.Single();
         Check("Outlook: la opción y el asunto se conservan al crear versión", fc.Outlook && fc.OutlookSubject == "Visita");
+
+        // Hora de la cita: se guarda solo en fechas con Outlook y con formato HH:mm.
+        var sinCita = new QuestionDto { Id = "g", Order = 10, Type = "date", Text = "Otra fecha" };
+        var horas = new SurveyVersionDto { Id = "vh", Questions = new List<QuestionDto> { fecha, sinCita } };
+        Dictionary<string, AnswerDto> accepted;
+        var errs = SurveyLogic.ValidateSubmission(horas, new Dictionary<string, AnswerDto>
+        {
+            { "f", new AnswerDto { Date = "2026-11-05", Time = "09:30" } },
+            { "g", new AnswerDto { Date = "2026-11-06", Time = "10:00" } }
+        }, out accepted);
+        Check("Hora: se acepta en fecha con Outlook", errs.Count == 0 && accepted["f"].Time == "09:30", string.Join("; ", errs));
+        Check("Hora: se descarta en fecha sin Outlook", accepted["g"].Time == null && accepted["g"].Date == "2026-11-06");
+        errs = SurveyLogic.ValidateSubmission(horas, new Dictionary<string, AnswerDto> { { "f", new AnswerDto { Date = "2026-11-05", Time = "25:00" } } }, out accepted);
+        Check("Hora: inválida rechazada", errs.Any(e => e.Contains("hora válida")), string.Join("; ", errs));
+        errs = SurveyLogic.ValidateSubmission(horas, new Dictionary<string, AnswerDto> { { "f", new AnswerDto { Date = "2026-11-05", Time = " " } } }, out accepted);
+        Check("Hora: vacía = sin hora", errs.Count == 0 && accepted["f"].Time == null, string.Join("; ", errs));
+        var copia = SurveyVersionCloner.Clone(horas, 3);
+        var mapped = SurveyService.MapAnswers(horas, copia, new Dictionary<string, AnswerDto> { { "f", new AnswerDto { Date = "2026-11-05", Time = "09:30" } } });
+        Check("Hora: se conserva al precargar en otra versión", mapped.Values.Single().Time == "09:30");
     }
 
     // Citas -> archivo .ics para Outlook (Areas/Citas/Services/CalendarioIcs.cs)

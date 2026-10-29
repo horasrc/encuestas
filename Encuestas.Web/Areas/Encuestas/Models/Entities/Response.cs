@@ -34,7 +34,7 @@ namespace ModuloEncuestas.Models.Entities
     /// Modelo "EAV" de respuestas: una fila por valor respondido.
     /// - Opción única / Sí-No / Desplegable: 1 fila con QuestionOptionId.
     /// - Selección múltiple: 1 fila por opción marcada; "Otro" = fila con TextValue y QuestionOptionId NULL.
-    /// - Texto: TextValue. Número / Escala: NumberValue. Fecha: DateValue.
+    /// - Texto: TextValue. Número / Escala: NumberValue. Fecha: DateValue (+ hora "HH:mm" en TextValue si es cita para Outlook).
     /// - Matriz: 1 fila por celda marcada (MatrixRowOptionId + QuestionOptionId de la columna).
     /// - Dependiente: 1 fila por nodo seleccionado (DependentOptionId).
     /// Así nunca se crean columnas pregunta1, pregunta2, ...

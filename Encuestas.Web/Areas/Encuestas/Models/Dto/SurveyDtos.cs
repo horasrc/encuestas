@@ -223,6 +223,9 @@ namespace ModuloEncuestas.Models.Dto
         public decimal? Number { get; set; }
         public string Date { get; set; }
 
+        /// <summary>Fecha con cita para Outlook: hora opcional "HH:mm" (se guarda en TextValue de la fila de la fecha).</summary>
+        public string Time { get; set; }
+
         /// <summary>Matriz: rowId -> columnas seleccionadas.</summary>
         public Dictionary<string, List<string>> Matrix { get; set; }
     }

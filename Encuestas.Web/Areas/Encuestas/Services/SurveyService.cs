@@ -514,7 +514,7 @@ namespace ModuloEncuestas.Services
 
         private static AnswerDto MapAnswer(QuestionDto source, QuestionDto target, AnswerDto a)
         {
-            var result = new AnswerDto { Text = a.Text, Number = a.Number, Date = a.Date };
+            var result = new AnswerDto { Text = a.Text, Number = a.Number, Date = a.Date, Time = target.Outlook ? a.Time : null };
             if (a.OptionIds != null)
             {
                 result.OptionIds = new List<string>();

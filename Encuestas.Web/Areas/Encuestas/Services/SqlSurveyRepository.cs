@@ -654,7 +654,8 @@ SELECT d.QuestionId, d.ClientKey, d.DependentOptionId FROM enc.DependentOption d
                     break;
                 case "date":
                     var date = ParseDate(a.Date);
-                    if (date != null) InsertAnswerRow(conn, tx, responseId, q.QuestionId, null, null, null, null, null, (DateTime)date);
+                    // La hora (cita para Outlook) va en TextValue de la misma fila: no requiere columna nueva.
+                    if (date != null) InsertAnswerRow(conn, tx, responseId, q.QuestionId, null, null, null, a.Time, null, (DateTime)date);
                     break;
                 case "matrix":
                     foreach (var row in a.Matrix ?? new Dictionary<string, List<string>>())
@@ -809,6 +810,7 @@ ORDER BY r.SurveyResponseId, a.QuestionResponseId;";
                     break;
                 case "date":
                     if (!r.IsDBNull(9)) a.Date = r.GetDateTime(9).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                    a.Time = text;
                     break;
                 case "matrix":
                     if (rowKey == null || optionKey == null) break;

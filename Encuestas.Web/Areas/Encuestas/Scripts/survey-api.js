@@ -476,7 +476,7 @@ var SurveyApi = (function ($) {
             var a = src && answers[src.id];
             if (!a) return;
             used[src.id] = true;
-            var m = { text: a.text, number: a.number, date: a.date };
+            var m = { text: a.text, number: a.number, date: a.date, time: t.outlook ? a.time : undefined };
             if (a.optionIds) {
                 m.optionIds = [];
                 $.each(a.optionIds, function (_, id) {

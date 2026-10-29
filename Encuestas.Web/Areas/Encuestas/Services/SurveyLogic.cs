@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 using ModuloEncuestas.Models.Dto;
 
 namespace ModuloEncuestas.Services
@@ -173,6 +174,8 @@ namespace ModuloEncuestas.Services
                     DateTime date;
                     if (!DateTime.TryParseExact(a.Date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
                         return "Ingresa una fecha válida.";
+                    if (a.Time != null && !Regex.IsMatch(a.Time, "^([01][0-9]|2[0-3]):[0-5][0-9]$"))
+                        return "Ingresa una hora válida.";
                     break;
                 case "matrix":
                     var rows = q.Matrix != null ? q.Matrix.Rows : new List<OptionDto>();
@@ -266,6 +269,8 @@ namespace ModuloEncuestas.Services
                     break;
                 case "date":
                     result.Date = a.Date;
+                    // La hora solo se pide en fechas con cita para Outlook; vacía = sin hora.
+                    if (q.Outlook && !string.IsNullOrWhiteSpace(a.Time)) result.Time = a.Time.Trim();
                     break;
                 case "matrix":
                     var rowIds = q.Matrix == null ? new HashSet<string>() : new HashSet<string>(q.Matrix.Rows.Select(r => r.Id));

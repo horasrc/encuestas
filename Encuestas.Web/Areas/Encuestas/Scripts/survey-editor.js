@@ -242,9 +242,9 @@ var SurveyEditor = (function ($) {
     function outlookSection(q) {
         return '<div class="sv-outlook mt-3">' +
             switchControl('edOutlook', 'outlook', !!q.outlook, 'Ofrecer enviar la cita a Outlook', true) +
-            '<div class="form-text">Junto a la fecha aparece la casilla <strong>Agregar a mi calendario de Outlook</strong> y una hora opcional. ' +
-            'Al enviar, se descarga la cita (.ics); al abrirla, Outlook la muestra llena y se guarda con «Guardar y cerrar». ' +
-            'Solo se genera si la fecha es hoy o futura. La hora no se guarda en las respuestas.</div>' +
+            '<div class="form-text">Junto a la fecha aparecen una hora opcional (se guarda con la respuesta) y la casilla ' +
+            '<strong>Agregar a mi calendario de Outlook</strong>. Al enviar, se descarga la cita (.ics); al abrirla, Outlook la muestra ' +
+            'llena y se guarda con «Guardar y cerrar». Solo se genera si la fecha es hoy o futura.</div>' +
             (q.outlook
                 ? '<label class="form-label mt-2" for="edOutlookSubject">Asunto de la cita</label>' +
                   '<input type="text" id="edOutlookSubject" class="form-control form-control-sm" data-field="outlookSubject" maxlength="200" value="' +

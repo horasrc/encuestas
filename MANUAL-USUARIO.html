@@ -217,11 +217,12 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 3px solid var(--ink); 
     <h3 id="cita-outlook">Fecha con cita para Outlook</h3>
     <p>En una pregunta de <b>Fecha</b> (por ejemplo «¿Cuándo es la próxima visita?») activa <span class="ui">Ofrecer enviar la cita a Outlook</span>. Opcionalmente escribe el <span class="ui">Asunto de la cita</span>; si lo dejas vacío se usa el texto de la pregunta.</p>
     <ul>
-      <li>Quien responde ve, debajo de la fecha, la casilla <span class="ui">Agregar a mi calendario de Outlook al enviar</span> (marcada) y una <b>hora opcional</b>.</li>
+      <li>Quien responde ve, debajo de la fecha, una <b>hora opcional</b> y la casilla <span class="ui">Agregar a mi calendario de Outlook al enviar</span> (marcada). La hora se guarda con la respuesta aunque se desmarque la casilla, y aparece en Resultados y en el CSV.</li>
       <li>Al enviar se descarga la cita (archivo <b>.ics</b>). Al abrirla, Outlook la muestra llena; se guarda con <span class="ui">Guardar y cerrar</span>.</li>
       <li>Con hora: dura 1 hora, aparece como «Ocupado» y avisa 15 minutos antes. Sin hora: es de todo el día, «Libre», con aviso a las 9:00 a.m. del día anterior.</li>
       <li>Al asunto se le agrega el número del <a href="#identificador">identificador</a> si la encuesta tiene uno. En las notas van el nombre de la encuesta y las demás respuestas.</li>
-      <li>Solo se genera si la fecha (y hora) es hoy o futura. La hora sirve solo para la cita: no se guarda en las respuestas.</li>
+      <li>Solo se genera si la fecha (y hora) es hoy o futura.</li>
+      <li>Al buscar por <a href="#identificador">identificador</a> se precargan también la fecha y la hora de la última captura.</li>
     </ul>
   </section>
 

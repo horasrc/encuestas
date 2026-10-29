@@ -259,7 +259,7 @@ var SurveyLogic = (function ($) {
             case 'text': return a.text;
             case 'scale':
             case 'number': return String(a.number);
-            case 'date': return a.date;
+            case 'date': return a.date + (a.time ? ' ' + a.time : '');
             case 'matrix':
                 return $.map(q.matrix.rows, function (r) {
                     var cols = (a.matrix || {})[r.id];

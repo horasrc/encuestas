@@ -13,7 +13,7 @@
  *   mountSurvey($root, config)                      -> encuesta completa
  *
  * Formato de respuesta (igual al AnswerDto de C#):
- *   { optionIds: [], otherText: '', text: '', number: 0, date: 'yyyy-mm-dd',
+ *   { optionIds: [], otherText: '', text: '', number: 0, date: 'yyyy-mm-dd', time: 'HH:mm',
  *     matrix: { rowId: [colId] } }
  * ========================================================================= */
 var SurveyRenderer = (function ($) {
@@ -161,15 +161,15 @@ var SurveyRenderer = (function ($) {
     function renderDate(q, name) {
         var html = '<input type="date" class="form-control sv-date" name="' + esc(name) + '">';
         if (!q.outlook) return html;
-        // Cita para Outlook: se descarga al enviar si la casilla queda marcada. La hora no se guarda.
+        // Cita para Outlook: hora opcional (se guarda con la respuesta); la cita se descarga al enviar si la casilla queda marcada.
         return html +
             '<div class="sv-outlook-box mt-2">' +
-            '  <div class="form-check"><input class="form-check-input sv-outlook-check" type="checkbox" id="' + esc(name) + '_ol" checked>' +
-            '  <label class="form-check-label" for="' + esc(name) + '_ol"><i class="bi bi-calendar-plus me-1"></i>Agregar a mi calendario de Outlook al enviar</label></div>' +
             '  <div class="sv-outlook-time-row">' +
-            '    <label class="small text-muted" for="' + esc(name) + '_t">Hora de la cita (opcional)</label>' +
+            '    <label class="small text-muted" for="' + esc(name) + '_t">Hora (opcional)</label>' +
             '    <input type="time" class="form-control form-control-sm sv-outlook-time" id="' + esc(name) + '_t">' +
             '  </div>' +
+            '  <div class="form-check mt-2"><input class="form-check-input sv-outlook-check" type="checkbox" id="' + esc(name) + '_ol" checked>' +
+            '  <label class="form-check-label" for="' + esc(name) + '_ol"><i class="bi bi-calendar-plus me-1"></i>Agregar a mi calendario de Outlook al enviar</label></div>' +
             '</div>';
     }
 
@@ -314,11 +314,6 @@ var SurveyRenderer = (function ($) {
             });
         }
 
-        // Cita para Outlook: la hora solo aplica si se va a agregar al calendario.
-        $q.on('change', '.sv-outlook-check', function () {
-            $q.find('.sv-outlook-time-row').toggleClass('d-none', !this.checked);
-        });
-
         // Dependiente (múltiple): al marcar se despliegan los hijos; al desmarcar se limpian.
         $q.on('change', '.sv-dep-check', function () {
             var $node = $(this).closest('.sv-dep-node');
@@ -382,6 +377,9 @@ var SurveyRenderer = (function ($) {
                 break;
             case 'date':
                 a.date = $q.find('.sv-date').val() || null;
+                // Hora (fecha con cita para Outlook): solo cuenta si hay fecha.
+                var time = $q.find('.sv-outlook-time').val();
+                if (a.date && time) a.time = time;
                 break;
             case 'matrix':
                 a.matrix = {};
@@ -431,7 +429,7 @@ var SurveyRenderer = (function ($) {
                 break;
             case 'date':
                 $q.find('.sv-date').val(a.date || '');
-                $q.find('.sv-outlook-time').val('');
+                $q.find('.sv-outlook-time').val(a.time || '');
                 break;
             case 'matrix':
                 $q.find('tr[data-row-id]').each(function () {
@@ -696,7 +694,7 @@ var SurveyRenderer = (function ($) {
                 });
                 citas.push({
                     fecha: a.date,
-                    hora: $c.find('.sv-outlook-time').val() || '',
+                    hora: a.time || '',
                     asunto: $.trim(q.outlookSubject || '') || q.text || 'Cita',
                     notas: notas
                 });
