@@ -45,8 +45,8 @@ En el equipo de desarrollo:
    apuntando a la carpeta y usando el grupo `Encuestas`.
 4. **Autenticación** de la aplicación (IIS → Autenticación):
    - **Autenticación de Windows: Habilitada**
-   - **Autenticación anónima: Deshabilitada** ← importante: con acceso anónimo, guardar o enviar
-     puede fallar con "La página expiró" (el token antifalsificación está ligado al usuario).
+   - **Autenticación anónima: Deshabilitada** ← importante: con acceso anónimo, el módulo no
+     recibe el usuario (bitácora, "ya respondió" y encuestas que exigen autenticación).
 5. Permisos de carpeta: la identidad del grupo (`IIS AppPool\Encuestas`) necesita **lectura** sobre la carpeta.
 
 ## 4. Permisos en SQL Server

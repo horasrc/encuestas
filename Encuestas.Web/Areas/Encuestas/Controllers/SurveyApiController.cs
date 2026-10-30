@@ -38,10 +38,7 @@ namespace ModuloEncuestas.Controllers
     ///   GET  /Encuestas/Api/Eligibility/{surveyId}     -> EligibilityDto (¿puede responder ahora?)
     ///   POST /Encuestas/Api/Submit                     -> ApiResult&lt;string&gt;
     ///   POST /Encuestas/Api/LastResponse { surveyId, value } -> LastResponseDto (última captura con ese identificador)
-    ///
-    /// Todos los POST exigen el encabezado RequestVerificationToken.
     /// </summary>
-    [ValidateJsonAntiForgeryToken]
     public class SurveyApiController : Controller
     {
         /// <summary>Acciones que solo puede usar quien administra (SurveyScope.CanAdminister).</summary>

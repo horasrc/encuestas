@@ -1,7 +1,7 @@
 ﻿<#
   e2e-tests.ps1
   Pruebas de integración contra el sitio en ejecución (IIS Express + SQL Server):
-  autenticación de Windows, token antifalsificación, guardado y publicación en SQL,
+  autenticación de Windows, guardado y publicación en SQL,
   lógica condicional en servidor, una respuesta por usuario, resultados, versionado,
   crear / duplicar / eliminar.
 
@@ -29,14 +29,12 @@ function Req($method, $url, $body, $headers) {
     return @{ code = $code; body = $txt }
 }
 $page = Req GET "$base/Encuestas/Constructor/1"
-$token = [regex]::Match($page.body, 'name="__RequestVerificationToken" type="hidden" value="([^"]+)"').Groups[1].Value
-Check 'Constructor renderiza token antifalsificación' ([bool]$token) "sin token (HTTP $($page.code))"
 Check 'Config en modo servidor' ($page.body -match 'useMock: false') 'useMock no es false'
 $anon = [Net.HttpWebRequest]::Create("$base/Encuestas"); try { $anon.GetResponse().Close(); $anonCode = 200 } catch [Net.WebException] { $anonCode = [int]$_.Exception.Response.StatusCode }
 Check 'Sin credenciales de Windows: 401' ($anonCode -eq 401) "HTTP $anonCode"
 
 function Api($method, $path, $body) {
-    $headers = @{ 'X-Requested-With' = 'XMLHttpRequest'; 'RequestVerificationToken' = $token }
+    $headers = @{ 'X-Requested-With' = 'XMLHttpRequest' }
     $json = if ($body) { $body | ConvertTo-Json -Depth 30 } else { $null }
     $r = Req $method "$base$path" $json $headers
     try { return $r.body | ConvertFrom-Json } catch { return @{ ok = $false; message = "HTTP $($r.code): $($r.body.Substring(0, [Math]::Min(300, $r.body.Length)))" } }
@@ -49,7 +47,7 @@ Check 'Encuesta 1 cargada desde SQL' ($v1.questions.Count -eq 7) "preguntas=$($v
 $v1.questions[0].text = '¿Qué tan útil fue el material de la campaña? (editado)'
 $v1.settings.startDate = (Get-Date).ToString('yyyy-MM-dd')
 $r = Api POST '/Encuestas/Api/SaveDraft' @{ surveyId = '1'; name = $survey.name; version = $v1 }
-Check 'SaveDraft (POST con token)' $r.ok $r.message
+Check 'SaveDraft (POST)' $r.ok $r.message
 $reload = Api GET '/Encuestas/Api/Survey/1'
 Check 'Cambio persistido en SQL' ($reload.versions[0].questions[0].text -like '*(editado)') $reload.versions[0].questions[0].text
 $q4 = $reload.versions[0].questions | ? { $_.rules.Count -gt 0 }
@@ -57,13 +55,7 @@ Check 'Reglas condicionales conservadas tras reescribir' ($q4.rules.Count -eq 3 
 $dep = $reload.versions[0].questions | ? { $_.type -eq 'dependent' }
 Check 'Árbol dependiente conservado' ($dep.dependent.options.Count -eq 17 -and $dep.dependent.levels.Count -eq 3) "opciones=$($dep.dependent.options.Count)"
 
-# 2. POST sin token -> rechazado
-$tok = $token; $token = 'invalido'
-$r = Api POST '/Encuestas/Api/SaveDraft' @{ surveyId = '1'; version = $v1 }
-$token = $tok
-Check 'POST con token inválido rechazado' (-not $r.ok -and $r.message -like '*expiró*') $r.message
-
-# 3. Publicar
+# 2. Publicar
 $r = Api POST '/Encuestas/Api/Publish' @{ surveyId = '1'; versionId = $reload.versions[0].id }
 Check 'Publish' $r.ok "$($r.message) $($r.errors -join '; ')"
 

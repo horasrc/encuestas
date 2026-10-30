@@ -31,7 +31,7 @@ Areas\Encuestas\
   Controllers\                   EncuestasController (páginas) · SurveyApiController (API JSON)
   Services\                      reglas de negocio, lógica condicional, repositorios SQL
   Models\                        DTOs, entidades, view models
-  Infrastructure\                autorización, token antifalsificación, JSON, URLs versionadas
+  Infrastructure\                autorización, JSON, URLs versionadas
   Views\                         vistas Razor + layout propio + Web.config de Razor
   Scripts\  Content\             JS y CSS del módulo + Bootstrap 5.2.3, jQuery 3.7.1, Bootstrap Icons (locales)
   Web.config                     tipos MIME de las fuentes de iconos
@@ -97,8 +97,8 @@ ModuloEncuestas.Infrastructure.SurveyUser.Resolver =
 Debe devolver el mismo tipo de valor que el portal pone en `Team`, o `null` si no hay usuario.
 
 Con autenticación de Windows **la autenticación anónima debe estar deshabilitada en IIS** para el sitio (o al
-menos para `/Encuestas`); si no, al guardar o enviar puede aparecer "La página expiró por seguridad". El token
-antifalsificación de los POST se conserva: protege contra envíos desde otros sitios y no restringe a nadie.
+menos para `/Encuestas`); si no, el módulo no recibe el usuario. Los POST de la API **no llevan token
+antifalsificación**: no están protegidos contra envíos desde otros sitios.
 
 Recomendado (lo usa el proyecto de ejemplo en `Global.asax.cs` y `App_Start\RouteConfig.cs`):
 - En la ruta `Default` del portal, `route.DataTokens["UseNamespaceFallback"] = false;` con el espacio de

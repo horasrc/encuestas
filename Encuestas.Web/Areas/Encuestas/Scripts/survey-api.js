@@ -101,17 +101,12 @@ var SurveyApi = (function ($) {
         }
     };
 
-    /** Token antifalsificación que genera @Html.AntiForgeryToken() en _SurveyConfig.cshtml. */
-    function antiForgeryToken() {
-        return $('input[name="__RequestVerificationToken"]').first().val() || '';
-    }
-
     /**
      * Encabezados de cada llamada: el segmento del portal (codificado para admitir acentos).
      * Se ponen por llamada y no con $.ajaxSetup para no afectar las llamadas del portal.
      */
-    function headers(extra) {
-        var h = $.extend({}, extra);
+    function headers() {
+        var h = {};
         if (cfg.segment) h['X-Survey-Segment'] = encodeURIComponent(cfg.segment);
         return h;
     }
@@ -121,7 +116,7 @@ var SurveyApi = (function ($) {
     }
 
     /**
-     * POST JSON con el token en el encabezado RequestVerificationToken.
+     * POST JSON.
      * Los errores 400/401/403 del servidor vienen como ApiResult y se resuelven igual.
      */
     function post(url, body) {
@@ -131,7 +126,7 @@ var SurveyApi = (function ($) {
             type: 'POST',
             contentType: 'application/json; charset=utf-8',
             dataType: 'json',
-            headers: headers({ RequestVerificationToken: antiForgeryToken() }),
+            headers: headers(),
             data: JSON.stringify(body)
         })
             .done(function (r) { d.resolve(r); })

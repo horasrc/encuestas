@@ -1,12 +1,10 @@
 ﻿@model SurveyPageViewModel
 @* Configuración que el servidor entrega al JavaScript (ver survey-api.js).
-   El token antifalsificación lo lee survey-api.js y lo envía en cada POST.
    Las URL de las páginas conservan el segmento y el modo marco (embed) al navegar. *@
 @{
     var embed = Model.Embedded ? (bool?)true : null;
     var segmento = string.IsNullOrEmpty(Model.Segment) ? null : Model.Segment;
 }
-@Html.AntiForgeryToken()
 <script>
     window.SURVEY_CONFIG = {
         surveyId: @Html.Raw(HttpUtility.JavaScriptStringEncode(Model.SurveyId ?? "", true)),

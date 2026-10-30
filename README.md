@@ -60,7 +60,7 @@ Encuestas.Web\Areas\Encuestas\
   Services\       SurveyService (versionado, publicación, envío, bitácora) · SurveyLogic (lógica condicional
                   y validación en servidor) · SqlSurveyRepository · ISurveyRepository · SurveySchema
   Models\         Dto · Entities · ViewModels
-  Infrastructure\ SurveyAccess (tramo de control del portal) · SurveyUser · ValidateJsonAntiForgeryToken · JsonNetResult · Url.Versioned
+  Infrastructure\ SurveyAccess (tramo de control del portal) · SurveyUser · JsonNetResult · Url.Versioned
   Views\          Encuestas\ (Index, Constructor + parciales, Pendientes, Responder, _Encuestas = vista parcial para Radar)
                   · Shared\_LayoutEncuestas · Shared\_LayoutEmbed · Web.config
   Scripts\        survey-utils · survey-types · survey-logic · survey-renderer · survey-outlook · survey-api · survey-store ·
@@ -90,7 +90,7 @@ Integración (sitio corriendo contra LocalDB; **modifica datos**, usa una base d
     powershell -ExecutionPolicy Bypass -File tools\setup-db.ps1 -Database PortalEncuestasPruebas -Recreate
     powershell -ExecutionPolicy Bypass -File tests\e2e-tests.ps1 -Base http://localhost:51842
 
-33 pruebas: autenticación de Windows, token antifalsificación, guardado/publicación en SQL, lógica condicional
+31 pruebas: autenticación de Windows, guardado/publicación en SQL, lógica condicional
 en servidor, una respuesta por usuario, resultados, versionado, crear/duplicar/eliminar.
 
 ## Base de datos (esquema `enc`)
@@ -121,8 +121,8 @@ Cómo guarda `Services/SqlSurveyRepository.cs`:
   usuario: `Infrastructure/SurveyUser.cs` (por defecto `User.Identity.Name`; el portal puede asignar `SurveyUser.Resolver`).
 - El sitio de prueba de este repositorio simula un portal con usuario de Windows obligatorio (`<deny users="?" />`).
   Con Windows Authentication la identidad es por conexión: si se permitiera el acceso anónimo, algunos POST llegarían
-  sin usuario y el token antifalsificación fallaría. En IIS: habilitar **Autenticación de Windows** y deshabilitar la anónima.
-- Todos los POST de la API exigen el token antifalsificación (encabezado `RequestVerificationToken`, lo envía `survey-api.js`).
+  sin usuario. En IIS: habilitar **Autenticación de Windows** y deshabilitar la anónima.
+- Los POST de la API no llevan token antifalsificación: no están protegidos contra envíos desde otros sitios.
 - Quien responde solo recibe la versión publicada (`/Encuestas/Api/Published/{id}`), sin borradores ni segmentos.
 - Al enviar, el servidor recalcula la lógica condicional (`SurveyLogic.cs`, puerto de `survey-logic.js`):
   exige solo las obligatorias visibles, aplica límites y descarta respuestas de preguntas ocultas u opciones inexistentes.
